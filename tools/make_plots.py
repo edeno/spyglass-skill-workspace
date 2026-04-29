@@ -1066,6 +1066,7 @@ def parse_transcripts(
             "condition": cond,
             "n_read_calls": 0,
             "n_bash_calls": 0,
+            "n_tool_errors": 0,
             "ref_opens": Counter(),
             "script_executions": Counter(),
             "script_source_reads": Counter(),
@@ -1083,7 +1084,12 @@ def parse_transcripts(
             if not isinstance(content, list):
                 continue
             for block in content:
-                if not (isinstance(block, dict) and block.get("type") == "tool_use"):
+                if not isinstance(block, dict):
+                    continue
+                if block.get("type") == "tool_result" and block.get("is_error"):
+                    rec["n_tool_errors"] += 1
+                    continue
+                if block.get("type") != "tool_use":
                     continue
                 name = block.get("name") or ""
                 inp = block.get("input") or {}
@@ -1115,12 +1121,19 @@ def parse_transcripts(
                             rec["script_executions"][s] += 1
                     if "skills/spyglass/" in cmd:
                         rec["skill_dir_touches"] += 1
-                elif name in ("Glob", "LS"):
+                    # Source-assistance via cat/head/grep/etc. — round-c hand-audit
+                    # found ~9 baseline runs using Bash to inspect Spyglass source
+                    # rather than the Read tool, so the heuristic must catch both.
+                    if "/spyglass/src/" in cmd and "skills/spyglass/" not in cmd:
+                        rec["spyglass_src_reads"] += 1
+                elif name in ("Glob", "LS", "Grep"):
                     target = (
                         inp.get("pattern") or inp.get("path") or ""
                     )
                     if "skills/spyglass/" in target:
                         rec["skill_dir_touches"] += 1
+                    if "/spyglass/src/" in target and "skills/spyglass/" not in target:
+                        rec["spyglass_src_reads"] += 1
                 elif name == "WebFetch":
                     # Counts as "agent consulted upstream Spyglass source" if
                     # the URL points at the Spyglass GitHub repo (any branch /
@@ -1143,6 +1156,7 @@ def write_transcript_stats(records: list[dict], total_ws: int, total_bs: int) ->
     """
     n_read = {"with_skill": 0, "without_skill": 0}
     n_bash = {"with_skill": 0, "without_skill": 0}
+    n_errors = {"with_skill": 0, "without_skill": 0}
     src_runs = {"with_skill": set(), "without_skill": set()}
     bs_skill_contaminated: set[str] = set()
     ws_evals_opened_skill_md: set[tuple[int, int]] = set()
@@ -1151,6 +1165,7 @@ def write_transcript_stats(records: list[dict], total_ws: int, total_bs: int) ->
         cond = r["condition"]
         n_read[cond] = n_read.get(cond, 0) + r["n_read_calls"]
         n_bash[cond] = n_bash.get(cond, 0) + r["n_bash_calls"]
+        n_errors[cond] = n_errors.get(cond, 0) + r["n_tool_errors"]
         if r["spyglass_src_reads"] > 0:
             src_runs[cond].add(r["agent_id"])
         if cond == "without_skill" and r["skill_dir_touches"] > 0:
@@ -1164,21 +1179,27 @@ def write_transcript_stats(records: list[dict], total_ws: int, total_bs: int) ->
         "n_with_skill_transcripts": total_ws,
         "n_without_skill_transcripts": total_bs,
         "tool_calls": {
-            "with_skill": {"read": n_read["with_skill"], "bash": n_bash["with_skill"]},
+            "with_skill": {
+                "read": n_read["with_skill"],
+                "bash": n_bash["with_skill"],
+                "errors": n_errors["with_skill"],
+            },
             "without_skill": {
                 "read": n_read["without_skill"],
                 "bash": n_bash["without_skill"],
+                "errors": n_errors["without_skill"],
             },
+            "errors_note": "n tool_result blocks with is_error=true. Reflects retried/recovered failures inside a transcript — not whether the eval ultimately passed.",
         },
         "spyglass_src_assisted_runs": {
             "with_skill": len(src_runs["with_skill"]),
             "without_skill": len(src_runs["without_skill"]),
             "note": (
-                "n transcripts where any Read touched /spyglass/src/ outside "
-                "skills/spyglass/, OR a WebFetch hit github.com/LorenFrankLab/spyglass "
-                "or spyglass.readthedocs. Mechanical proxy for 'agent consulted "
-                "upstream Spyglass source'. May undercount vs hand-audit if the "
-                "agent reasoned about source via grep/cat without an explicit Read."
+                "n transcripts where any tool reached /spyglass/src/ outside "
+                "skills/spyglass/, OR WebFetched github.com/LorenFrankLab/spyglass "
+                "or spyglass.readthedocs. Includes Read paths, Bash commands "
+                "(cat/head/grep on source), and Glob/LS/Grep targets. Mechanical "
+                "proxy for 'agent consulted upstream Spyglass source'."
             ),
         },
         "baseline_skill_contamination": {
