@@ -34,7 +34,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -42,23 +41,17 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Module-level state populated by configure_run() / configure_skill_root().
-# Plot functions read these globals, mirroring the original layout. Importers
-# that want to invoke individual plot functions should call configure_run(),
-# then configure_skill_root(), before any plot_*() call.
-#
-# Initialized to an obviously-bogus sentinel path so type checkers see a
-# concrete Path (not Optional) and any plot_*() call before configuration
-# fails loudly with a FileNotFoundError on a path that's clearly a marker.
+from _util import discover_iterations, find_skill_root
+
+# Sentinel placeholder lets the type checker see a concrete Path. Using one
+# in a path op before configure_run() raises FileNotFoundError against
+# `/__not_configured__/...` — clearly a marker, not a real bug.
 _UNCONFIGURED = Path("/__not_configured__")
 OUT: Path = _UNCONFIGURED
 WORKSPACE: Path = _UNCONFIGURED
 EVALS_PATH: Path = _UNCONFIGURED
 BATCH_ORDER: list[int] = []
 BATCH_LABELS: dict[int, str] = {}
-
-# Repo root = parent of tools/. Used for sibling-clone fallback.
-_REPO_ROOT = Path(__file__).resolve().parent.parent
 
 WONG = {
     "ws": "#0072B2",
@@ -71,18 +64,46 @@ WONG = {
 }
 
 
-def discover_batches(run_dir: Path) -> list[int]:
-    """Return sorted list of batch IDs from `iteration-N/` subdirs."""
-    batches: list[int] = []
-    for p in run_dir.glob("iteration-*"):
-        if not p.is_dir():
-            continue
-        suffix = p.name.split("-", 1)[1]
-        if suffix.isdigit():
-            batches.append(int(suffix))
-    if not batches:
-        raise SystemExit(f"No iteration-N/ dirs found under {run_dir}")
-    return sorted(batches)
+def delta_color(d: float) -> str:
+    """WONG palette entry for a per-batch / per-category delta."""
+    if d > 0:
+        return WONG["delta_pos"]
+    if d < 0:
+        return WONG["delta_neg"]
+    return WONG["neutral"]
+
+
+def summarize_benchmarks(benchmarks: dict[int, dict]) -> dict:
+    """Cumulative ws/bs counts across all batches.
+
+    Used by `plot_cumulative_summary` and `write_cumulative_summary_json` —
+    keeping the aggregation in one place avoids drift if the per-batch
+    `benchmark.json` schema changes.
+    """
+    totals = {"ws": {}, "bs": {}}
+    for cond_key, cond_name in (("ws", "with_skill"), ("bs", "without_skill")):
+        totals[cond_key] = {
+            "full_pass": sum(
+                b["configurations"][cond_name]["evals_full_pass"]
+                for b in benchmarks.values()
+            ),
+            "n_runs": sum(
+                b["configurations"][cond_name]["n_runs"] for b in benchmarks.values()
+            ),
+            "exp_p": sum(
+                b["configurations"][cond_name]["expectations_passed"]
+                for b in benchmarks.values()
+            ),
+            "exp_t": sum(
+                b["configurations"][cond_name]["expectations_total"]
+                for b in benchmarks.values()
+            ),
+            "tokens": sum(
+                b["configurations"][cond_name]["tokens_total"]
+                for b in benchmarks.values()
+            ),
+        }
+    return totals
 
 
 def load_batch_labels(run_dir: Path, batch_order: list[int]) -> dict[int, str]:
@@ -108,44 +129,10 @@ def configure_run(run_dir: Path, out_dir: Path | None = None) -> None:
     WORKSPACE = run_dir.resolve()
     OUT = (out_dir or WORKSPACE / "summary").resolve()
     OUT.mkdir(parents=True, exist_ok=True)
-    BATCH_ORDER = discover_batches(WORKSPACE)
+    BATCH_ORDER = discover_iterations(WORKSPACE)
+    if not BATCH_ORDER:
+        raise SystemExit(f"No iteration-N/ dirs found under {WORKSPACE}")
     BATCH_LABELS = load_batch_labels(WORKSPACE, BATCH_ORDER)
-
-
-def find_skill_root(args_skill_root: Path | None) -> Path:
-    """Locate the spyglass-skill repo root.
-
-    Resolution order:
-    1. --skill-root CLI arg (explicit override)
-    2. SPYGLASS_SKILL environment variable
-    3. Sibling-clone convention: ../spyglass-skill/ relative to the workspace repo
-    """
-    marker = ("skills", "spyglass", "SKILL.md")
-
-    if args_skill_root:
-        candidate = args_skill_root.expanduser().resolve()
-        if (candidate.joinpath(*marker)).is_file():
-            return candidate
-        raise SystemExit(
-            f"--skill-root {candidate} is not a spyglass-skill repo "
-            f"(missing {'/'.join(marker)})"
-        )
-
-    env_path = os.environ.get("SPYGLASS_SKILL")
-    if env_path:
-        candidate = Path(env_path).expanduser().resolve()
-        if (candidate.joinpath(*marker)).is_file():
-            return candidate
-
-    sibling = _REPO_ROOT.parent / "spyglass-skill"
-    if (sibling.joinpath(*marker)).is_file():
-        return sibling.resolve()
-
-    raise SystemExit(
-        "Could not locate spyglass-skill repo. Pass --skill-root <path>, "
-        "set SPYGLASS_SKILL=<path>, or clone spyglass-skill as a sibling "
-        f"of {_REPO_ROOT}."
-    )
 
 
 def configure_skill_root(skill_root: Path | None = None) -> None:
@@ -365,14 +352,7 @@ def plot_delta_per_batch(benchmarks: dict[int, dict]) -> None:
             "Total expectation delta (with_skill − baseline)",
         ),
     ]:
-        colors = [
-            WONG["delta_pos"]
-            if d > 0
-            else WONG["delta_neg"]
-            if d < 0
-            else WONG["neutral"]
-            for d in deltas
-        ]
+        colors = [delta_color(d) for d in deltas]
         bars = ax.bar(x, deltas, color=colors, width=0.7)
         for bar, d in zip(bars, deltas):
             ax.text(
@@ -459,22 +439,11 @@ def plot_tokens_and_duration(benchmarks: dict[int, dict]) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(13, 5.5), constrained_layout=True)
     x = np.arange(len(BATCH_ORDER))
     width = 0.38
-    ws_tokens = [
-        benchmarks[b]["configurations"]["with_skill"]["tokens_mean"] / 1000
-        for b in BATCH_ORDER
-    ]
-    bs_tokens = [
-        benchmarks[b]["configurations"]["without_skill"]["tokens_mean"] / 1000
-        for b in BATCH_ORDER
-    ]
-    ws_dur = [
-        benchmarks[b]["configurations"]["with_skill"]["duration_mean_s"]
-        for b in BATCH_ORDER
-    ]
-    bs_dur = [
-        benchmarks[b]["configurations"]["without_skill"]["duration_mean_s"]
-        for b in BATCH_ORDER
-    ]
+    cfgs = [benchmarks[b]["configurations"] for b in BATCH_ORDER]
+    ws_tokens = [c["with_skill"]["tokens_mean"] / 1000 for c in cfgs]
+    bs_tokens = [c["without_skill"]["tokens_mean"] / 1000 for c in cfgs]
+    ws_dur = [c["with_skill"]["duration_mean_s"] for c in cfgs]
+    bs_dur = [c["without_skill"]["duration_mean_s"] for c in cfgs]
     axes[0].bar(x - width / 2, ws_tokens, width, label="with skill", color=WONG["ws"])
     axes[0].bar(x + width / 2, bs_tokens, width, label="baseline", color=WONG["bs"])
     axes[0].set_xticks(x)
@@ -496,36 +465,12 @@ def plot_tokens_and_duration(benchmarks: dict[int, dict]) -> None:
 
 def plot_cumulative_summary(benchmarks: dict[int, dict]) -> None:
     fig, ax = plt.subplots(figsize=(10, 4.5), constrained_layout=True)
-    ws_full = sum(
-        b["configurations"]["with_skill"]["evals_full_pass"]
-        for b in benchmarks.values()
-    )
-    bs_full = sum(
-        b["configurations"]["without_skill"]["evals_full_pass"]
-        for b in benchmarks.values()
-    )
-    n_evals = sum(
-        b["configurations"]["with_skill"]["n_runs"] for b in benchmarks.values()
-    )
-    ws_exp_p = sum(
-        b["configurations"]["with_skill"]["expectations_passed"]
-        for b in benchmarks.values()
-    )
-    ws_exp_t = sum(
-        b["configurations"]["with_skill"]["expectations_total"]
-        for b in benchmarks.values()
-    )
-    bs_exp_p = sum(
-        b["configurations"]["without_skill"]["expectations_passed"]
-        for b in benchmarks.values()
-    )
-    bs_exp_t = sum(
-        b["configurations"]["without_skill"]["expectations_total"]
-        for b in benchmarks.values()
-    )
+    totals = summarize_benchmarks(benchmarks)
+    ws, bs = totals["ws"], totals["bs"]
+    n_evals = ws["n_runs"]
     rows = [
-        ("Evals fully pass", ws_full, n_evals, bs_full, n_evals),
-        ("Expectations", ws_exp_p, ws_exp_t, bs_exp_p, bs_exp_t),
+        ("Evals fully pass", ws["full_pass"], n_evals, bs["full_pass"], n_evals),
+        ("Expectations", ws["exp_p"], ws["exp_t"], bs["exp_p"], bs["exp_t"]),
     ]
     y_positions = np.arange(len(rows))
     bar_height = 0.36
@@ -579,10 +524,10 @@ def plot_cumulative_summary(benchmarks: dict[int, dict]) -> None:
     plt.close(fig)
 
 
-def plot_by_category(benchmarks: dict[int, dict]) -> None:
+def plot_by_category(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
     """Two-panel: per-eval pass rates grouped by stage and by tier."""
-    cats = load_eval_categories()
-    per_eval = load_per_eval_results(benchmarks)
 
     def aggregate(key: str) -> list[tuple[str, int, int, int, int]]:
         """Return [(category, ws_pass_n, ws_total, bs_pass_n, bs_total), ...] sorted by total desc."""
@@ -638,20 +583,13 @@ def plot_by_category(benchmarks: dict[int, dict]) -> None:
                 color=WONG["bs"],
             )
             d = deltas[i]
-            color = (
-                WONG["delta_pos"]
-                if d > 0
-                else WONG["delta_neg"]
-                if d < 0
-                else WONG["neutral"]
-            )
             ax.text(
                 108,
                 y[i],
                 f"Δ {d:+.0f}pp",
                 va="center",
                 fontsize=9,
-                color=color,
+                color=delta_color(d),
                 fontweight="bold",
             )
 
@@ -671,10 +609,10 @@ def plot_by_category(benchmarks: dict[int, dict]) -> None:
     plt.close(fig)
 
 
-def plot_by_difficulty(benchmarks: dict[int, dict]) -> None:
+def plot_by_difficulty(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
     """Per-difficulty pass rate (easy / medium / hard) and outcome breakdown."""
-    cats = load_eval_categories()
-    per_eval = load_per_eval_results(benchmarks)
     diff_order = ["easy", "medium", "hard"]
 
     agg: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0, 0, 0])
@@ -697,7 +635,6 @@ def plot_by_difficulty(benchmarks: dict[int, dict]) -> None:
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5.5), constrained_layout=True)
 
-    # Panel A: pass rate per difficulty.
     x = np.arange(len(diff_order))
     width = 0.38
     ws_rates = [100 * agg[d][0] / agg[d][1] if agg[d][1] else 0 for d in diff_order]
@@ -735,7 +672,6 @@ def plot_by_difficulty(benchmarks: dict[int, dict]) -> None:
     axes[0].legend(loc="lower right", frameon=False, fontsize=10)
     axes[0].grid(axis="y", alpha=0.3, linestyle=":")
 
-    # Panel B: outcome breakdown per difficulty.
     bottom = np.zeros(len(diff_order))
     series = [
         ([outcomes[d][0] for d in diff_order], "both pass", WONG["both_pass"]),
@@ -775,19 +711,28 @@ def plot_by_difficulty(benchmarks: dict[int, dict]) -> None:
     plt.close(fig)
 
 
-def plot_difficulty_x_stage_heatmap(benchmarks: dict[int, dict]) -> None:
+def plot_difficulty_x_stage_heatmap(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
     """Heatmap: skill delta (pp) by difficulty × stage. Reveals where the skill helps on hard prompts."""
-    cats = load_eval_categories()
-    per_eval = load_per_eval_results(benchmarks)
     diff_order = ["easy", "medium", "hard"]
 
-    # Order stages by total skill lift (across all difficulties).
-    stage_lift = defaultdict(lambda: [0, 0, 0])  # [ws_pass, bs_pass, total]
+    # Single pass: bucket every per_eval row into both stage_lift (for stage
+    # ordering) and cell (stage, difficulty) totals.
+    stage_lift: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
+    cell: dict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0, 0])
     for r in per_eval:
-        s = cats.get(r["eval_id"], {}).get("stage", "unknown")
-        stage_lift[s][0] += int(r["ws_pass"])
-        stage_lift[s][1] += int(r["bs_pass"])
+        cat = cats.get(r["eval_id"], {})
+        s = cat.get("stage", "unknown")
+        d = cat.get("difficulty", "unknown")
+        ws_p, bs_p = int(r["ws_pass"]), int(r["bs_pass"])
+        stage_lift[s][0] += ws_p
+        stage_lift[s][1] += bs_p
         stage_lift[s][2] += 1
+        cell[(s, d)][0] += ws_p
+        cell[(s, d)][1] += bs_p
+        cell[(s, d)][2] += 1
+
     stage_order = sorted(
         stage_lift.keys(),
         key=lambda s: -100 * (stage_lift[s][0] - stage_lift[s][1]) / stage_lift[s][2],
@@ -797,16 +742,10 @@ def plot_difficulty_x_stage_heatmap(benchmarks: dict[int, dict]) -> None:
     counts = np.zeros((len(stage_order), len(diff_order)), dtype=int)
     for i, s in enumerate(stage_order):
         for j, d in enumerate(diff_order):
-            ws = bs = n = 0
-            for r in per_eval:
-                cat = cats.get(r["eval_id"], {})
-                if cat.get("stage") == s and cat.get("difficulty") == d:
-                    ws += int(r["ws_pass"])
-                    bs += int(r["bs_pass"])
-                    n += 1
+            ws_p, bs_p, n = cell.get((s, d), [0, 0, 0])
             counts[i, j] = n
             if n > 0:
-                delta[i, j] = 100 * (ws - bs) / n
+                delta[i, j] = 100 * (ws_p - bs_p) / n
 
     fig, ax = plt.subplots(figsize=(8, 9), constrained_layout=True)
     cmap = plt.cm.RdYlGn
@@ -845,10 +784,10 @@ def plot_difficulty_x_stage_heatmap(benchmarks: dict[int, dict]) -> None:
     plt.close(fig)
 
 
-def plot_per_eval_scatter(benchmarks: dict[int, dict]) -> None:
+def plot_per_eval_scatter(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
     """Per-eval scatter: skill expectation pass rate vs baseline. Each dot is one eval."""
-    per_eval = load_per_eval_results(benchmarks)
-    cats = load_eval_categories()
 
     ws_rates, bs_rates, sizes, colors, names = [], [], [], [], []
     diff_color = {
@@ -963,10 +902,10 @@ def plot_per_eval_scatter(benchmarks: dict[int, dict]) -> None:
     plt.close(fig)
 
 
-def plot_top_skill_wins(benchmarks: dict[int, dict]) -> None:
+def plot_top_skill_wins(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
     """Horizontal bar: top-15 evals where skill helped most (largest passed-count delta)."""
-    per_eval = load_per_eval_results(benchmarks)
-    cats = load_eval_categories()
 
     items = []
     for r in per_eval:
@@ -1083,7 +1022,6 @@ def build_agent_to_run() -> dict[str, tuple[int, int, str]]:
     return agent_to_run
 
 
-# Module-level so plot_script_utilization and the transcript loop both see it.
 TRACKED_SCRIPTS = [
     "code_graph.py",  # static FK / source-walker — agent-facing
     "db_graph.py",  # live-DB introspection — agent-facing
@@ -1261,32 +1199,13 @@ def write_transcript_stats(records: list[dict], total_ws: int, total_bs: int) ->
     (OUT / "transcript_stats.json").write_text(json.dumps(payload, indent=2) + "\n")
 
 
-def plot_reference_utilization() -> None:
-    """Per-reference utilization: % of with_skill runs that opened each reference file.
-
-    Reads subagent transcripts from `<run>/summary/transcripts_snapshot/`. Each .jsonl
-    file is one subagent's full tool-call history. We count Read tool calls into
-    `skills/spyglass/references/` and group by run. Also writes
-    `transcript_stats.json` covering aggregate cost-shape and baseline-contamination
-    numbers cited in SUMMARY.md.
-
-    To refresh the snapshot from a live session, see snapshot_transcripts.py.
-    """
-    snapshot_dir = OUT / "transcripts_snapshot"
-    if not snapshot_dir.exists() or not any(snapshot_dir.iterdir()):
-        print(
-            f"Skipping reference utilization plot: snapshot dir empty at {snapshot_dir}"
-        )
-        print("  Run snapshot_transcripts.py first to populate it.")
-        return
-
-    agent_to_run = build_agent_to_run()
-    records = parse_transcripts(snapshot_dir, agent_to_run)
-
+def plot_reference_utilization(
+    agent_to_run: dict[str, tuple[int, int, str]], records: list[dict]
+) -> None:
+    """Per-reference utilization plot + ref_utilization.json + transcript_stats.json."""
     total_ws = sum(1 for v in agent_to_run.values() if v[2] == "with_skill")
     total_bs = sum(1 for v in agent_to_run.values() if v[2] == "without_skill")
 
-    # Per-with_skill-run: which references did this run open at least once?
     ref_runs_using: Counter = Counter()
     for r in records:
         if r["condition"] != "with_skill":
@@ -1294,11 +1213,6 @@ def plot_reference_utilization() -> None:
         for ref in r["ref_opens"]:
             ref_runs_using[ref] += 1
 
-    # Persist counts so the plot is reproducible without re-parsing transcripts.
-    # Schema: {total_ws_runs, ref_runs_using: {ref: count}}, sorted by count desc
-    # (matching the plot's most_common() display order). The committed round-c
-    # snapshot of this file from a prior script version had duplicate keys —
-    # ignore it; this clean version replaces it.
     payload = {
         "total_ws_runs": total_ws,
         "ref_runs_using": dict(ref_runs_using.most_common()),
@@ -1306,7 +1220,7 @@ def plot_reference_utilization() -> None:
     (OUT / "ref_utilization.json").write_text(json.dumps(payload, indent=2) + "\n")
     write_transcript_stats(records, total_ws, total_bs)
 
-    # Drop SKILL.md (always read by construction); plot the references.
+    # SKILL.md is always read by construction — show it in the footer text only.
     refs = [(r, n) for r, n in ref_runs_using.most_common() if r != "SKILL.md"][:20]
 
     fig, ax = plt.subplots(figsize=(11, 8), constrained_layout=True)
@@ -1370,22 +1284,17 @@ def _is_script_execution(cmd: str, script: str) -> bool:
     return re.search(pat, cmd) is not None
 
 
-def plot_script_utilization() -> None:
+def plot_script_utilization(
+    agent_to_run: dict[str, tuple[int, int, str]], records: list[dict]
+) -> None:
     """Per-script utilization: bundled scripts under skills/spyglass/scripts/.
 
     Counts Bash tool calls that **executed** each script (not just mentioned its
     filename — see _is_script_execution), plus Read tool calls that opened the
-    script source. Reads from <run>/summary/transcripts_snapshot/.
+    script source.
     """
-    snapshot_dir = OUT / "transcripts_snapshot"
-    if not snapshot_dir.exists() or not any(snapshot_dir.iterdir()):
-        print(f"Skipping script utilization plot: snapshot dir empty at {snapshot_dir}")
-        return
-
     scripts = TRACKED_SCRIPTS
     role = TRACKED_SCRIPT_ROLES
-    agent_to_run = build_agent_to_run()
-    records = parse_transcripts(snapshot_dir, agent_to_run)
 
     bash_inv: dict[str, Counter] = defaultdict(Counter)  # script -> {cond: count}
     bash_runs: dict[str, dict[str, set]] = defaultdict(lambda: defaultdict(set))
@@ -1433,7 +1342,6 @@ def plot_script_utilization() -> None:
     fig, ax = plt.subplots(figsize=(11, 6.5), constrained_layout=True)
     y = np.arange(len(scripts))
 
-    # Two stacked bars per script: invocations (executed) and reads (inspected source).
     invokes_ws = [bash_inv[s].get("with_skill", 0) for s in scripts]
     runs_ws = [len(bash_runs[s].get("with_skill", set())) for s in scripts]
     reads_ws = [read_inv[s].get("with_skill", 0) for s in scripts]
@@ -1500,10 +1408,10 @@ def plot_script_utilization() -> None:
     plt.close(fig)
 
 
-def write_per_category_csv() -> None:
+def write_per_category_csv(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
     """Side artifact: detailed numbers behind the category plot."""
-    cats = load_eval_categories()
-    per_eval = load_per_eval_results(load_benchmarks())
     out_lines = ["category_kind,category,n_evals,ws_pass,bs_pass,delta_pp"]
     for kind in ("stage", "tier", "difficulty"):
         agg: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
@@ -1555,40 +1463,13 @@ def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
 
 def write_cumulative_summary_json(benchmarks: dict[int, dict]) -> None:
     """Headline cumulative numbers — the SUMMARY.md headline table in JSON."""
-    ws_full = sum(
-        b["configurations"]["with_skill"]["evals_full_pass"]
-        for b in benchmarks.values()
-    )
-    bs_full = sum(
-        b["configurations"]["without_skill"]["evals_full_pass"]
-        for b in benchmarks.values()
-    )
-    n_evals = sum(
-        b["configurations"]["with_skill"]["n_runs"] for b in benchmarks.values()
-    )
-    ws_exp_p = sum(
-        b["configurations"]["with_skill"]["expectations_passed"]
-        for b in benchmarks.values()
-    )
-    ws_exp_t = sum(
-        b["configurations"]["with_skill"]["expectations_total"]
-        for b in benchmarks.values()
-    )
-    bs_exp_p = sum(
-        b["configurations"]["without_skill"]["expectations_passed"]
-        for b in benchmarks.values()
-    )
-    bs_exp_t = sum(
-        b["configurations"]["without_skill"]["expectations_total"]
-        for b in benchmarks.values()
-    )
-    ws_tokens = sum(
-        b["configurations"]["with_skill"]["tokens_total"] for b in benchmarks.values()
-    )
-    bs_tokens = sum(
-        b["configurations"]["without_skill"]["tokens_total"]
-        for b in benchmarks.values()
-    )
+    totals = summarize_benchmarks(benchmarks)
+    ws, bs = totals["ws"], totals["bs"]
+    ws_full, bs_full = ws["full_pass"], bs["full_pass"]
+    n_evals = ws["n_runs"]
+    ws_exp_p, ws_exp_t = ws["exp_p"], ws["exp_t"]
+    bs_exp_p, bs_exp_t = bs["exp_p"], bs["exp_t"]
+    ws_tokens, bs_tokens = ws["tokens"], bs["tokens"]
     payload = {
         "n_evals": n_evals,
         "n_batches": len(BATCH_ORDER),
@@ -1619,7 +1500,9 @@ def write_cumulative_summary_json(benchmarks: dict[int, dict]) -> None:
     (OUT / "cumulative_summary.json").write_text(json.dumps(payload, indent=2) + "\n")
 
 
-def write_top_skill_wins_csv(benchmarks: dict[int, dict]) -> None:
+def write_top_skill_wins_csv(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
     """Per-eval expectation deltas, sorted by delta desc.
 
     Covers the top-N table in SUMMARY.md and the figure-only data behind
@@ -1627,8 +1510,6 @@ def write_top_skill_wins_csv(benchmarks: dict[int, dict]) -> None:
     the largest skill wins are at the top, the largest skill losses (if
     any) at the bottom.
     """
-    per_eval = load_per_eval_results(benchmarks)
-    cats = load_eval_categories()
 
     rows = ["rank,eval_id,eval_name,batch,stage,tier,difficulty,ws_pass,bs_pass,ws_exp_rate,bs_exp_rate,delta_pp"]
     items = []
@@ -1668,22 +1549,34 @@ def main() -> None:
     configure_run(args.run, args.out)
     configure_skill_root(args.skill_root)
     benchmarks = load_benchmarks()
+    cats = load_eval_categories()
+    per_eval = load_per_eval_results(benchmarks)
+
     plot_per_batch_pass_rate(benchmarks)
     plot_delta_per_batch(benchmarks)
     plot_per_eval_outcomes(benchmarks)
     plot_tokens_and_duration(benchmarks)
     plot_cumulative_summary(benchmarks)
-    plot_by_category(benchmarks)
-    plot_by_difficulty(benchmarks)
-    plot_difficulty_x_stage_heatmap(benchmarks)
-    plot_per_eval_scatter(benchmarks)
-    plot_top_skill_wins(benchmarks)
-    plot_reference_utilization()
-    plot_script_utilization()
-    write_per_category_csv()
+    plot_by_category(cats, per_eval)
+    plot_by_difficulty(cats, per_eval)
+    plot_difficulty_x_stage_heatmap(cats, per_eval)
+    plot_per_eval_scatter(cats, per_eval)
+    plot_top_skill_wins(cats, per_eval)
+
+    snapshot_dir = OUT / "transcripts_snapshot"
+    if snapshot_dir.exists() and any(snapshot_dir.iterdir()):
+        agent_to_run = build_agent_to_run()
+        records = parse_transcripts(snapshot_dir, agent_to_run)
+        plot_reference_utilization(agent_to_run, records)
+        plot_script_utilization(agent_to_run, records)
+    else:
+        print(f"Skipping transcript-derived plots: snapshot dir empty at {snapshot_dir}")
+        print("  Run snapshot_transcripts.py first to populate it.")
+
+    write_per_category_csv(cats, per_eval)
     write_batch_summary_csv(benchmarks)
     write_cumulative_summary_json(benchmarks)
-    write_top_skill_wins_csv(benchmarks)
+    write_top_skill_wins_csv(cats, per_eval)
     print("Wrote plots + CSV/JSON exports to", OUT)
 
 
