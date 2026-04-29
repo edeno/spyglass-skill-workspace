@@ -15,6 +15,8 @@ runs/
     ├── iteration-{1..N}/              per-batch artifacts
     │   ├── benchmark.json             per-batch aggregated stats
     │   ├── grader_summary.md          behavioral grader's report
+    │   ├── codex_grade_summary.md     (optional) independent codex re-grade for this batch
+    │   ├── .agent_map.json            agent_id -> (eval_dir, condition) map; consumed by analysis scripts
     │   └── eval-NNN-<name>/
     │       ├── with_skill/{eval_metadata.json, grading.json, timing.json, outputs/response.md}
     │       └── without_skill/{eval_metadata.json, grading.json, timing.json, outputs/response.md}
