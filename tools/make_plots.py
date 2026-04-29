@@ -1193,7 +1193,13 @@ def parse_transcripts(
     return records
 
 
-def write_transcript_stats(records: list[dict], total_ws: int, total_bs: int) -> None:
+def write_transcript_stats(
+    records: list[dict],
+    total_ws: int,
+    total_bs: int,
+    per_eval: list[dict] | None = None,
+) -> None:
+    payload: dict  # widen so the per-eval block below can attach nested fields
     """Aggregate transcript records into the cost-shape and contamination JSON.
 
     Captures the numbers SUMMARY.md cites in §"Transcript-level caveats":
@@ -1265,11 +1271,52 @@ def write_transcript_stats(records: list[dict], total_ws: int, total_bs: int) ->
             "note": "Per-eval (not per-transcript) rate at which SKILL.md was opened in any with_skill transcript for that eval. Deduplicates retries; should be ~100% if activation is reliable.",
         },
     }
+
+    # Mean number of references opened per transcript, split by outcome.
+    # Round-c surfaced a counterintuitive pattern here: failing ws transcripts
+    # open MORE refs than passing ones, supporting "loaded the right ref but
+    # didn't escalate" over "didn't find the right ref". Reported only when
+    # per_eval is available (caller passes it).
+    if per_eval is not None:
+        pass_by_eval: dict[int, dict[str, bool]] = {
+            r["eval_id"]: {"ws_pass": bool(r["ws_pass"]), "bs_pass": bool(r["bs_pass"])}
+            for r in per_eval
+        }
+        buckets: dict[str, list[int]] = {
+            "with_skill_pass": [], "with_skill_fail": [],
+            "without_skill_pass": [], "without_skill_fail": [],
+        }
+        for r in records:
+            outcome = pass_by_eval.get(r["eval_id"], {})
+            cond = r["condition"]
+            key_pass = "ws_pass" if cond == "with_skill" else "bs_pass"
+            label = f"{cond}_{'pass' if outcome.get(key_pass) else 'fail'}"
+            buckets[label].append(len(r["ref_opens"]))
+
+        def mean_or_zero(xs: list[int]) -> float:
+            return round(sum(xs) / len(xs), 2) if xs else 0.0
+
+        mean_refs_block: dict = {
+            label: {"n": len(xs), "mean_refs_opened": mean_or_zero(xs)}
+            for label, xs in buckets.items()
+        }
+        mean_refs_block["note"] = (
+            "Mean count of distinct references opened per transcript, split by "
+            "(condition, ws/bs pass-fail). Round-c showed ws_fail > ws_pass, "
+            "i.e. failing ws transcripts open MORE refs than passing ones — "
+            "consistent with the SUMMARY thesis that failures are 'loaded "
+            "enough but didn't escalate to verification', not 'didn't find "
+            "the right ref'."
+        )
+        payload["mean_refs_per_outcome"] = mean_refs_block
+
     (OUT / "transcript_stats.json").write_text(json.dumps(payload, indent=2) + "\n")
 
 
 def plot_reference_utilization(
-    agent_to_run: dict[str, tuple[int, int, str]], records: list[dict]
+    agent_to_run: dict[str, tuple[int, int, str]],
+    records: list[dict],
+    per_eval: list[dict] | None = None,
 ) -> None:
     """Per-reference utilization plot + ref_utilization.json + transcript_stats.json."""
     total_ws = sum(1 for v in agent_to_run.values() if v[2] == "with_skill")
@@ -1287,7 +1334,7 @@ def plot_reference_utilization(
         "ref_runs_using": dict(ref_runs_using.most_common()),
     }
     (OUT / "ref_utilization.json").write_text(json.dumps(payload, indent=2) + "\n")
-    write_transcript_stats(records, total_ws, total_bs)
+    write_transcript_stats(records, total_ws, total_bs, per_eval)
 
     # SKILL.md is always read by construction — show it in the footer text only.
     refs = [(r, n) for r, n in ref_runs_using.most_common() if r != "SKILL.md"][:20]
@@ -1812,7 +1859,9 @@ def _classify_eval_failure_mode(batch: int, eval_id: int) -> str:
 
 
 def write_reference_effectiveness_csv(
-    records: list[dict] | None, per_eval: list[dict]
+    records: list[dict] | None,
+    per_eval: list[dict],
+    cats: dict[int, dict[str, str]],
 ) -> None:
     """Per-reference: how often loaded, pass-rate when loaded, who failed despite loading.
 
@@ -1849,12 +1898,23 @@ def write_reference_effectiveness_csv(
             )
         return failure_mode_cache[eid]
 
-    rows = ["reference,ws_evals_loaded,ws_pass_when_loaded,ws_fail_when_loaded,pass_rate_when_loaded,failed_modes,failed_evals_sample"]
+    diff_score = {"easy": 1, "medium": 2, "hard": 3, "unknown": 2}
+
+    rows = ["reference,ws_evals_loaded,ws_pass_when_loaded,ws_fail_when_loaded,pass_rate_when_loaded,avg_difficulty_when_loaded,failed_modes,failed_evals_sample"]
     payload = []
     for ref, eids in ws_loads_by_eval.items():
         passed = sum(1 for eid in eids if pass_by_eval.get(eid, False))
         failed = len(eids) - passed
         rate = 100 * passed / len(eids) if eids else 0.0
+        # Mean difficulty score (1=easy, 2=medium, 3=hard) of evals that
+        # opened this ref. A high-load ref with low avg difficulty is mostly
+        # carrying easy questions; one with high avg difficulty is shouldering
+        # the hard stuff and a 70% pass rate is more impressive than it looks.
+        diffs = [
+            diff_score.get(cats.get(eid, {}).get("difficulty", "unknown"), 2)
+            for eid in eids
+        ]
+        avg_diff = sum(diffs) / len(diffs) if diffs else 2.0
         failed_eids = [eid for eid in eids if not pass_by_eval.get(eid, False)]
         mode_counts = Counter(get_mode(eid) for eid in failed_eids)
         modes_str = (
@@ -1868,7 +1928,7 @@ def write_reference_effectiveness_csv(
             for eid in failed_examples
         )
         rows.append(
-            f"{ref},{len(eids)},{passed},{failed},{rate:.1f},{modes_str},\"{sample}\""
+            f"{ref},{len(eids)},{passed},{failed},{rate:.1f},{avg_diff:.2f},{modes_str},\"{sample}\""
         )
         payload.append((ref, len(eids), passed, failed, rate))
     (OUT / "reference_effectiveness.csv").write_text("\n".join(rows) + "\n")
@@ -2137,6 +2197,37 @@ def write_baseline_source_split_json(
     plt.close(fig)
 
 
+def write_headroom_evals_csv(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
+    """Both-fail evals where neither ws nor bs passed, excluding adversarial-tier.
+
+    Adversarial-tier both-fails are usually intended (the eval tests that the
+    agent refuses, so a passing response is a refusal — both conditions
+    refusing is a measurement-success-but-rubric-fail). The remaining
+    both-fail set is round-D's biggest improvement headroom: improvements
+    here move neither ws nor bs from the prior sweep, so any movement is new
+    correctness gained.
+    """
+    rows = ["batch,eval_id,eval_name,stage,tier,difficulty,ws_exp_rate,bs_exp_rate"]
+    n_total = 0
+    for r in per_eval:
+        if r["ws_pass"] or r["bs_pass"]:
+            continue
+        cat = cats.get(r["eval_id"], {})
+        if cat.get("tier") == "adversarial":
+            continue
+        n_total += 1
+        ws_pct = 100 * r["ws_exp_p"] / r["ws_exp_t"] if r["ws_exp_t"] else 0.0
+        bs_pct = 100 * r["bs_exp_p"] / r["bs_exp_t"] if r["bs_exp_t"] else 0.0
+        rows.append(
+            f"{r['batch']},{r['eval_id']},{r['eval_name']},"
+            f"{cat.get('stage', 'unknown')},{cat.get('tier', 'unknown')},{cat.get('difficulty', 'unknown')},"
+            f"{ws_pct:.1f},{bs_pct:.1f}"
+        )
+    (OUT / "headroom_evals.csv").write_text("\n".join(rows) + "\n")
+
+
 def write_eval_coverage_csv(cats: dict[int, dict[str, str]]) -> None:
     """Stage × tier eval-count matrix. Catches over/under-tested categories."""
     by_pair: Counter = Counter()
@@ -2347,7 +2438,7 @@ def main() -> None:
     if snapshot_dir.exists() and any(snapshot_dir.iterdir()):
         agent_to_run = build_agent_to_run()
         records = parse_transcripts(snapshot_dir, agent_to_run)
-        plot_reference_utilization(agent_to_run, records)
+        plot_reference_utilization(agent_to_run, records, per_eval)
         plot_script_utilization(agent_to_run, records)
     else:
         print(f"Skipping transcript-derived plots: snapshot dir empty at {snapshot_dir}")
@@ -2363,11 +2454,12 @@ def main() -> None:
     # Round-D actionable summaries — "what should we change?" outputs.
     timing = load_per_eval_timing()
     expected_refs = load_expected_refs()
-    write_reference_effectiveness_csv(records, per_eval)
+    write_reference_effectiveness_csv(records, per_eval, cats)
     write_cost_effectiveness_csv(cats, per_eval, timing)
     write_outcome_by_category_csv(cats, per_eval)
     write_baseline_source_split_json(per_eval, records)
     write_eval_coverage_csv(cats)
+    write_headroom_evals_csv(cats, per_eval)
     write_failure_taxonomy_stub_csv(cats, per_eval)
     write_reference_expected_used_csv(per_eval, records, expected_refs)
     print("Wrote plots + CSV/JSON exports to", OUT)

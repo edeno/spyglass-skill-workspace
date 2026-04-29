@@ -1,0 +1,14 @@
+batch,eval_id,eval_name,stage,tier,difficulty,ws_exp_rate,bs_exp_rate
+4,72,dep-trace-lfpbandv1,pipeline-usage,dependency-tracing,hard,85.7,85.7
+4,85,recover-parameter-edit-in-place,pipeline-usage,workflow-recovery,hard,87.5,50.0
+4,87,counterfactual-trodes-pos-params-swap,pipeline-usage,counterfactual,hard,85.7,78.6
+4,89,restrict-by-interval-name-no-star,pipeline-usage,joins,medium,70.0,60.0
+4,99,hidden-prereq-decoding-populate,pipeline-usage,dependency-tracing,hard,90.0,90.0
+4,100,workflow-position-post-sort-clusterless-decode,pipeline-usage,workflow-position,medium,85.7,71.4
+4,105,camera-devices-lookup,pipeline-usage,atomic-read,easy,88.9,88.9
+4,108,sorted-spikes-group-hippocampal,pipeline-usage,disambiguation,medium,58.3,50.0
+5,60,param-trodes-smoothing,parameter-understanding,parameter-semantics,hard,83.3,83.3
+7,8,author-custom-pipeline-off-lfp,pipeline-authoring,baseline,hard,66.7,58.3
+7,41,config-key-error-after-pull,setup,config-troubleshooting,medium,14.3,42.9
+7,83,resource-first-ref-custom-pipeline-author,pipeline-authoring,resource-selection,easy,77.8,66.7
+7,88,ambiguity-delete-decoding-results,destructive-operations,disambiguation,medium,87.5,50.0

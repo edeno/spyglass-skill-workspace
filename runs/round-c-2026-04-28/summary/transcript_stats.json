@@ -28,5 +28,24 @@
     "with_skill_total_unique_evals": 130,
     "rate": 100.0,
     "note": "Per-eval (not per-transcript) rate at which SKILL.md was opened in any with_skill transcript for that eval. Deduplicates retries; should be ~100% if activation is reliable."
+  },
+  "mean_refs_per_outcome": {
+    "with_skill_pass": {
+      "n": 115,
+      "mean_refs_opened": 2.4
+    },
+    "with_skill_fail": {
+      "n": 19,
+      "mean_refs_opened": 2.84
+    },
+    "without_skill_pass": {
+      "n": 86,
+      "mean_refs_opened": 0.01
+    },
+    "without_skill_fail": {
+      "n": 47,
+      "mean_refs_opened": 0.0
+    },
+    "note": "Mean count of distinct references opened per transcript, split by (condition, ws/bs pass-fail). Round-c showed ws_fail > ws_pass, i.e. failing ws transcripts open MORE refs than passing ones \u2014 consistent with the SUMMARY thesis that failures are 'loaded enough but didn't escalate to verification', not 'didn't find the right ref'."
   }
 }
