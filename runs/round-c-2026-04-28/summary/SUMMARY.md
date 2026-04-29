@@ -1,6 +1,6 @@
 # Spyglass skill — 130-eval sweep summary and recommendations
 
-Run date: 2026-04-28. Run id: `round-c-2026-04-28`. Skill: `skills/spyglass`. Eval set: `skills/spyglass/evals/evals.json` (130 evals × 2 conditions = 260 subagent runs across 7 stratified batches). Workspace: `skills/spyglass-workspace/runs/round-c-2026-04-28/iteration-{1..7}/`. Run metadata (skill commit, headline results, contamination notes): [`../run.json`](../run.json).
+Run date: 2026-04-28. Run id: `round-c-2026-04-28`. Skill: `skills/spyglass`. Eval set: `skills/spyglass/evals/evals.json` (130 evals × 2 conditions = 260 subagent runs across 7 stratified batches). Workspace: `runs/round-c-2026-04-28/iteration-{1..7}/` (in the `spyglass-skill-workspace` repo). Run metadata (skill commit, headline results, contamination notes): [`../run.json`](../run.json).
 
 ## Headline result
 

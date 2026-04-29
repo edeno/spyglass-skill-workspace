@@ -9,6 +9,7 @@
   "spyglass_src_commit": null,
   "spyglass_src_path": "/Users/edeno/Documents/GitHub/spyglass/src/spyglass",
   "spyglass_src_note": "Not recorded at dispatch time — see Round-D dispatch templates (skills/spyglass/evals/dispatch_prompts.md) which now require pinning. The sweep's eval agents had access to a local Spyglass checkout at the path above but the commit hash was not captured. Treat field-level claims grounded in this source as 'verified at sweep time, re-verify before pinning'.",
+  "workspace_layout_note": "Sweep ran while the workspace lived in-tree at skills/spyglass-workspace/ inside the spyglass-skill repo. Post-sweep the workspace was extracted to its own repo (spyglass-skill-workspace) at runs/round-c-2026-04-28/. iteration-N/.agent_map.json values were rewritten to the new layout; transcripts_snapshot/*.jsonl files retain the original in-tree paths because they are frozen records of what the dispatched agents observed (cwd and Read/Write/Bash tool inputs at sweep time).",
   "n_evals_run": 130,
   "n_dispatches": 260,
   "n_transcripts_snapshotted": 267,
