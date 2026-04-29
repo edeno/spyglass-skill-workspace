@@ -96,8 +96,18 @@ def snapshot(tasks_dir: Path, run_dir: Path, snapshot_dir: Path) -> None:
         copied += 1
 
     size_kb = sum(p.stat().st_size for p in snapshot_dir.iterdir()) / 1024
-    print(f"Snapshotted {copied} transcripts ({skipped} mapped IDs missing on disk)")
-    print(f"Total snapshot size: {size_kb:.1f} KB at {snapshot_dir}")
+    print(
+        f"Snapshotted {copied}/{len(mapped)} transcripts to {snapshot_dir} ({size_kb:.1f} KB)"
+    )
+    if skipped:
+        print(
+            f"  WARN: {skipped} mapped agent IDs were not on disk under {tasks_dir}.\n"
+            f"  Likely cause: the live Claude Code session was rotated (the harness\n"
+            f"  wipes /private/tmp/claude-<uid>/<workspace-hash>/ on session change\n"
+            f"  or reboot). Snapshots can ONLY be taken from the same session that\n"
+            f"  dispatched the eval subagents — there is no recovery path once the\n"
+            f"  session closes. Re-dispatch the missing evals if needed."
+        )
 
 
 def main() -> None:
