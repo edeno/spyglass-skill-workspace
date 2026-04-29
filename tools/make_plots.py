@@ -177,6 +177,53 @@ def load_benchmarks() -> dict[int, dict]:
     }
 
 
+def load_per_eval_timing() -> dict[tuple[int, int, str], int]:
+    """Map (batch, eval_id, condition) -> total_tokens, from each eval's timing.json.
+
+    Tolerant: any missing timing.json (e.g. round-c batch 3 had partial timings)
+    is silently dropped from the returned map. Callers should treat the absence
+    of a key as "not measured" rather than zero.
+    """
+    out: dict[tuple[int, int, str], int] = {}
+    for i in BATCH_ORDER:
+        for eval_dir in (WORKSPACE / f"iteration-{i}").glob("eval-*"):
+            try:
+                eid = int(eval_dir.name.split("-")[1])
+            except (IndexError, ValueError):
+                continue
+            for cond in ("with_skill", "without_skill"):
+                tp = eval_dir / cond / "timing.json"
+                if not tp.is_file():
+                    continue
+                try:
+                    out[(i, eid, cond)] = int(json.loads(tp.read_text())["total_tokens"])
+                except (json.JSONDecodeError, KeyError, OSError, ValueError):
+                    continue
+    return out
+
+
+def load_expected_refs() -> dict[int, dict[str, list[str]]]:
+    """Read optional `expected_refs` annotations from evals.json.
+
+    Schema (per eval): {"required": [...], "optional": [...], "distractor": [...]}.
+    Evals without the field are absent from the returned map. Round-D
+    maintainers can label evals incrementally; the reference-expected-vs-used
+    analysis only runs against labeled evals.
+    """
+    evals = json.loads(EVALS_PATH.read_text())["evals"]
+    out: dict[int, dict[str, list[str]]] = {}
+    for e in evals:
+        ref_block = e.get("expected_refs")
+        if not isinstance(ref_block, dict):
+            continue
+        out[e["id"]] = {
+            "required": list(ref_block.get("required", [])),
+            "optional": list(ref_block.get("optional", [])),
+            "distractor": list(ref_block.get("distractor", [])),
+        }
+    return out
+
+
 def load_eval_categories() -> dict[int, dict[str, str]]:
     """Map eval_id -> {stage, tier, difficulty}.
 
@@ -1720,6 +1767,498 @@ def write_top_skill_wins_csv(
     (OUT / "top_skill_wins.csv").write_text("\n".join(rows) + "\n")
 
 
+# ---------------------------------------------------------------------------
+# Round-D actionable summaries — answer "what should we change?" not "did it
+# win?". Five fully-automated analyses + two scaffolds for human-labeled data.
+# ---------------------------------------------------------------------------
+
+
+def write_reference_effectiveness_csv(
+    records: list[dict] | None, per_eval: list[dict]
+) -> None:
+    """Per-reference: how often loaded, pass-rate when loaded, who failed despite loading.
+
+    Distinguishes "reference exists but is ineffective" (loaded but eval still
+    failed) from "reference not discovered" (eval failed AND ref not loaded).
+    """
+    if records is None:
+        return
+    pass_by_eval: dict[int, bool] = {r["eval_id"]: bool(r["ws_pass"]) for r in per_eval}
+    name_by_eval: dict[int, str] = {r["eval_id"]: r["eval_name"] for r in per_eval}
+
+    # ws_loads_by_eval[ref] = set of eval_ids whose ws transcripts opened it.
+    ws_loads_by_eval: dict[str, set[int]] = defaultdict(set)
+    for r in records:
+        if r["condition"] != "with_skill":
+            continue
+        for ref in r["ref_opens"]:
+            ws_loads_by_eval[ref].add(r["eval_id"])
+
+    rows = ["reference,ws_evals_loaded,ws_pass_when_loaded,ws_fail_when_loaded,pass_rate_when_loaded,failed_evals_sample"]
+    payload = []
+    for ref, eids in ws_loads_by_eval.items():
+        passed = sum(1 for eid in eids if pass_by_eval.get(eid, False))
+        failed = len(eids) - passed
+        rate = 100 * passed / len(eids) if eids else 0.0
+        failed_examples = sorted(
+            (eid for eid in eids if not pass_by_eval.get(eid, False)),
+            key=lambda e: name_by_eval.get(e, ""),
+        )[:5]
+        sample = ";".join(f"{eid}:{name_by_eval.get(eid, '?')}" for eid in failed_examples)
+        rows.append(f"{ref},{len(eids)},{passed},{failed},{rate:.1f},\"{sample}\"")
+        payload.append((ref, len(eids), passed, failed, rate))
+    (OUT / "reference_effectiveness.csv").write_text("\n".join(rows) + "\n")
+
+    # Plot 13: bar chart sorted by load count, color by pass rate.
+    if not payload:
+        return
+    payload.sort(key=lambda x: -x[1])
+    payload = [p for p in payload if p[0] != "SKILL.md"][:25]
+    refs = [p[0] for p in payload]
+    loads = [p[1] for p in payload]
+    rates = [p[4] for p in payload]
+    fig, ax = plt.subplots(figsize=(11, 9), constrained_layout=True)
+    y = np.arange(len(refs))
+    cmap = plt.cm.RdYlGn
+    bars = ax.barh(y, loads, color=[cmap(r / 100) for r in rates], edgecolor="white")
+    for i, (bar, rate, n_pass, n_fail) in enumerate(
+        zip(bars, rates, [p[2] for p in payload], [p[3] for p in payload])
+    ):
+        ax.text(
+            bar.get_width() + 0.4,
+            i,
+            f"{n_pass}/{n_pass + n_fail} pass ({rate:.0f}%)",
+            va="center",
+            fontsize=9,
+        )
+    ax.set_yticks(y)
+    ax.set_yticklabels(refs, fontsize=10, family="monospace")
+    ax.invert_yaxis()
+    ax.set_xlim(0, max(loads) * 1.5 if loads else 10)
+    ax.set_xlabel("# of distinct ws evals that opened the reference", fontsize=10)
+    setup_axes(ax, "Reference effectiveness — loads vs pass rate when loaded")
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, 100))
+    cbar = fig.colorbar(sm, ax=ax, shrink=0.5, pad=0.02)
+    cbar.set_label("ws full-pass rate when loaded (%)", fontsize=9)
+    ax.grid(axis="x", alpha=0.3, linestyle=":")
+    fig.suptitle(
+        "Did agents that opened a reference actually pass? (caveat: confounded by routing — high-rate refs may just be opened on easy evals)",
+        fontsize=10,
+        y=1.01,
+    )
+    fig.savefig(OUT / "13_reference_effectiveness.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_cost_effectiveness_csv(
+    cats: dict[int, dict[str, str]],
+    per_eval: list[dict],
+    timing: dict[tuple[int, int, str], int],
+) -> None:
+    """Per-eval cost-vs-effect: extra tokens for ws over bs vs expectation Δ.
+
+    Identifies high-cost / no-gain evals (skill spent tokens, no improvement)
+    and high-value interventions (skill cheap and unlocking the answer).
+    Skips evals whose ws or bs timing is missing from the run.
+    """
+    rows = ["batch,eval_id,eval_name,stage,tier,difficulty,ws_tokens,bs_tokens,extra_tokens,exp_delta_pp,both_pass,skill_only,baseline_only,both_fail"]
+    points = []
+    for r in per_eval:
+        ws_tok = timing.get((r["batch"], r["eval_id"], "with_skill"))
+        bs_tok = timing.get((r["batch"], r["eval_id"], "without_skill"))
+        if ws_tok is None or bs_tok is None:
+            continue
+        ws_pct = 100 * r["ws_exp_p"] / r["ws_exp_t"] if r["ws_exp_t"] else 0.0
+        bs_pct = 100 * r["bs_exp_p"] / r["bs_exp_t"] if r["bs_exp_t"] else 0.0
+        delta = ws_pct - bs_pct
+        cat = cats.get(r["eval_id"], {})
+        rows.append(
+            f"{r['batch']},{r['eval_id']},{r['eval_name']},"
+            f"{cat.get('stage', 'unknown')},{cat.get('tier', 'unknown')},{cat.get('difficulty', 'unknown')},"
+            f"{ws_tok},{bs_tok},{ws_tok - bs_tok},{delta:.1f},"
+            f"{int(r['ws_pass'] and r['bs_pass'])},{int(r['ws_pass'] and not r['bs_pass'])},"
+            f"{int(r['bs_pass'] and not r['ws_pass'])},{int(not r['ws_pass'] and not r['bs_pass'])}"
+        )
+        points.append(
+            (ws_tok - bs_tok, delta, cat.get("stage", "unknown"), r["eval_id"])
+        )
+    (OUT / "cost_effectiveness_per_eval.csv").write_text("\n".join(rows) + "\n")
+
+    if not points:
+        return
+
+    fig, ax = plt.subplots(figsize=(10, 7), constrained_layout=True)
+    stages = sorted({p[2] for p in points})
+    palette = plt.cm.tab20(np.linspace(0, 1, len(stages)))
+    for stage, color in zip(stages, palette):
+        xs = [p[0] / 1000 for p in points if p[2] == stage]
+        ys = [p[1] for p in points if p[2] == stage]
+        ax.scatter(xs, ys, label=stage, color=color, s=50, alpha=0.7, edgecolors="white", linewidths=0.5)
+    ax.axhline(0, color="black", linewidth=0.7, linestyle="--")
+    ax.axvline(0, color="black", linewidth=0.7, linestyle="--")
+    # Annotate the cheap-win and expensive-no-gain corners.
+    cheap_wins = sorted(
+        (p for p in points if p[1] >= 30 and p[0] < 30000),
+        key=lambda p: -p[1],
+    )[:5]
+    expensive_flat = sorted(
+        (p for p in points if p[1] <= 0 and p[0] > 30000),
+        key=lambda p: p[1],
+    )[:5]
+    for x, y, _stage, eid in cheap_wins + expensive_flat:
+        ax.annotate(
+            f"#{eid}", (x / 1000, y), fontsize=8, ha="left", va="bottom",
+            xytext=(3, 3), textcoords="offset points",
+        )
+    ax.set_xlabel("extra tokens (ws − bs), thousands", fontsize=10)
+    ax.set_ylabel("expectation delta (pp)", fontsize=10)
+    setup_axes(ax, "Cost-effectiveness per eval — where does the skill pay off?")
+    ax.legend(loc="lower right", frameon=False, fontsize=8, ncol=2)
+    ax.grid(alpha=0.3, linestyle=":")
+    ax.text(
+        0.02, 0.98,
+        "↑ skill helps  →  expensive\n← skill cheaper  →  ↓ skill hurts",
+        transform=ax.transAxes, va="top", ha="left", fontsize=9, style="italic", color="#666666",
+    )
+    fig.suptitle("Where does the skill's extra cost actually buy correctness?", fontsize=12, y=1.01)
+    fig.savefig(OUT / "14_cost_effectiveness_scatter.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_outcome_by_category_csv(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
+    """Per stage / per tier outcome cross-tab.
+
+    Each (stage, tier) bucket gets counts of (both_pass, skill_only,
+    baseline_only, both_fail). Tells you where the skill is uniquely helpful
+    vs where the eval remains hard for everyone.
+    """
+    def outcome_of(r: dict) -> str:
+        if r["ws_pass"] and r["bs_pass"]: return "both_pass"
+        if r["ws_pass"]: return "skill_only"
+        if r["bs_pass"]: return "baseline_only"
+        return "both_fail"
+
+    rows = ["category_kind,category,n_evals,both_pass,skill_only,baseline_only,both_fail"]
+    plot_data = {}
+    for kind in ("stage", "tier"):
+        agg: dict[str, Counter] = defaultdict(Counter)
+        for r in per_eval:
+            c = cats.get(r["eval_id"], {}).get(kind, "unknown")
+            agg[c][outcome_of(r)] += 1
+            agg[c]["__total"] += 1
+        plot_data[kind] = agg
+        for c, ctr in sorted(agg.items(), key=lambda x: -x[1]["__total"]):
+            rows.append(
+                f"{kind},{c},{ctr['__total']},{ctr['both_pass']},"
+                f"{ctr['skill_only']},{ctr['baseline_only']},{ctr['both_fail']}"
+            )
+    (OUT / "outcome_by_category.csv").write_text("\n".join(rows) + "\n")
+
+    # Plot 15: stacked bars per stage (skill-only is the "where the skill earned its keep" signal).
+    stage_agg = plot_data["stage"]
+    if not stage_agg:
+        return
+    sorted_stages = sorted(stage_agg.items(), key=lambda x: -x[1]["skill_only"])
+    labels = [s for s, _ in sorted_stages]
+    bp = [s[1]["both_pass"] for s in sorted_stages]
+    so = [s[1]["skill_only"] for s in sorted_stages]
+    bo = [s[1]["baseline_only"] for s in sorted_stages]
+    bf = [s[1]["both_fail"] for s in sorted_stages]
+
+    fig, ax = plt.subplots(figsize=(11, 6), constrained_layout=True)
+    y = np.arange(len(labels))
+    bottom = np.zeros(len(labels))
+    for vals, lab, color in [
+        (bp, "both pass", WONG["both_pass"]),
+        (so, "skill only (skill earned its keep)", WONG["delta_pos"]),
+        (bo, "baseline only (skill regression)", WONG["delta_neg"]),
+        (bf, "both fail (still hard)", WONG["both_fail"]),
+    ]:
+        ax.barh(y, vals, left=bottom, label=lab, color=color, edgecolor="white")
+        for i, v in enumerate(vals):
+            if v > 0:
+                ax.text(
+                    bottom[i] + v / 2, i, str(v), ha="center", va="center",
+                    fontsize=9, color="white" if lab != "both pass" else "black",
+                    fontweight="bold",
+                )
+        bottom = bottom + np.array(vals)
+    ax.set_yticks(y)
+    ax.set_yticklabels([f"{lab}  (n={s[1]['__total']})" for lab, s in zip(labels, sorted_stages)], fontsize=10)
+    ax.invert_yaxis()
+    ax.set_xlabel("number of evals", fontsize=10)
+    setup_axes(ax, "Outcome by stage — where did the skill uniquely help?")
+    ax.legend(loc="upper left", frameon=False, fontsize=9, bbox_to_anchor=(0, 1.08), ncol=2)
+    ax.grid(axis="x", alpha=0.3, linestyle=":")
+    fig.suptitle("Skill-only wins concentrate where the skill matters most", fontsize=12, y=1.04)
+    fig.savefig(OUT / "15_outcome_by_category.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_baseline_source_split_json(
+    per_eval: list[dict], records: list[dict] | None
+) -> None:
+    """3-way split: baseline-no-source / baseline-source-touched / with-skill.
+
+    Tests whether the skill's lift is just "agent reads source" or whether
+    routing+workflow add something on top. Round-c expectation per SUMMARY:
+    bs+source still trails ws meaningfully.
+    """
+    if records is None:
+        return
+    bs_source_evals: set[int] = set()
+    for r in records:
+        if r["condition"] != "without_skill":
+            continue
+        if r["spyglass_src_reads"] > 0:
+            bs_source_evals.add(r["eval_id"])
+    bs_no_source_evals = {r["eval_id"] for r in per_eval} - bs_source_evals
+
+    def stats(eids: set[int], cond: str) -> dict:
+        subset = [r for r in per_eval if r["eval_id"] in eids]
+        if not subset:
+            return {"n": 0, "full_pass": 0, "full_pass_rate": 0.0}
+        if cond == "with_skill":
+            n_pass = sum(1 for r in subset if r["ws_pass"])
+        else:
+            n_pass = sum(1 for r in subset if r["bs_pass"])
+        return {
+            "n": len(subset),
+            "full_pass": n_pass,
+            "full_pass_rate": round(100 * n_pass / len(subset), 2),
+        }
+
+    payload = {
+        "baseline_no_source_touched": stats(bs_no_source_evals, "without_skill"),
+        "baseline_source_touched": stats(bs_source_evals, "without_skill"),
+        "with_skill_all": stats({r["eval_id"] for r in per_eval}, "with_skill"),
+        "note": (
+            "Splits the without_skill condition by whether the agent's transcript "
+            "touched /spyglass/src/ (Read, Bash, Glob, LS, Grep) or WebFetched the "
+            "Spyglass GitHub. Tests whether the skill's lift reduces to 'agent has "
+            "source access' — if bs_source_touched approaches with_skill, the skill "
+            "is doing source delivery; if not, the skill adds routing/workflow value "
+            "beyond source access."
+        ),
+    }
+    (OUT / "baseline_source_split.json").write_text(json.dumps(payload, indent=2) + "\n")
+
+    # Plot 16: three bars.
+    groups = [
+        ("baseline\nno source", payload["baseline_no_source_touched"]),
+        ("baseline\nsource touched", payload["baseline_source_touched"]),
+        ("with skill\n(all)", payload["with_skill_all"]),
+    ]
+    fig, ax = plt.subplots(figsize=(8, 5.5), constrained_layout=True)
+    x = np.arange(len(groups))
+    rates = [g[1]["full_pass_rate"] for g in groups]
+    bars = ax.bar(x, rates, color=[WONG["bs"], WONG["neutral"], WONG["ws"]], edgecolor="white", width=0.6)
+    for bar, (_, g) in zip(bars, groups):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            g["full_pass_rate"] + 1.5,
+            f"{g['full_pass']}/{g['n']}\n({g['full_pass_rate']:.1f}%)",
+            ha="center", fontsize=10, fontweight="bold",
+        )
+    ax.set_xticks(x)
+    ax.set_xticklabels([g[0] for g in groups], fontsize=10)
+    ax.set_ylim(0, 110)
+    ax.set_yticks([0, 25, 50, 75, 100])
+    setup_axes(ax, "Three-way split — does the skill add value beyond source access?", ylabel="full-eval pass rate (%)")
+    ax.grid(axis="y", alpha=0.3, linestyle=":")
+    fig.suptitle("Skill's lift over baseline-with-source isolates routing/workflow value", fontsize=11, y=1.02)
+    fig.savefig(OUT / "16_baseline_source_split.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_eval_coverage_csv(cats: dict[int, dict[str, str]]) -> None:
+    """Stage × tier eval-count matrix. Catches over/under-tested categories."""
+    by_pair: Counter = Counter()
+    for c in cats.values():
+        by_pair[(c.get("stage", "unknown"), c.get("tier", "unknown"))] += 1
+    rows = ["stage,tier,n_evals"]
+    for (s, t), n in sorted(by_pair.items(), key=lambda x: (-x[1], x[0], x[1])):
+        rows.append(f"{s},{t},{n}")
+    (OUT / "eval_coverage.csv").write_text("\n".join(rows) + "\n")
+
+    # Plot 17: heatmap of stage × tier counts.
+    stages = sorted({s for s, _ in by_pair})
+    tiers = sorted({t for _, t in by_pair})
+    if not stages or not tiers:
+        return
+    matrix = np.zeros((len(stages), len(tiers)), dtype=int)
+    for (s, t), n in by_pair.items():
+        matrix[stages.index(s), tiers.index(t)] = n
+
+    fig, ax = plt.subplots(figsize=(max(8, len(tiers) * 0.7), max(6, len(stages) * 0.5)), constrained_layout=True)
+    masked = np.ma.masked_equal(matrix, 0)
+    im = ax.imshow(masked, cmap="Blues", aspect="auto")
+    ax.set_xticks(np.arange(len(tiers)))
+    ax.set_xticklabels(tiers, rotation=40, ha="right", fontsize=9)
+    ax.set_yticks(np.arange(len(stages)))
+    ax.set_yticklabels(stages, fontsize=10)
+    for i in range(len(stages)):
+        for j in range(len(tiers)):
+            n = matrix[i, j]
+            if n > 0:
+                ax.text(j, i, str(n), ha="center", va="center", fontsize=10,
+                        color="white" if n > matrix.max() / 2 else "black")
+    fig.colorbar(im, ax=ax, shrink=0.6, label="eval count")
+    setup_axes(ax, "Eval coverage by stage × tier — where is the suite under-/over-testing?")
+    fig.suptitle("Round-D should add evals to under-covered cells", fontsize=11, y=1.02)
+    fig.savefig(OUT / "17_eval_coverage_map.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_failure_taxonomy_stub_csv(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
+    """Auto-generated stub for human annotation of with_skill failures.
+
+    For each ws-failed eval, writes a row with empty `failure_type` and
+    `notes` columns. Round-D maintainers can fill these in manually
+    (suggested values: wrong_factual, omitted_step, over_skeptical,
+    wrong_tool, right_ref_no_verify, rubric_friction, eval_issue) and
+    plot 18 will then aggregate them. Existing rows are preserved across
+    re-runs so annotations don't get clobbered.
+    """
+    target = OUT / "failure_taxonomy.csv"
+    existing: dict[int, dict[str, str]] = {}
+    if target.is_file():
+        for line in target.read_text().splitlines()[1:]:
+            parts = [p.strip().strip('"') for p in line.split(",")]
+            if len(parts) >= 8 and parts[1].isdigit():
+                existing[int(parts[1])] = {"failure_type": parts[6], "notes": parts[7]}
+
+    rows = ["batch,eval_id,eval_name,stage,tier,difficulty,failure_type,notes"]
+    for r in per_eval:
+        if r["ws_pass"]:
+            continue
+        cat = cats.get(r["eval_id"], {})
+        prior = existing.get(r["eval_id"], {"failure_type": "", "notes": ""})
+        notes = prior["notes"].replace(",", ";").replace('"', "'")
+        rows.append(
+            f"{r['batch']},{r['eval_id']},{r['eval_name']},"
+            f"{cat.get('stage', 'unknown')},{cat.get('tier', 'unknown')},{cat.get('difficulty', 'unknown')},"
+            f"{prior['failure_type']},\"{notes}\""
+        )
+    target.write_text("\n".join(rows) + "\n")
+
+    # Plot 18: only render if any annotations exist.
+    types = [r for r in existing.values() if r["failure_type"]]
+    if not types:
+        return
+    type_counts: Counter = Counter(t["failure_type"] for t in types)
+    fig, ax = plt.subplots(figsize=(9, 5), constrained_layout=True)
+    sorted_types = type_counts.most_common()
+    labels = [t for t, _ in sorted_types]
+    counts = [n for _, n in sorted_types]
+    bars = ax.barh(np.arange(len(labels)), counts, color=WONG["delta_neg"], edgecolor="white")
+    for bar, n in zip(bars, counts):
+        ax.text(bar.get_width() + 0.2, bar.get_y() + bar.get_height() / 2,
+                str(n), va="center", fontsize=10, fontweight="bold")
+    ax.set_yticks(np.arange(len(labels)))
+    ax.set_yticklabels(labels, fontsize=10)
+    ax.invert_yaxis()
+    ax.set_xlabel("# of with_skill failures", fontsize=10)
+    setup_axes(ax, f"With-skill failure taxonomy ({sum(counts)} of {sum(1 for r in per_eval if not r['ws_pass'])} ws-failed evals annotated)")
+    ax.grid(axis="x", alpha=0.3, linestyle=":")
+    fig.suptitle("Where to invest skill maintenance effort", fontsize=11, y=1.02)
+    fig.savefig(OUT / "18_failure_taxonomy.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_reference_expected_used_csv(
+    per_eval: list[dict],
+    records: list[dict] | None,
+    expected_refs: dict[int, dict[str, list[str]]],
+) -> None:
+    """Reference-expected-vs-used analysis. Skipped unless evals.json has labels.
+
+    Per (reference, status), counts how often it was expected and how often
+    actually opened. Separates routing failures (expected ref not opened)
+    from reference weakness (expected ref opened but answer still failed)
+    from overuse (distractor ref opened) from eval mismatch (expected ref
+    not opened but answer passed).
+    """
+    if not expected_refs or records is None:
+        return
+    pass_by_eval: dict[int, bool] = {r["eval_id"]: bool(r["ws_pass"]) for r in per_eval}
+    ws_opens_by_eval: dict[int, set[str]] = defaultdict(set)
+    for r in records:
+        if r["condition"] != "with_skill":
+            continue
+        for ref in r["ref_opens"]:
+            ws_opens_by_eval[r["eval_id"]].add(ref)
+
+    tally: dict[tuple[str, str], dict] = defaultdict(
+        lambda: {"expected": 0, "used": 0, "missed": 0, "passed_when_used": 0, "failed_when_used": 0}
+    )
+    for eid, blocks in expected_refs.items():
+        opened = ws_opens_by_eval.get(eid, set())
+        passed = pass_by_eval.get(eid, False)
+        for status, refs in blocks.items():
+            for ref in refs:
+                t = tally[(ref, status)]
+                t["expected"] += 1
+                if ref in opened:
+                    t["used"] += 1
+                    if passed:
+                        t["passed_when_used"] += 1
+                    else:
+                        t["failed_when_used"] += 1
+                else:
+                    t["missed"] += 1
+
+    rows = ["reference,status,expected_count,used_count,missed_count,used_pass_rate"]
+    for (ref, status), t in sorted(tally.items()):
+        rate = 100 * t["passed_when_used"] / t["used"] if t["used"] else 0.0
+        rows.append(
+            f"{ref},{status},{t['expected']},{t['used']},{t['missed']},{rate:.1f}"
+        )
+    (OUT / "reference_expected_used.csv").write_text("\n".join(rows) + "\n")
+
+    # Plot 19: heatmap of (reference × status) discoverability if any annotations.
+    refs = sorted({r for r, _ in tally})
+    statuses = ["required", "optional", "distractor"]
+    fig, axes = plt.subplots(1, 2, figsize=(13, max(4, len(refs) * 0.4)), constrained_layout=True)
+    for ax_i, (metric, title, cmap) in enumerate([
+        ("discoverability", "discoverability (used / expected)", "Greens"),
+        ("effectiveness", "pass rate when expected ref was used", "RdYlGn"),
+    ]):
+        ax = axes[ax_i]
+        m = np.full((len(refs), len(statuses)), np.nan)
+        for i, ref in enumerate(refs):
+            for j, status in enumerate(statuses):
+                t = tally.get((ref, status))
+                if not t or t["expected"] == 0:
+                    continue
+                if metric == "discoverability":
+                    m[i, j] = 100 * t["used"] / t["expected"]
+                elif t["used"] > 0:
+                    m[i, j] = 100 * t["passed_when_used"] / t["used"]
+        im = ax.imshow(m, cmap=cmap, vmin=0, vmax=100, aspect="auto")
+        ax.set_xticks(np.arange(len(statuses)))
+        ax.set_xticklabels(statuses, fontsize=10)
+        ax.set_yticks(np.arange(len(refs)))
+        ax.set_yticklabels(refs, fontsize=8, family="monospace")
+        for i in range(len(refs)):
+            for j in range(len(statuses)):
+                if not np.isnan(m[i, j]):
+                    ax.text(j, i, f"{m[i, j]:.0f}", ha="center", va="center",
+                            fontsize=8, color="black")
+        fig.colorbar(im, ax=ax, shrink=0.5, label="%")
+        setup_axes(ax, title)
+    fig.suptitle(
+        "Expected vs actual reference use — routing-failure / reference-weakness diagnostic",
+        fontsize=11, y=1.02,
+    )
+    fig.savefig(OUT / "19_reference_expected_used.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     args = parse_args()
     configure_run(args.run, args.out)
@@ -1756,6 +2295,17 @@ def main() -> None:
     write_top_skill_wins_csv(cats, per_eval)
     write_stage_x_difficulty_csv(cats, per_eval)
     write_per_eval_routing_csv(cats, per_eval, records)
+
+    # Round-D actionable summaries — "what should we change?" outputs.
+    timing = load_per_eval_timing()
+    expected_refs = load_expected_refs()
+    write_reference_effectiveness_csv(records, per_eval)
+    write_cost_effectiveness_csv(cats, per_eval, timing)
+    write_outcome_by_category_csv(cats, per_eval)
+    write_baseline_source_split_json(per_eval, records)
+    write_eval_coverage_csv(cats)
+    write_failure_taxonomy_stub_csv(cats, per_eval)
+    write_reference_expected_used_csv(per_eval, records, expected_refs)
     print("Wrote plots + CSV/JSON exports to", OUT)
 
 

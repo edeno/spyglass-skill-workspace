@@ -10,7 +10,19 @@ You're a new user. Pick what you want to do:
 
 **See the round-C results.** Read [`runs/round-c-2026-04-28/summary/SUMMARY.md`](runs/round-c-2026-04-28/summary/SUMMARY.md) — it cites every headline number with links to the figures.
 
-**Cite a number from round-C.** Open [`cumulative_summary.json`](runs/round-c-2026-04-28/summary/cumulative_summary.json) for the headline ws/bs/Δ + McNemar p-value + outcome cross-tab; [`batch_summary.csv`](runs/round-c-2026-04-28/summary/batch_summary.csv) for per-batch numbers (full-eval, expectations, behavioral, tokens, duration); [`stage_x_difficulty.csv`](runs/round-c-2026-04-28/summary/stage_x_difficulty.csv) for cells of plot 08's heatmap; [`top_skill_wins.csv`](runs/round-c-2026-04-28/summary/top_skill_wins.csv) for per-eval Δ rankings; [`per_eval_routing.csv`](runs/round-c-2026-04-28/summary/per_eval_routing.csv) for "what did the agent reach for on this eval" diagnostics; [`transcript_stats.json`](runs/round-c-2026-04-28/summary/transcript_stats.json) for tool-call totals, error counts, source-assistance, contamination.
+**Cite a number from round-C.** Open [`cumulative_summary.json`](runs/round-c-2026-04-28/summary/cumulative_summary.json) for the headline ws/bs/Δ + McNemar p-value + outcome cross-tab; [`batch_summary.csv`](runs/round-c-2026-04-28/summary/batch_summary.csv) for per-batch numbers; [`stage_x_difficulty.csv`](runs/round-c-2026-04-28/summary/stage_x_difficulty.csv) for cells of plot 08's heatmap; [`top_skill_wins.csv`](runs/round-c-2026-04-28/summary/top_skill_wins.csv) for per-eval Δ rankings; [`per_eval_routing.csv`](runs/round-c-2026-04-28/summary/per_eval_routing.csv) for "what did the agent reach for on this eval"; [`transcript_stats.json`](runs/round-c-2026-04-28/summary/transcript_stats.json) for tool-call totals, error counts, source-assistance, contamination.
+
+**Decide what to change in round-D.** Five "what should we change?" outputs (per-eval and per-reference rather than per-batch): [`reference_effectiveness.csv`](runs/round-c-2026-04-28/summary/reference_effectiveness.csv) — does loading a given reference correlate with passing? [`cost_effectiveness_per_eval.csv`](runs/round-c-2026-04-28/summary/cost_effectiveness_per_eval.csv) — which evals' extra ws tokens didn't pay off? [`outcome_by_category.csv`](runs/round-c-2026-04-28/summary/outcome_by_category.csv) — where does the skill uniquely help vs where everything still fails? [`baseline_source_split.json`](runs/round-c-2026-04-28/summary/baseline_source_split.json) — three-way split testing whether the skill's value is source-delivery or routing/workflow. [`eval_coverage.csv`](runs/round-c-2026-04-28/summary/eval_coverage.csv) — under-tested stage × tier cells.
+
+**Annotate failure modes by hand (round-D).** [`failure_taxonomy.csv`](runs/round-c-2026-04-28/summary/failure_taxonomy.csv) is auto-generated as a stub with one row per ws-failed eval. Fill in the `failure_type` column (suggested values: `wrong_factual`, `omitted_step`, `over_skeptical`, `wrong_tool`, `right_ref_no_verify`, `rubric_friction`, `eval_issue`) and re-run `make_plots.py` — plot 18 will render the distribution. Existing annotations are preserved across re-runs.
+
+**Annotate expected references per eval (round-D).** Add an `expected_refs` block per eval in `skills/spyglass/evals/evals.json`:
+
+```json
+{"id": 100, "expected_refs": {"required": ["decoding_pipeline.md"], "optional": ["common_tables.md"], "distractor": ["spyglassmixin_methods.md"]}}
+```
+
+`make_plots.py` will then render `reference_expected_used.csv` plus plot 19 — separating routing failures (expected ref not opened) from reference weakness (opened but answer still failed) from overuse (distractor opened) from eval mismatch (expected ref not needed). Skipped if no eval has the field.
 
 **Regenerate figures from scratch.** Clone this repo and `spyglass-skill` as siblings (see "Sibling-clone convention" below), then:
 
@@ -60,13 +72,20 @@ runs/
     │       └── without_skill/{eval_metadata.json, grading.json, timing.json, outputs/response.md}
     └── summary/                       analysis bundle (outputs only — no scripts)
         ├── SUMMARY.md                 final analysis + recommendations
-        ├── 01..12_*.png               12 figures
+        ├── 01..17_*.png               core figures (+ 18, 19 conditional on annotation)
         ├── category_breakdown.csv     per stage/tier/difficulty: ws/bs/Δ pass counts
         ├── batch_summary.csv          per-batch row: full-eval, expectation, behavioral, tokens, duration
         ├── stage_x_difficulty.csv     flat plot-08 matrix: ws/bs/Δ per (stage, difficulty) cell
         ├── top_skill_wins.csv         per-eval Δ-pp ranking, sorted desc
         ├── per_eval_routing.csv       per-eval × per-condition: pass, refs opened, scripts run, errors
+        ├── reference_effectiveness.csv  per-reference: loads, pass-rate-when-loaded, failed-eval samples
+        ├── cost_effectiveness_per_eval.csv  per-eval: extra ws tokens vs expectation Δ
+        ├── outcome_by_category.csv    per stage/tier outcome cross-tab (both/ws-only/bs-only/none)
+        ├── eval_coverage.csv          stage × tier eval-count matrix
+        ├── failure_taxonomy.csv       auto-stub of ws-failed evals; round-D maintainer fills failure_type
+        ├── reference_expected_used.csv  optional: rendered if evals.json has `expected_refs` annotations
         ├── cumulative_summary.json    headline ws/bs/Δ + outcome cross-tab + McNemar p-value
+        ├── baseline_source_split.json 3-way split: bs-no-source / bs-source / ws full-pass rates
         ├── ref_utilization.json       per-reference open count (transcript-level)
         ├── script_utilization.json    per-bundled-script execution + source-read counts
         ├── transcript_stats.json      tool-call totals (incl errors), source-assistance, SKILL.md activation

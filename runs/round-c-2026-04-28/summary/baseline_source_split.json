@@ -1,0 +1,18 @@
+{
+  "baseline_no_source_touched": {
+    "n": 87,
+    "full_pass": 47,
+    "full_pass_rate": 54.02
+  },
+  "baseline_source_touched": {
+    "n": 43,
+    "full_pass": 36,
+    "full_pass_rate": 83.72
+  },
+  "with_skill_all": {
+    "n": 130,
+    "full_pass": 111,
+    "full_pass_rate": 85.38
+  },
+  "note": "Splits the without_skill condition by whether the agent's transcript touched /spyglass/src/ (Read, Bash, Glob, LS, Grep) or WebFetched the Spyglass GitHub. Tests whether the skill's lift reduces to 'agent has source access' \u2014 if bs_source_touched approaches with_skill, the skill is doing source delivery; if not, the skill adds routing/workflow value beyond source access."
+}
