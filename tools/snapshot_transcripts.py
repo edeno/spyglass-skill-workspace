@@ -102,6 +102,9 @@ def find_live_tasks_dir(needed_ids: set[str], skill_root: Path) -> Path | None:
     not the newest.
     """
     encoded_cwd = "-" + str(skill_root).replace("/", "-").lstrip("-")
+    # macOS path. On Linux the equivalent is /tmp/claude-<uid>/<encoded-cwd>/.
+    # If/when this script is ported to Linux, fall back to /tmp/ here. For now
+    # the --tasks-dir flag is the documented escape hatch.
     base = Path(f"/private/tmp/claude-{os.getuid()}") / encoded_cwd
     if not base.exists():
         return None

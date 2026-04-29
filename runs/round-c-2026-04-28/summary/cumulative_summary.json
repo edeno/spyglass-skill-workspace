@@ -1,0 +1,25 @@
+{
+  "n_evals": 130,
+  "n_batches": 7,
+  "with_skill": {
+    "full_pass": 111,
+    "full_pass_rate": 85.38,
+    "expectation_pass": 989,
+    "expectation_total": 1032,
+    "expectation_pass_rate": 95.83,
+    "tokens_total": 5201182
+  },
+  "without_skill": {
+    "full_pass": 83,
+    "full_pass_rate": 63.85,
+    "expectation_pass": 895,
+    "expectation_total": 1032,
+    "expectation_pass_rate": 86.72,
+    "tokens_total": 3152406
+  },
+  "delta": {
+    "full_pass_pp": 21.54,
+    "expectation_pp": 9.11,
+    "tokens_total": 8353588
+  }
+}

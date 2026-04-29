@@ -1,0 +1,29 @@
+{
+  "n_with_skill_transcripts": 134,
+  "n_without_skill_transcripts": 133,
+  "tool_calls": {
+    "with_skill": {
+      "read": 538,
+      "bash": 582
+    },
+    "without_skill": {
+      "read": 139,
+      "bash": 312
+    }
+  },
+  "spyglass_src_assisted_runs": {
+    "with_skill": 60,
+    "without_skill": 35,
+    "note": "n transcripts where any Read touched /spyglass/src/ outside skills/spyglass/, OR a WebFetch hit github.com/LorenFrankLab/spyglass or spyglass.readthedocs. Mechanical proxy for 'agent consulted upstream Spyglass source'. May undercount vs hand-audit if the agent reasoned about source via grep/cat without an explicit Read."
+  },
+  "baseline_skill_contamination": {
+    "n_runs": 5,
+    "note": "n without_skill transcripts that touched any path under skills/spyglass/ (Read, Bash, Glob, or LS). Despite the dispatch prompt forbidding this, some baseline runs accessed the skill bundle."
+  },
+  "skill_md_activation": {
+    "with_skill_unique_evals_opening": 130,
+    "with_skill_total_unique_evals": 130,
+    "rate": 100.0,
+    "note": "Per-eval (not per-transcript) rate at which SKILL.md was opened in any with_skill transcript for that eval. Deduplicates retries; should be ~100% if activation is reliable."
+  }
+}

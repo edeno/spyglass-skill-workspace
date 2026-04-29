@@ -1054,43 +1054,86 @@ def plot_top_skill_wins(benchmarks: dict[int, dict]) -> None:
     plt.close(fig)
 
 
-def plot_reference_utilization() -> None:
-    """Per-reference utilization: % of with_skill runs that opened each reference file.
+def build_agent_to_run() -> dict[str, tuple[int, int, str]]:
+    """Read every iteration-N/.agent_map.json and return agent_id -> (batch, eval_id, cond).
 
-    Reads subagent transcripts from `<run>/summary/transcripts_snapshot/`. Each .jsonl
-    file is one subagent's full tool-call history. We count Read tool calls into
-    `skills/spyglass/references/` and group by run.
-
-    To refresh the snapshot from a live session, see snapshot_transcripts.py.
+    Tolerant of unexpected directory shapes — entries with malformed eval-NNN
+    names are skipped with a printed warning instead of raising IndexError /
+    ValueError mid-pipeline.
     """
-    snapshot_dir = OUT / "transcripts_snapshot"
-    if not snapshot_dir.exists() or not any(snapshot_dir.iterdir()):
-        print(
-            f"Skipping reference utilization plot: snapshot dir empty at {snapshot_dir}"
-        )
-        print("  Run snapshot_transcripts.py first to populate it.")
-        return
-
     agent_to_run: dict[str, tuple[int, int, str]] = {}
     for i in BATCH_ORDER:
         m_path = WORKSPACE / f"iteration-{i}" / ".agent_map.json"
         if not m_path.exists():
             continue
-        m = json.loads(m_path.read_text())
-        for aid, rdir in m.items():
-            parts = rdir.split("/")
+        for aid, rdir in json.loads(m_path.read_text()).items():
+            parts = rdir.rstrip("/").split("/")
+            if len(parts) < 2:
+                print(f"  warn: skipping agent {aid} — malformed agent_map value {rdir!r}")
+                continue
             eval_dir, cond = parts[-2], parts[-1]
-            eid = int(eval_dir.split("-")[1])
+            try:
+                eid = int(eval_dir.split("-")[1])
+            except (IndexError, ValueError):
+                print(
+                    f"  warn: skipping agent {aid} — could not parse eval_id from {eval_dir!r}"
+                )
+                continue
             agent_to_run[aid] = (i, eid, cond)
+    return agent_to_run
 
-    ref_calls_per_run: dict[tuple[int, int, str], Counter] = defaultdict(Counter)
-    for tf in snapshot_dir.iterdir():
+
+# Module-level so plot_script_utilization and the transcript loop both see it.
+TRACKED_SCRIPTS = [
+    "code_graph.py",  # static FK / source-walker — agent-facing
+    "db_graph.py",  # live-DB introspection — agent-facing
+    "scrub_dj_config.py",  # password-safe config viewer — agent-facing
+    "verify_spyglass_env.py",  # config sanity-check — agent-facing
+    "validate_skill.py",  # skill maintainer tool
+    "validate_all.sh",  # skill maintainer tool
+    "_index.py",  # skill maintainer tool
+]
+TRACKED_SCRIPT_ROLES = {
+    "code_graph.py": "agent",
+    "db_graph.py": "agent",
+    "scrub_dj_config.py": "agent",
+    "verify_spyglass_env.py": "agent",
+    "validate_skill.py": "maintainer",
+    "validate_all.sh": "maintainer",
+    "_index.py": "maintainer",
+}
+
+
+def parse_transcripts(
+    snapshot_dir: Path, agent_to_run: dict[str, tuple[int, int, str]]
+) -> list[dict]:
+    """Single-pass parse of every snapshotted transcript that maps to a run.
+
+    Returns one record per transcript file with all the tool-call counters
+    that downstream plots and stats need. Sorted by agent_id so output JSONs
+    are deterministic regardless of filesystem iteration order.
+    """
+    records: list[dict] = []
+    for tf in sorted(snapshot_dir.iterdir()):
         if tf.suffix != ".jsonl":
             continue
         aid = tf.stem
         if aid not in agent_to_run:
             continue
-        run_key = agent_to_run[aid]
+        batch, eval_id, cond = agent_to_run[aid]
+        rec: dict = {
+            "agent_id": aid,
+            "batch": batch,
+            "eval_id": eval_id,
+            "condition": cond,
+            "n_read_calls": 0,
+            "n_bash_calls": 0,
+            "ref_opens": Counter(),
+            "script_executions": Counter(),
+            "script_source_reads": Counter(),
+            "spyglass_src_reads": 0,
+            "skill_dir_touches": 0,
+        }
         for line in tf.read_text().splitlines():
             if not line.startswith("{"):
                 continue
@@ -1104,21 +1147,151 @@ def plot_reference_utilization() -> None:
             for block in content:
                 if not (isinstance(block, dict) and block.get("type") == "tool_use"):
                     continue
-                if block.get("name") != "Read":
-                    continue
-                path = (block.get("input") or {}).get("file_path", "")
-                if "skills/spyglass/references/" in path:
-                    ref = path.split("skills/spyglass/references/")[-1]
-                    ref_calls_per_run[run_key][ref] += 1
-                elif path.endswith("SKILL.md") and "skills/spyglass/" in path:
-                    ref_calls_per_run[run_key]["SKILL.md"] += 1
+                name = block.get("name") or ""
+                inp = block.get("input") or {}
+                if name == "Read":
+                    rec["n_read_calls"] += 1
+                    path = inp.get("file_path") or ""
+                    if "skills/spyglass/references/" in path:
+                        ref = path.split("skills/spyglass/references/")[-1]
+                        rec["ref_opens"][ref] += 1
+                    elif path.endswith("SKILL.md") and "skills/spyglass/" in path:
+                        rec["ref_opens"]["SKILL.md"] += 1
+                    if "skills/spyglass/scripts/" in path:
+                        fname = path.rsplit("/", 1)[-1]
+                        if fname in TRACKED_SCRIPTS:
+                            rec["script_source_reads"][fname] += 1
+                    if "skills/spyglass/" in path:
+                        rec["skill_dir_touches"] += 1
+                    # Heuristic for "agent read upstream Spyglass source" — used
+                    # to distinguish parametric-memory baseline from source-assisted
+                    # baseline. Matches the path shape from the round-c dispatch
+                    # template ("/spyglass/src/spyglass/").
+                    if "/spyglass/src/" in path and "skills/spyglass/" not in path:
+                        rec["spyglass_src_reads"] += 1
+                elif name == "Bash":
+                    rec["n_bash_calls"] += 1
+                    cmd = inp.get("command", "") or ""
+                    for s in TRACKED_SCRIPTS:
+                        if _is_script_execution(cmd, s):
+                            rec["script_executions"][s] += 1
+                    if "skills/spyglass/" in cmd:
+                        rec["skill_dir_touches"] += 1
+                elif name in ("Glob", "LS"):
+                    target = (
+                        inp.get("pattern") or inp.get("path") or ""
+                    )
+                    if "skills/spyglass/" in target:
+                        rec["skill_dir_touches"] += 1
+                elif name == "WebFetch":
+                    # Counts as "agent consulted upstream Spyglass source" if
+                    # the URL points at the Spyglass GitHub repo (any branch /
+                    # path / blob URL). Round-c saw this ~4× across baseline.
+                    url = (inp.get("url") or "").lower()
+                    if "github.com/lorenfranklab/spyglass" in url or "spyglass.readthedocs" in url:
+                        rec["spyglass_src_reads"] += 1
+        records.append(rec)
+    return records
+
+
+def write_transcript_stats(records: list[dict], total_ws: int, total_bs: int) -> None:
+    """Aggregate transcript records into the cost-shape and contamination JSON.
+
+    Captures the numbers SUMMARY.md cites in §"Transcript-level caveats":
+    - Per-condition total Read / Bash tool-call counts.
+    - Baseline runs that read upstream Spyglass source (source-assisted baseline).
+    - Baseline runs that touched the skill bundle (contamination).
+    - With-skill SKILL.md activation deduplicated to unique evals (not transcripts).
+    """
+    n_read = {"with_skill": 0, "without_skill": 0}
+    n_bash = {"with_skill": 0, "without_skill": 0}
+    src_runs = {"with_skill": set(), "without_skill": set()}
+    bs_skill_contaminated: set[str] = set()
+    ws_evals_opened_skill_md: set[tuple[int, int]] = set()
+
+    for r in records:
+        cond = r["condition"]
+        n_read[cond] = n_read.get(cond, 0) + r["n_read_calls"]
+        n_bash[cond] = n_bash.get(cond, 0) + r["n_bash_calls"]
+        if r["spyglass_src_reads"] > 0:
+            src_runs[cond].add(r["agent_id"])
+        if cond == "without_skill" and r["skill_dir_touches"] > 0:
+            bs_skill_contaminated.add(r["agent_id"])
+        if cond == "with_skill" and r["ref_opens"].get("SKILL.md", 0) > 0:
+            ws_evals_opened_skill_md.add((r["batch"], r["eval_id"]))
+
+    n_ws_evals_total = len({(r["batch"], r["eval_id"]) for r in records if r["condition"] == "with_skill"})
+
+    payload = {
+        "n_with_skill_transcripts": total_ws,
+        "n_without_skill_transcripts": total_bs,
+        "tool_calls": {
+            "with_skill": {"read": n_read["with_skill"], "bash": n_bash["with_skill"]},
+            "without_skill": {
+                "read": n_read["without_skill"],
+                "bash": n_bash["without_skill"],
+            },
+        },
+        "spyglass_src_assisted_runs": {
+            "with_skill": len(src_runs["with_skill"]),
+            "without_skill": len(src_runs["without_skill"]),
+            "note": (
+                "n transcripts where any Read touched /spyglass/src/ outside "
+                "skills/spyglass/, OR a WebFetch hit github.com/LorenFrankLab/spyglass "
+                "or spyglass.readthedocs. Mechanical proxy for 'agent consulted "
+                "upstream Spyglass source'. May undercount vs hand-audit if the "
+                "agent reasoned about source via grep/cat without an explicit Read."
+            ),
+        },
+        "baseline_skill_contamination": {
+            "n_runs": len(bs_skill_contaminated),
+            "note": "n without_skill transcripts that touched any path under skills/spyglass/ (Read, Bash, Glob, or LS). Despite the dispatch prompt forbidding this, some baseline runs accessed the skill bundle.",
+        },
+        "skill_md_activation": {
+            "with_skill_unique_evals_opening": len(ws_evals_opened_skill_md),
+            "with_skill_total_unique_evals": n_ws_evals_total,
+            "rate": (
+                round(100 * len(ws_evals_opened_skill_md) / n_ws_evals_total, 2)
+                if n_ws_evals_total
+                else 0.0
+            ),
+            "note": "Per-eval (not per-transcript) rate at which SKILL.md was opened in any with_skill transcript for that eval. Deduplicates retries; should be ~100% if activation is reliable.",
+        },
+    }
+    (OUT / "transcript_stats.json").write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def plot_reference_utilization() -> None:
+    """Per-reference utilization: % of with_skill runs that opened each reference file.
+
+    Reads subagent transcripts from `<run>/summary/transcripts_snapshot/`. Each .jsonl
+    file is one subagent's full tool-call history. We count Read tool calls into
+    `skills/spyglass/references/` and group by run. Also writes
+    `transcript_stats.json` covering aggregate cost-shape and baseline-contamination
+    numbers cited in SUMMARY.md.
+
+    To refresh the snapshot from a live session, see snapshot_transcripts.py.
+    """
+    snapshot_dir = OUT / "transcripts_snapshot"
+    if not snapshot_dir.exists() or not any(snapshot_dir.iterdir()):
+        print(
+            f"Skipping reference utilization plot: snapshot dir empty at {snapshot_dir}"
+        )
+        print("  Run snapshot_transcripts.py first to populate it.")
+        return
+
+    agent_to_run = build_agent_to_run()
+    records = parse_transcripts(snapshot_dir, agent_to_run)
 
     total_ws = sum(1 for v in agent_to_run.values() if v[2] == "with_skill")
-    ws_keys = [k for k in ref_calls_per_run if k[2] == "with_skill"]
+    total_bs = sum(1 for v in agent_to_run.values() if v[2] == "without_skill")
 
+    # Per-with_skill-run: which references did this run open at least once?
     ref_runs_using: Counter = Counter()
-    for run_key in ws_keys:
-        for ref in ref_calls_per_run[run_key]:
+    for r in records:
+        if r["condition"] != "with_skill":
+            continue
+        for ref in r["ref_opens"]:
             ref_runs_using[ref] += 1
 
     # Persist counts so the plot is reproducible without re-parsing transcripts.
@@ -1131,6 +1304,7 @@ def plot_reference_utilization() -> None:
         "ref_runs_using": dict(ref_runs_using.most_common()),
     }
     (OUT / "ref_utilization.json").write_text(json.dumps(payload, indent=2) + "\n")
+    write_transcript_stats(records, total_ws, total_bs)
 
     # Drop SKILL.md (always read by construction); plot the references.
     refs = [(r, n) for r, n in ref_runs_using.most_common() if r != "SKILL.md"][:20]
@@ -1179,9 +1353,20 @@ def _is_script_execution(cmd: str, script: str) -> bool:
     filename — e.g. inside a grep, cat, ls, or head argument — do NOT count
     as executions. This prevents a measurement bug where a `grep validate_skill.py
     src.py` was being recorded as an invocation of the validator.
+
+    The optional `(?:\\S+/)?` before the escaped script name allows a path
+    prefix that ends in `/` (e.g. `skills/spyglass/scripts/code_graph.py`)
+    but rejects substring matches like `my_code_graph.py` matching
+    `code_graph.py`. The trailing `(?:[\\s|;&<>]|$)` requires the script name
+    to end at end-of-string or a shell token boundary, so `code_graph.py.bak`
+    is rejected (not a real invocation).
     """
-    # Allow a path prefix before the script, e.g. skills/spyglass/scripts/code_graph.py.
-    pat = rf"(?:^|[\s|;&])(?:(?:python3?|bash|sh)\s+\S*{re.escape(script)}|\./\S*{re.escape(script)})\b"
+    pat = (
+        rf"(?:^|[\s|;&])"
+        rf"(?:(?:python3?|bash|sh)\s+(?:\S+/)?{re.escape(script)}"
+        rf"|\./(?:\S+/)?{re.escape(script)})"
+        rf"(?:[\s|;&<>]|$)"
+    )
     return re.search(pat, cmd) is not None
 
 
@@ -1197,67 +1382,21 @@ def plot_script_utilization() -> None:
         print(f"Skipping script utilization plot: snapshot dir empty at {snapshot_dir}")
         return
 
-    scripts = [
-        "code_graph.py",  # static FK / source-walker — agent-facing
-        "db_graph.py",  # live-DB introspection — agent-facing
-        "scrub_dj_config.py",  # password-safe config viewer — agent-facing
-        "verify_spyglass_env.py",  # config sanity-check — agent-facing
-        "validate_skill.py",  # skill maintainer tool
-        "validate_all.sh",  # skill maintainer tool
-        "_index.py",  # skill maintainer tool
-    ]
-    role = {
-        "code_graph.py": "agent",
-        "db_graph.py": "agent",
-        "scrub_dj_config.py": "agent",
-        "verify_spyglass_env.py": "agent",
-        "validate_skill.py": "maintainer",
-        "validate_all.sh": "maintainer",
-        "_index.py": "maintainer",
-    }
-
-    agent_to_run: dict[str, tuple[int, int, str]] = {}
-    for i in BATCH_ORDER:
-        m_path = WORKSPACE / f"iteration-{i}" / ".agent_map.json"
-        if not m_path.exists():
-            continue
-        for aid, rdir in json.loads(m_path.read_text()).items():
-            parts = rdir.split("/")
-            agent_to_run[aid] = (i, int(parts[-2].split("-")[1]), parts[-1])
+    scripts = TRACKED_SCRIPTS
+    role = TRACKED_SCRIPT_ROLES
+    agent_to_run = build_agent_to_run()
+    records = parse_transcripts(snapshot_dir, agent_to_run)
 
     bash_inv: dict[str, Counter] = defaultdict(Counter)  # script -> {cond: count}
     bash_runs: dict[str, dict[str, set]] = defaultdict(lambda: defaultdict(set))
     read_inv: dict[str, Counter] = defaultdict(Counter)
-    for tf in snapshot_dir.iterdir():
-        if tf.suffix != ".jsonl":
-            continue
-        aid = tf.stem
-        if aid not in agent_to_run:
-            continue
-        cond = agent_to_run[aid][2]
-        for line in tf.read_text().splitlines():
-            if not line.startswith("{"):
-                continue
-            try:
-                obj = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            for block in obj.get("message", {}).get("content", []):
-                if not (isinstance(block, dict) and block.get("type") == "tool_use"):
-                    continue
-                inp = block.get("input") or {}
-                if block.get("name") == "Bash":
-                    cmd = inp.get("command", "") or ""
-                    for s in scripts:
-                        if _is_script_execution(cmd, s):
-                            bash_inv[s][cond] += 1
-                            bash_runs[s][cond].add(aid)
-                elif block.get("name") == "Read":
-                    path = inp.get("file_path", "") or ""
-                    if "skills/spyglass/scripts/" in path:
-                        fname = path.rsplit("/", 1)[-1]
-                        if fname in scripts:
-                            read_inv[fname][cond] += 1
+    for r in records:
+        cond = r["condition"]
+        for s, n in r["script_executions"].items():
+            bash_inv[s][cond] += n
+            bash_runs[s][cond].add(r["agent_id"])
+        for s, n in r["script_source_reads"].items():
+            read_inv[s][cond] += n
 
     n_ws = sum(1 for v in agent_to_run.values() if v[2] == "with_skill")
     n_bs = sum(1 for v in agent_to_run.values() if v[2] == "without_skill")
@@ -1379,6 +1518,151 @@ def write_per_category_csv() -> None:
     (OUT / "category_breakdown.csv").write_text("\n".join(out_lines) + "\n")
 
 
+def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
+    """Per-batch row covering everything cited in BATCHES.md and §"Headline" tables.
+
+    One row per batch with: full-eval pass counts and rates per condition,
+    expectation pass rates, total/mean tokens per condition, mean wall-clock
+    per condition, plus the ws-bs deltas. Lets the round-D author cite any
+    per-batch number without opening a PNG.
+    """
+    rows = ["batch_id,label,n_evals,ws_full_pass,ws_full_rate,bs_full_pass,bs_full_rate,delta_full_pp,ws_exp_pass,ws_exp_total,ws_exp_rate,bs_exp_pass,bs_exp_total,bs_exp_rate,delta_exp_pp,ws_tokens_total,bs_tokens_total,ws_tokens_mean,bs_tokens_mean,ws_duration_mean_s,bs_duration_mean_s"]
+    for b in BATCH_ORDER:
+        cfg = benchmarks[b]["configurations"]
+        ws = cfg["with_skill"]
+        bs = cfg["without_skill"]
+        n = ws["n_runs"]
+        ws_full_rate = 100 * ws["evals_full_pass"] / n
+        bs_full_rate = 100 * bs["evals_full_pass"] / n
+        ws_exp_rate = 100 * ws["expectations_passed"] / ws["expectations_total"]
+        bs_exp_rate = 100 * bs["expectations_passed"] / bs["expectations_total"]
+        # Replace newlines in the label so the CSV stays one-line-per-row.
+        label = BATCH_LABELS[b].replace("\n", " ")
+        rows.append(
+            f"{b},\"{label}\",{n},"
+            f"{ws['evals_full_pass']},{ws_full_rate:.1f},"
+            f"{bs['evals_full_pass']},{bs_full_rate:.1f},"
+            f"{ws_full_rate - bs_full_rate:.1f},"
+            f"{ws['expectations_passed']},{ws['expectations_total']},{ws_exp_rate:.1f},"
+            f"{bs['expectations_passed']},{bs['expectations_total']},{bs_exp_rate:.1f},"
+            f"{ws_exp_rate - bs_exp_rate:.1f},"
+            f"{ws['tokens_total']},{bs['tokens_total']},"
+            f"{ws['tokens_mean']:.1f},{bs['tokens_mean']:.1f},"
+            f"{ws['duration_mean_s']:.2f},{bs['duration_mean_s']:.2f}"
+        )
+    (OUT / "batch_summary.csv").write_text("\n".join(rows) + "\n")
+
+
+def write_cumulative_summary_json(benchmarks: dict[int, dict]) -> None:
+    """Headline cumulative numbers — the SUMMARY.md headline table in JSON."""
+    ws_full = sum(
+        b["configurations"]["with_skill"]["evals_full_pass"]
+        for b in benchmarks.values()
+    )
+    bs_full = sum(
+        b["configurations"]["without_skill"]["evals_full_pass"]
+        for b in benchmarks.values()
+    )
+    n_evals = sum(
+        b["configurations"]["with_skill"]["n_runs"] for b in benchmarks.values()
+    )
+    ws_exp_p = sum(
+        b["configurations"]["with_skill"]["expectations_passed"]
+        for b in benchmarks.values()
+    )
+    ws_exp_t = sum(
+        b["configurations"]["with_skill"]["expectations_total"]
+        for b in benchmarks.values()
+    )
+    bs_exp_p = sum(
+        b["configurations"]["without_skill"]["expectations_passed"]
+        for b in benchmarks.values()
+    )
+    bs_exp_t = sum(
+        b["configurations"]["without_skill"]["expectations_total"]
+        for b in benchmarks.values()
+    )
+    ws_tokens = sum(
+        b["configurations"]["with_skill"]["tokens_total"] for b in benchmarks.values()
+    )
+    bs_tokens = sum(
+        b["configurations"]["without_skill"]["tokens_total"]
+        for b in benchmarks.values()
+    )
+    payload = {
+        "n_evals": n_evals,
+        "n_batches": len(BATCH_ORDER),
+        "with_skill": {
+            "full_pass": ws_full,
+            "full_pass_rate": round(100 * ws_full / n_evals, 2),
+            "expectation_pass": ws_exp_p,
+            "expectation_total": ws_exp_t,
+            "expectation_pass_rate": round(100 * ws_exp_p / ws_exp_t, 2),
+            "tokens_total": ws_tokens,
+        },
+        "without_skill": {
+            "full_pass": bs_full,
+            "full_pass_rate": round(100 * bs_full / n_evals, 2),
+            "expectation_pass": bs_exp_p,
+            "expectation_total": bs_exp_t,
+            "expectation_pass_rate": round(100 * bs_exp_p / bs_exp_t, 2),
+            "tokens_total": bs_tokens,
+        },
+        "delta": {
+            "full_pass_pp": round(100 * (ws_full - bs_full) / n_evals, 2),
+            "expectation_pp": round(
+                100 * (ws_exp_p / ws_exp_t - bs_exp_p / bs_exp_t), 2
+            ),
+            "tokens_total": ws_tokens + bs_tokens,
+        },
+    }
+    (OUT / "cumulative_summary.json").write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def write_top_skill_wins_csv(benchmarks: dict[int, dict]) -> None:
+    """Per-eval expectation deltas, sorted by delta desc.
+
+    Covers the top-N table in SUMMARY.md and the figure-only data behind
+    plot 10. Sorted by skill - baseline expectation delta (descending) so
+    the largest skill wins are at the top, the largest skill losses (if
+    any) at the bottom.
+    """
+    per_eval = load_per_eval_results(benchmarks)
+    cats = load_eval_categories()
+
+    rows = ["rank,eval_id,eval_name,batch,stage,tier,difficulty,ws_pass,bs_pass,ws_exp_rate,bs_exp_rate,delta_pp"]
+    items = []
+    for r in per_eval:
+        if r["ws_exp_t"] == 0:
+            continue
+        ws_pct = 100 * r["ws_exp_p"] / r["ws_exp_t"]
+        bs_pct = 100 * r["bs_exp_p"] / r["bs_exp_t"] if r["bs_exp_t"] else 0
+        cat = cats.get(r["eval_id"], {})
+        items.append(
+            (
+                ws_pct - bs_pct,
+                r["eval_id"],
+                r["eval_name"],
+                r["batch"],
+                cat.get("stage", "unknown"),
+                cat.get("tier", "unknown"),
+                cat.get("difficulty", "unknown"),
+                int(r["ws_pass"]),
+                int(r["bs_pass"]),
+                ws_pct,
+                bs_pct,
+            )
+        )
+    items.sort(key=lambda x: -x[0])
+    for rank, item in enumerate(items, start=1):
+        delta, eid, name, batch, stage, tier, diff, wsp, bsp, wsr, bsr = item
+        rows.append(
+            f"{rank},{eid},{name},{batch},{stage},{tier},{diff},{wsp},{bsp},"
+            f"{wsr:.1f},{bsr:.1f},{delta:.1f}"
+        )
+    (OUT / "top_skill_wins.csv").write_text("\n".join(rows) + "\n")
+
+
 def main() -> None:
     args = parse_args()
     configure_run(args.run, args.out)
@@ -1397,7 +1681,10 @@ def main() -> None:
     plot_reference_utilization()
     plot_script_utilization()
     write_per_category_csv()
-    print("Wrote plots + category_breakdown.csv to", OUT)
+    write_batch_summary_csv(benchmarks)
+    write_cumulative_summary_json(benchmarks)
+    write_top_skill_wins_csv(benchmarks)
+    print("Wrote plots + CSV/JSON exports to", OUT)
 
 
 if __name__ == "__main__":
