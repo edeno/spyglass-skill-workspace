@@ -10,6 +10,7 @@
   "spyglass_src_path": "/Users/edeno/Documents/GitHub/spyglass/src/spyglass",
   "spyglass_src_note": "Not recorded at dispatch time — see Round-D dispatch templates (skills/spyglass/evals/dispatch_prompts.md) which now require pinning. The sweep's eval agents had access to a local Spyglass checkout at the path above but the commit hash was not captured. Treat field-level claims grounded in this source as 'verified at sweep time, re-verify before pinning'.",
   "workspace_layout_note": "Sweep ran while the workspace lived in-tree at skills/spyglass-workspace/ inside the spyglass-skill repo. Post-sweep the workspace was extracted to its own repo (spyglass-skill-workspace) at runs/round-c-2026-04-28/. iteration-N/.agent_map.json values were rewritten to the new layout; transcripts_snapshot/*.jsonl files retain the original in-tree paths because they are frozen records of what the dispatched agents observed (cwd and Read/Write/Bash tool inputs at sweep time).",
+  "tokens_partial_timing_note": "Batch 3 (iteration-3/) hit the token rate limit mid-dispatch and only 25/40 timing.json files were captured. The batch's tokens_total in benchmark.json is therefore a lower bound; the headline 5.20M with_skill / 3.15M baseline / 8.35M total figures inherit this caveat. Pass-rate counts are unaffected (every eval was re-graded after retry).",
   "n_evals_run": 130,
   "n_dispatches": 260,
   "n_transcripts_snapshotted": 267,
