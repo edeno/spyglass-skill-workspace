@@ -27,9 +27,13 @@ runs/
     └── summary/                       analysis bundle (outputs only — no scripts)
         ├── SUMMARY.md                 final analysis + recommendations
         ├── 01..12_*.png               12 figures
-        ├── category_breakdown.csv
-        ├── ref_utilization.json
-        ├── script_utilization.json
+        ├── category_breakdown.csv     per stage/tier/difficulty: ws/bs/Δ pass counts
+        ├── batch_summary.csv          per-batch row covering BATCHES.md's plan table
+        ├── top_skill_wins.csv         per-eval Δ-pp ranking, sorted desc
+        ├── cumulative_summary.json    headline ws/bs/Δ across all batches
+        ├── ref_utilization.json       per-reference open count (transcript-level)
+        ├── script_utilization.json    per-bundled-script execution + source-read counts
+        ├── transcript_stats.json      tool-call totals, baseline contamination, SKILL.md activation
         └── transcripts_snapshot/      *.jsonl per-subagent transcripts (~14 MB per sweep)
 ```
 
