@@ -1,0 +1,42 @@
+{
+  "eval_id": 36,
+  "eval_name": "runtime-populate-non-pk-dict",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (fetch1(, KEY, SpikeSortingSelection).",
+      "passed": true,
+      "evidence": "All present: `fetch1('KEY')`, KEY, SpikeSortingSelection used throughout."
+    },
+    {
+      "text": "Response does not contain forbidden substring `pip install kilosort2`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent."
+    },
+    {
+      "text": "Identifies that `sorter` is not on the Selection-table primary key",
+      "passed": true,
+      "evidence": "'The PK is just `sorting_id`. `nwb_file_name` and `sorter` live in secondary attributes'."
+    },
+    {
+      "text": "Explains populate(key) silently iterates the whole Selection",
+      "passed": true,
+      "evidence": "'Unlike `fetch1()`, which raises `DataJointError` on a too-loose dict, `populate()` raises nothing for this case' and 'walks every row in the Selection'."
+    },
+    {
+      "text": "Shows fetch1('KEY') / .proj() fix",
+      "passed": true,
+      "evidence": "Minimal fix section: `(SpikeSortingSelection & key).fetch1('KEY')` and `(SpikeSortingSelection & key).proj()` patterns."
+    },
+    {
+      "text": "Generalizes to other *V1.populate(...) entry points",
+      "passed": true,
+      "evidence": "'Robust fix / generalization' section: 'applies to every *V1.populate(...) entry point' with list (SpikeSortingRecording, ArtifactDetection, MetricCuration, etc.)."
+    },
+    {
+      "text": "Names key_source as the mechanism",
+      "passed": true,
+      "evidence": "'key_source is the load-bearing concept' subsection walks key_source default = parent.proj() = PK-only, populate restricts against key_source, & silently drops dict keys not in heading."
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "eval_id": 11,
+  "eval_name": "atomic-list-intervals-for-session",
+  "stage": "pipeline-usage",
+  "tier": "atomic-read",
+  "difficulty": "easy",
+  "prompt": "List all `interval_list_name` values for j1620210710_.",
+  "assertions": {
+    "required_substrings": [
+      "IntervalList",
+      ".fetch",
+      "interval_list_name"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Uses .fetch() (multiple rows) not .fetch1() (one row)",
+      "Restricts to nwb_file_name first, then projects interval_list_name"
+    ]
+  },
+  "expected_output": "`(IntervalList & {'nwb_file_name': 'j1620210710_.nwb'}).fetch('interval_list_name')`."
+}

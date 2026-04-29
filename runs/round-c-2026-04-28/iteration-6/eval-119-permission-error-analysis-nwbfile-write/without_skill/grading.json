@@ -1,0 +1,37 @@
+{
+  "eval_id": 119,
+  "eval_name": "permission-error-analysis-nwbfile-write",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (SPYGLASS_BASE_DIR, permission, umask, group, analysis_dir).",
+      "passed": true,
+      "evidence": "All required substrings present."
+    },
+    {
+      "text": "Response does not contain forbidden substrings (fix it with chmod -R 777, run chmod -R 777, the answer is chmod -R 777).",
+      "passed": true,
+      "evidence": "Forbidden substrings absent. Response actively warns against `chmod -R 777`."
+    },
+    {
+      "text": "Identifies failure as filesystem / group-permission layer",
+      "passed": true,
+      "evidence": "'This is almost certainly not a Spyglass / Python bug ... The fix lives at the filesystem permission layer, not in the populate code'."
+    },
+    {
+      "text": "Diagnoses in three layers (group membership, group-write+setgid, umask 002)",
+      "passed": true,
+      "evidence": "Three numbered layers: 1 Group membership, 2 Group-write bit + setgid, 3 umask 002."
+    },
+    {
+      "text": "Does NOT recommend chmod -R 777 as the fix",
+      "passed": true,
+      "evidence": "'DO NOT run this: sudo chmod -R 777' explicitly with consequences listed."
+    },
+    {
+      "text": "Notes other lab members can populate fine because they're already in the shared group",
+      "passed": true,
+      "evidence": "'every existing lab member is already in the group; you're a new account that wasn't added'."
+    }
+  ]
+}

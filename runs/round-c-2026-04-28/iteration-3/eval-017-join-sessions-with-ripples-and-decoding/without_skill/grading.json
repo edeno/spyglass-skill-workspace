@@ -1,0 +1,31 @@
+{
+  "eval_id": 17,
+  "eval_name": "join-sessions-with-ripples-and-decoding",
+  "expectations": [
+    {
+      "text": "Response contains substring `nwb_file_name`.",
+      "passed": true,
+      "evidence": "Substring 'nwb_file_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `RippleTimesV1`.",
+      "passed": true,
+      "evidence": "Substring 'RippleTimesV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ClusterlessDecodingV1`.",
+      "passed": true,
+      "evidence": "Substring 'ClusterlessDecodingV1' found in response.md"
+    },
+    {
+      "text": "Uses the * join operator (not nested restrictions)",
+      "passed": true,
+      "evidence": "Uses `joined = RippleTimesV1 * ClusterlessDecodingV1` natural join and contrasts it with restriction-based approaches."
+    },
+    {
+      "text": "Addresses row multiplication (unique nwb_file_name via set() or distinct)",
+      "passed": true,
+      "evidence": "`sessions = set(joined.fetch(\"nwb_file_name\"))` with explanation 'A given session can produce many rows ... so deduplicate'; offers `dj.U` alternative."
+    }
+  ]
+}

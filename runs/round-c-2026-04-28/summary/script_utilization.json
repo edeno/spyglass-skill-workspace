@@ -1,0 +1,105 @@
+{
+  "n_with_skill_runs": 134,
+  "n_without_skill_runs": 133,
+  "any_script_with_skill_runs": 23,
+  "scripts": [
+    {
+      "name": "code_graph.py",
+      "role": "agent",
+      "with_skill": {
+        "bash_invocations": 47,
+        "n_runs_invoking": 21,
+        "source_only_reads": 1
+      },
+      "without_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      }
+    },
+    {
+      "name": "db_graph.py",
+      "role": "agent",
+      "with_skill": {
+        "bash_invocations": 9,
+        "n_runs_invoking": 2,
+        "source_only_reads": 3
+      },
+      "without_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      }
+    },
+    {
+      "name": "scrub_dj_config.py",
+      "role": "agent",
+      "with_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      },
+      "without_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      }
+    },
+    {
+      "name": "verify_spyglass_env.py",
+      "role": "agent",
+      "with_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      },
+      "without_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      }
+    },
+    {
+      "name": "validate_skill.py",
+      "role": "maintainer",
+      "with_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      },
+      "without_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      }
+    },
+    {
+      "name": "validate_all.sh",
+      "role": "maintainer",
+      "with_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      },
+      "without_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      }
+    },
+    {
+      "name": "_index.py",
+      "role": "maintainer",
+      "with_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      },
+      "without_skill": {
+        "bash_invocations": 0,
+        "n_runs_invoking": 0,
+        "source_only_reads": 0
+      }
+    }
+  ]
+}

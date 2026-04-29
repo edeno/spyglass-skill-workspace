@@ -1,0 +1,32 @@
+{
+  "eval_id": 58,
+  "eval_name": "param-speed-threshold-ripple",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'immobility'",
+      "passed": true,
+      "evidence": "found — 'immobility'"
+    },
+    {
+      "text": "behavioral_check: Identifies speed_threshold as a movement-exclusion cutoff (events kept when speed <= threshold)",
+      "passed": true,
+      "evidence": "States 'A candidate event ... is only retained as a ripple if the animal's speed is at or below speed_threshold at the event boundaries.'"
+    },
+    {
+      "text": "behavioral_check: Predicts the direction correctly: raising 4 -> 10 keeps MORE candidate events, not fewer",
+      "passed": true,
+      "evidence": "Explicit: 'You will get more ripples, not fewer.' and explains 4–10 cm/s candidates that were filtered out now pass through."
+    },
+    {
+      "text": "behavioral_check: Identifies the tradeoff: looser immobility conditioning admits peri-movement events that may not be true SWRs",
+      "passed": true,
+      "evidence": "Identifies theta–ripple contamination, type II/movement ripples differ, EMG/motion artifacts, reference-frame bias; explicit sensitivity-vs-specificity tradeoff table."
+    },
+    {
+      "text": "behavioral_check: Does NOT predict that raising speed_threshold yields fewer ripples — that is the opposite of how the filter works",
+      "passed": true,
+      "evidence": "Direction stated correctly and unambiguously."
+    }
+  ]
+}

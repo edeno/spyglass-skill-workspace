@@ -1,0 +1,37 @@
+{
+  "eval_id": 4,
+  "eval_name": "populate-fails-halfway-through",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains substring `key_source`.",
+      "passed": true,
+      "evidence": "Substring 'key_source' found multiple times in response.md."
+    },
+    {
+      "text": "Response contains substring `LFPV1`.",
+      "passed": true,
+      "evidence": "Substring 'LFPV1' found throughout response.md."
+    },
+    {
+      "text": "Isolates the failing key via one of the three legitimate shapes",
+      "passed": true,
+      "evidence": "All three shapes presented as Options 1 (suppress_errors+return_exception_objects), 2 (manual loop over key_source), and 3 (~jobs reservation table)."
+    },
+    {
+      "text": "Enumerates or references keys from `key_source`",
+      "passed": true,
+      "evidence": "Option 2 explicitly loops `for key in LFPV1.key_source.fetch('KEY')` and the framing intro names key_source as the iteration target."
+    },
+    {
+      "text": "Mentions transaction rollback or post-mortem inspection behavior",
+      "passed": true,
+      "evidence": "Opening framing says 'by default `populate()` runs each `make()` call inside a transaction, so a failure rolls the partial insert back', and Watch-outs reiterate 'a crashed `make()` rolls back — there's nothing half-inserted'."
+    },
+    {
+      "text": "Does not invent a Spyglass-specific `debug_populate` or `populate_one` helper",
+      "passed": true,
+      "evidence": "Explicitly states 'There is no Spyglass-specific `debug_populate()` or `populate_one()` helper'."
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "eval_id": 97,
+  "eval_name": "dependency-abstract-upstream",
+  "expectations": [
+    {
+      "text": "Response contains substring `parents(`.",
+      "passed": true,
+      "evidence": "Substring 'parents(' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ancestors(`.",
+      "passed": true,
+      "evidence": "Substring 'ancestors(' found in response.md"
+    },
+    {
+      "text": "Response contains substring `.describe()`.",
+      "passed": true,
+      "evidence": "Substring '.describe()' found in response.md"
+    },
+    {
+      "text": "Distinguishes `parents()` (one hop) from `ancestors()` (transitive walk) and gives a use case for each",
+      "passed": true,
+      "evidence": "Sections explicitly: 'parents() \u2014 one hop upstream... What does this table immediately depend on?' vs 'ancestors() \u2014 full transitive walk... Where does this table ultimately get its data from?'"
+    },
+    {
+      "text": "Mentions `.describe()` as the schema-level companion that shows FK declarations inline in the table's definition string",
+      "passed": true,
+      "evidence": "States: 'Table.describe(), which prints the table's definition string: the schema source as DataJoint sees it, with the FK declarations (-> ParentTable) shown inline with the column list.'"
+    }
+  ]
+}

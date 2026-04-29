@@ -1,0 +1,41 @@
+{
+  "eval_id": 128,
+  "eval_name": "key-hygiene-v0-v1-cross-version",
+  "expectations": [
+    {
+      "text": "Response contains substring `set_group_by_shank`.",
+      "passed": true,
+      "evidence": "Substring 'set_group_by_shank' found in response.md"
+    },
+    {
+      "text": "Response contains substring `spikesorting_v1_pipeline.md`.",
+      "passed": true,
+      "evidence": "Substring 'spikesorting_v1_pipeline.md' found in response.md"
+    },
+    {
+      "text": "Response contains substring `spikesorting/v1/recording.py`.",
+      "passed": true,
+      "evidence": "Substring 'spikesorting/v1/recording.py' found in response.md"
+    },
+    {
+      "text": "States that `set_group_by_electrode_group` does NOT exist on v1's SortGroup, in any phrasing — does not affirm that v1 supports the v0 helper",
+      "passed": true,
+      "evidence": "Title 'No — set_group_by_electrode_group does not exist on v1's SortGroup' and 'The v1 rewrite ... intentionally dropped the electrode-group helper'."
+    },
+    {
+      "text": "Names `set_group_by_shank` as the v1 alternative",
+      "passed": true,
+      "evidence": "Recommends `SortGroup.set_group_by_shank` as the only v1 sort-group population helper."
+    },
+    {
+      "text": "Verifies with `code_graph.py find-method` (agent tool), a version-specific source read, or Python introspection on the imported v1 SortGroup — not memory",
+      "passed": true,
+      "evidence": "Provides `code_graph.py find-method set_group_by_electrode_group`, grep output, and `[m for m in dir(SortGroup) if 'set_group' in m]`."
+    },
+    {
+      "text": "Cites distinct v0 and v1 source paths to anchor the version difference",
+      "passed": true,
+      "evidence": "Cites `src/spyglass/spikesorting/v1/recording.py:51` and `src/spyglass/spikesorting/v0/spikesorting_recording.py:48,94`."
+    }
+  ]
+}

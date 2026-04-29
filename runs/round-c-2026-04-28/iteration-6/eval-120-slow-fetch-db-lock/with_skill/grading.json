@@ -1,0 +1,37 @@
+{
+  "eval_id": 120,
+  "eval_name": "slow-fetch-db-lock",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (check_threads, lock, performance_schema, RippleParameters).",
+      "passed": true,
+      "evidence": "All required substrings present multiple times."
+    },
+    {
+      "text": "Response does not contain forbidden substring `the fix is to restart the kernel`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent. Response actively warns 'A restart-the-kernel-and-try-again instinct doesn't help here'."
+    },
+    {
+      "text": "Routes to check_threads(detailed=True) BEFORE suggesting a kernel restart",
+      "passed": true,
+      "evidence": "Section 'Diagnose with check_threads(detailed=True)' shown as the primary diagnostic at helpers.py:206; explicit 'don't restart the kernel without a diagnostic first'."
+    },
+    {
+      "text": "Distinguishes idle hang from slow-compute, picks lock contention for params table",
+      "passed": true,
+      "evidence": "'Distinguishing idle hang from slow compute' section: 'Slow compute would show CPU activity ... Lock contention (idle hang) — no CPU, no I/O ... Params tables are never the slow-compute case'."
+    },
+    {
+      "text": "Names performance_schema.metadata_locks (joined with threads); user reads LOCK_STATUS/PROCESSLIST_STATE",
+      "passed": true,
+      "evidence": "'queries MySQL's performance_schema (joining performance_schema.metadata_locks (ml) with performance_schema.threads (t))'; explicit columns named (LOCK_STATUS GRANTED vs WAITING, PROCESSLIST_STATE) and explicit 'output is lock rows + thread state, NOT an explicit blocker→waiter graph'."
+    },
+    {
+      "text": "Recommends coordinating with the lab before killing",
+      "passed": true,
+      "evidence": "'Resolution — coordinate, don't unilaterally KILL': 4-step workflow that ends with 'Only after they're aware/agreed: an admin can issue KILL'."
+    }
+  ]
+}

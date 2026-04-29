@@ -1,0 +1,42 @@
+{
+  "eval_id": 31,
+  "eval_name": "env-spikeinterface-drift",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (spikeinterface, WaveformExtractor, pyproject.toml).",
+      "passed": true,
+      "evidence": "All three required substrings present throughout response.md."
+    },
+    {
+      "text": "Response does not contain forbidden substring `pip install -U spyglass`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent."
+    },
+    {
+      "text": "Asks whether the user upgraded any package before naming a fix",
+      "passed": true,
+      "evidence": "Section 'Questions to confirm the diagnosis' asks about pip/conda/uv upgrades, env rebuild, sibling deps that pull SI."
+    },
+    {
+      "text": "Identifies the version-coupling issue (WaveformExtractor removed after 0.99.x, SortingAnalyzer replacement)",
+      "passed": true,
+      "evidence": "Identifies '0.100.x: WaveformExtractor deprecated, SortingAnalyzer introduced ... 0.101.x and later: WaveformExtractor removed entirely'."
+    },
+    {
+      "text": "Points at pyproject.toml as the source of truth for the pin",
+      "passed": true,
+      "evidence": "'The source of truth for that pin is **Spyglass's `pyproject.toml`** — open it ... look at the `spikeinterface` line under `[project] dependencies`'."
+    },
+    {
+      "text": "Recommends downgrading SpikeInterface, NOT patching Spyglass",
+      "passed": true,
+      "evidence": "'Don't monkey-patch Spyglass to use SortingAnalyzer ... Do pin SpikeInterface back into the range Spyglass actually supports'."
+    },
+    {
+      "text": "If v0 vs v1 mentioned, does not recommend downgrading to v0",
+      "passed": true,
+      "evidence": "'A note on v0 vs v1' section explicitly: 'don't... The v0 pipeline is not kept in sync with modern SpikeInterface ... the correct migration is forward to v1, not backward to v0'."
+    }
+  ]
+}

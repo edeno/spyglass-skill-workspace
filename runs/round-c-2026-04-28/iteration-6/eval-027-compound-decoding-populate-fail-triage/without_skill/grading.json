@@ -1,0 +1,47 @@
+{
+  "eval_id": 27,
+  "eval_name": "compound-decoding-populate-fail-triage",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (merge_restrict, interval mismatch, PositionGroup, pos_merge_id, ClusterlessDecodingSelection, PositionOutput, foreign key, position_group_name, estimate_decoding_params).",
+      "passed": true,
+      "evidence": "All required substrings present in response.md (Section 4 explicitly says 'an interval mismatch'; foreign key, PositionGroup, pos_merge_id, etc. all present; estimate_decoding_params named in PK discussion)."
+    },
+    {
+      "text": "Begins by verifying the failing decoding key is fully specified (PK including estimate_decoding_params)",
+      "passed": true,
+      "evidence": "Step 1 walks the PK list including estimate_decoding_params and notes 'in DataJoint, anything declared above the --- boundary is part of the primary key even when it has a default. If the table definition has no --- separator at all, then the default-valued line is still PK'."
+    },
+    {
+      "text": "Sanity check that PositionOutput is populated for the session",
+      "passed": true,
+      "evidence": "Step 2 explicitly: `len(PositionOutput.merge_restrict({'nwb_file_name': key['nwb_file_name']})) > 0` with 'If this is 0, the fix is populate position first'."
+    },
+    {
+      "text": "Inspects (PositionGroup.Position & position_group_key).fetch('pos_merge_id', ...) vs live PositionOutput merge_restrict",
+      "passed": true,
+      "evidence": "Step 3 fetches `reaching_for = (PositionGroup.Position & position_group_key).fetch('pos_merge_id', as_dict=True)` and compares to `live_for_session = PositionOutput.merge_restrict(...).fetch('merge_id')`."
+    },
+    {
+      "text": "Distinguishes three diagnostic outcomes (different nwb_file_name; mis-pointed group; FK violation)",
+      "passed": true,
+      "evidence": "Step 3 explicitly enumerates outcomes (i), (ii), (iii) with FK-invariant case flagged as 'Flag this for your lab admin', not user-fixable."
+    },
+    {
+      "text": "Checks interval-list compatibility, names Signature F (interval mismatch) from runtime_debugging.md",
+      "passed": true,
+      "evidence": "Step 4 titled 'Check interval-list compatibility' explicitly identifies 'an interval mismatch' as a sub-case of the same triage. Baseline cannot literally name the .md file but substantive content matches Signature F."
+    },
+    {
+      "text": "Does not reward stale pos_merge_id story as the lead diagnosis",
+      "passed": true,
+      "evidence": "Explicitly: 'I would not lead with a stale pos_merge_id from re-populating position story. DataJoint's FK semantics on PositionGroup.Position mean that stale reference is supposed to be impossible without admin-level intervention.'"
+    },
+    {
+      "text": "Does not suggest PositionOutput.delete() / merge_delete as a fix",
+      "passed": true,
+      "evidence": "What-not-to-do: 'Don't reach for PositionOutput.delete() or merge_delete as a first move. The wrong reference (if any) lives in PositionGroup.Position or in the decoding selection's key'."
+    }
+  ]
+}

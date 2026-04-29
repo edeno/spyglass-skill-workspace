@@ -1,0 +1,20 @@
+{
+  "eval_id": 102,
+  "eval_name": "session-recording-devices",
+  "prompt": "What ephys recording devices were used in `j1620210710_.nwb`?",
+  "stage": "pipeline-usage",
+  "tier": "joins",
+  "difficulty": "medium",
+  "required_substrings": [
+    "Session.DataAcquisitionDevice",
+    "DataAcquisitionDevice",
+    "nwb_file_name",
+    "part table"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Joins through `Session.DataAcquisitionDevice` (part table) rather than expecting a `device` or `data_acquisition_device_name` column on `Session` directly",
+    "Recognizes that one session can have multiple devices, so the answer uses `.fetch()` (or a join that returns multiple rows), not `.fetch1()`",
+    "Restricts the part table by `nwb_file_name` (which it inherits via `-> Session`); does NOT restrict `DataAcquisitionDevice` by `nwb_file_name` (DataAcquisitionDevice is keyed by `data_acquisition_device_name` and has no session FK)"
+  ]
+}

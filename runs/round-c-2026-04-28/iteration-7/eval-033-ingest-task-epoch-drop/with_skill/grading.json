@@ -1,0 +1,57 @@
+{
+  "eval_id": 33,
+  "eval_name": "ingest-task-epoch-drop",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'epochs.tags'",
+      "passed": true,
+      "evidence": "found — 'epochs.tags'"
+    },
+    {
+      "text": "required_substring: 'task_epochs'",
+      "passed": true,
+      "evidence": "found — 'task_epochs'"
+    },
+    {
+      "text": "required_substring: 'IntervalList'",
+      "passed": true,
+      "evidence": "found — 'IntervalList'"
+    },
+    {
+      "text": "required_substring: 'TaskEpoch'",
+      "passed": true,
+      "evidence": "found — 'TaskEpoch'"
+    },
+    {
+      "text": "forbidden_substring: 'silently fine'",
+      "passed": true,
+      "evidence": "absent — 'silently fine'"
+    },
+    {
+      "text": "forbidden_substring: 'insert_sessions silently succeeded'",
+      "passed": true,
+      "evidence": "absent — 'insert_sessions silently succeeded'"
+    },
+    {
+      "text": "behavioral_check: Confirms epochs are silently dropped (not errored) when task_epochs/tags don't match IntervalList rows",
+      "passed": true,
+      "evidence": "Section 2: 'logs a warning and returns `None`, and the corresponding row is silently dropped from downstream tables'. Also explains permissive mode (rollback_on_fail=False) catches errors and continues."
+    },
+    {
+      "text": "behavioral_check: Shows the concrete pynwb introspection for both epochs.tags and task_table",
+      "passed": true,
+      "evidence": "Lines 65-73 show pynwb.NWBHDF5IO with `print(\"epochs.tags:\", [list(t) for t in nwb.epochs.tags[:]])`, the epochs dataframe, AND the task_table dataframe via `nwb.processing[\"tasks\"].task_table.to_dataframe()`."
+    },
+    {
+      "text": "behavioral_check: Does not over-emphasize zero-padded tag format — the matcher tries exact, 2-digit, and 3-digit numeric matches",
+      "passed": true,
+      "evidence": "Explicitly states 'It checks exact match first, then 2-digit zero-padded substring, then 3-digit'. Notes 'all match an interval named 01; zero-padding is conventional but not strictly required by current source'."
+    },
+    {
+      "text": "behavioral_check: Recommends NWB-side rewrite plus re-ingest with reinsert=True (not skip_duplicates=True)",
+      "passed": true,
+      "evidence": "Section 5: 'Spyglass does NOT coerce tags. The fix is on the NWB side. ... Then re-ingest **with `reinsert=True`**, not `skip_duplicates=True`'. Explicit about the TypeError."
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "eval_id": 1,
+  "eval_name": "fresh-install-remote-lab-db",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'scripts/install.py'",
+      "passed": true,
+      "evidence": "found — 'scripts/install.py'"
+    },
+    {
+      "text": "required_substring: 'SPYGLASS_BASE_DIR'",
+      "passed": true,
+      "evidence": "found — 'SPYGLASS_BASE_DIR'"
+    },
+    {
+      "text": "forbidden_substring: 'conda install -c conda-forge spyglass'",
+      "passed": true,
+      "evidence": "absent — 'conda install -c conda-forge spyglass'"
+    },
+    {
+      "text": "behavioral_check: Recommends scripts/install.py over manual pip/conda steps",
+      "passed": true,
+      "evidence": "Section 2 is explicitly titled 'Recommended path — the automated installer' and shows the canonical `python scripts/install.py --remote ...` command; manual fallback in Section 4 is framed as 'if the installer breaks'."
+    },
+    {
+      "text": "behavioral_check: Asks about or sets SPYGLASS_BASE_DIR before finishing",
+      "passed": true,
+      "evidence": "Section 0.2 explicitly clarifies what SPYGLASS_BASE_DIR is and asks the user to confirm with the lab; Section 4b sets `export SPYGLASS_BASE_DIR=~/spyglass_data` and persists it to the shell rc."
+    },
+    {
+      "text": "behavioral_check: Uses a valid DataJoint config persistence target: global `~/.datajoint_config.json` is sufficient for a personal laptop; local `dj_local_conf.json` is optional/project-scoped, not required from the installer",
+      "passed": null,
+      "evidence": "pending behavioral grader"
+    }
+  ]
+}

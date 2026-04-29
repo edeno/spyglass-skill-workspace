@@ -1,0 +1,25 @@
+{
+  "eval_id": 108,
+  "eval_name": "sorted-spikes-group-hippocampal",
+  "prompt": "I'm tired of manually joining across tetrode sort groups every time I want all my hippocampal spikes. How do I make this easier?",
+  "stage": "pipeline-usage",
+  "tier": "disambiguation",
+  "difficulty": "medium",
+  "required_substrings": [
+    "SortedSpikesGroup",
+    "UnitSelectionParams",
+    "BrainRegion",
+    "create_group",
+    "region_name",
+    "SortGroupElectrode",
+    "spikesorting_merge_id"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Recommends `SortedSpikesGroup` as the existing aggregation (don't loop sort_group_ids)",
+    "DERIVES the hippocampal sort_group_ids by walking `SortGroup.SortGroupElectrode * Electrode * BrainRegion` filtered by `region_name`, AND restricts the merge IDs by those sort_group_ids before passing to `create_group(...)` — does NOT pass all session merge_ids unfiltered (which would defeat the point of the eval)",
+    "Names `UnitSelectionParams` as the parameter table that filters unit labels within the group, with `'all_units'` / `'exclude_noise'` defaults",
+    "Builds keys with the projected attr name `spikesorting_merge_id` (NOT bare `merge_id`) because `SortedSpikesGroup.Units` part FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73). Calls `SpikeSortingOutput().get_restricted_merge_ids(key, ...)` with a **single dict per call** — looping per recording key and extending the list — because the source raises `TypeError` on a list arg (spikesorting_merge.py:138).",
+    "Explains why this is reusable: once the group exists, downstream Computed tables FK to the group key, not to tetrode-level merge IDs"
+  ]
+}

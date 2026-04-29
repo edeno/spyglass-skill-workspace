@@ -1,0 +1,52 @@
+{
+  "eval_id": 42,
+  "eval_name": "destruct-super-delete-no-cleanup",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'AnalysisNwbfile()'",
+      "passed": true,
+      "evidence": "found — 'AnalysisNwbfile()'"
+    },
+    {
+      "text": "required_substring: 'dry_run'",
+      "passed": false,
+      "evidence": "MISSING — 'dry_run'"
+    },
+    {
+      "text": "required_substring: 'LabMemberInfo'",
+      "passed": true,
+      "evidence": "found — 'LabMemberInfo'"
+    },
+    {
+      "text": "required_substring: 'cleanup('",
+      "passed": true,
+      "evidence": "found — 'cleanup('"
+    },
+    {
+      "text": "forbidden_substring: 'super_delete is fine here'",
+      "passed": true,
+      "evidence": "absent — 'super_delete is fine here'"
+    },
+    {
+      "text": "behavioral_check: Confirms super_delete bypasses Spyglass's file cleanup (aliases to datajoint.Table.delete)",
+      "passed": true,
+      "evidence": "Shows the super_delete source: 'super().delete(*args, **kwargs)   # raw dj.Table.delete' and explicitly states 'No `AnalysisNwbfile.cleanup()` — the rows in `~external_analysis` ... were not removed'."
+    },
+    {
+      "text": "behavioral_check: Shows AnalysisNwbfile().cleanup(dry_run=True) first, then dry_run=False",
+      "passed": false,
+      "evidence": "Uses `AnalysisNwbfile().cleanup(delete_files=True)` and 'do delete_files=False first'. AnalysisNwbfile.cleanup actually accepts dry_run, not delete_files (per the with_skill grounding); the response confuses the two cleanup APIs (Nwbfile vs AnalysisNwbfile)."
+    },
+    {
+      "text": "behavioral_check: Pushes back on super_delete as the pattern for LabMember errors — root-cause fix is to add the user to LabMember.LabMemberInfo",
+      "passed": true,
+      "evidence": "Step 4 'Fix the original cautious_delete complaint — So you don't need super_delete next time' with concrete LabMember.LabMemberInfo insert. Section 5 explicitly: 'super_delete... It exists for cases where the metadata is so corrupted that cautious_delete itself crashes — not for working around a LabMember registration error.'"
+    },
+    {
+      "text": "behavioral_check: Does not treat 'the PermissionError is annoying' as sufficient justification for super_delete",
+      "passed": true,
+      "evidence": "Frames super_delete as the wrong escalation: 'The right fix for the original error was to make yourself a known DJ user... Not to escape-hatch around it.'"
+    }
+  ]
+}

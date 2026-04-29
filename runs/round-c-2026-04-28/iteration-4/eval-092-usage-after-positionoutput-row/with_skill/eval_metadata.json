@@ -1,0 +1,21 @@
+{
+  "eval_id": 92,
+  "eval_name": "usage-after-positionoutput-row",
+  "prompt": "I have a `PositionOutput` merge entry (just a `merge_id`). What's the next thing I'd do with it to actually look at position data?",
+  "stage": "pipeline-usage",
+  "tier": "table-usage",
+  "difficulty": "easy",
+  "required_substrings": [
+    "merge_get_part",
+    "fetch1_dataframe",
+    "PositionOutput"
+  ],
+  "forbidden_substrings": [
+    "PositionOutput.populate",
+    "PositionOutput.fetch1('position'"
+  ],
+  "behavioral_checks": [
+    "Names `merge_get_part` as the operation to find the source part table",
+    "Names `fetch1_dataframe()` on the restricted merge master as the way to materialize position data — does NOT suggest fetching a 'position' column directly off PositionOutput"
+  ]
+}

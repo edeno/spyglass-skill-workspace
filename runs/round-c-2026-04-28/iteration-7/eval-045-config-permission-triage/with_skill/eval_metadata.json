@@ -1,0 +1,20 @@
+{
+  "eval_id": 45,
+  "eval_name": "config-permission-triage",
+  "prompt": "Something's failing with 'permission denied' when I try to populate `LFPV1` on a new session — the exact message is `AccessError: Command credentials rejected` deep in DataJoint internals. This is a shared lab install, and the admin added me yesterday. How do I figure out which permission is actually missing?",
+  "stage": "setup",
+  "tier": "config-troubleshooting",
+  "difficulty": "hard",
+  "required_substrings": [
+    "SHOW GRANTS",
+    "LabMemberInfo"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Splits the diagnosis into three layers (MySQL grants, filesystem, LabMember) rather than guessing one",
+    "Gives concrete diagnostic commands for each layer (SHOW GRANTS, filesystem writability check, LabMember check)",
+    "For the filesystem layer, either verify_spyglass_env.py --check base_dir_exists_writable/subdirs_exist_writable OR ls -ld + os.access is acceptable",
+    "Runs SHOW GRANTS and LabMember check before assuming filesystem",
+    "Does not recommend chmod -R 777, super_delete(), or force_permission=True as the fix — these are bypasses for legitimate edge cases, not first-line responses to a permission-denied error"
+  ]
+}

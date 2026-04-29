@@ -1,0 +1,25 @@
+{
+  "eval_id": 126,
+  "eval_name": "key-hygiene-merge-master-silent-no-op",
+  "stage": "common-mistakes",
+  "tier": "merge-table-gotchas",
+  "difficulty": "medium",
+  "prompt": "I checked my decoding row count with `len(DecodingOutput & {'nwb_file_name': 'j1620210710_.nwb'})` and got 2735, which is the whole table. Did the restriction fail?",
+  "assertions": {
+    "required_substrings": [
+      "merge_restrict",
+      "merge_methods.md",
+      "merge_id"
+    ],
+    "expected_output_tables_exempt": [
+      "DecodingOutput"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Identifies the silent no-op shape: merge master's heading is only `(merge_id, source)`, so unknown restriction keys are dropped without error",
+      "Recommends `merge_restrict` (or `merge_get_part`) as the fix; does NOT confirm the user's bare `& {nwb_file_name: ...}` count of 2735 as correct, and does NOT recommend rerunning the bare form",
+      "Verifies the merge-master heading with `code_graph.py describe DecodingOutput` (agent tool) or `DecodingOutput.heading.primary_key` in the user's Python session, not invented merge-master fields"
+    ]
+  },
+  "expected_output": "Yes — silently. `DecodingOutput` is a merge master; its heading only exposes `(merge_id, source)` (see `decoding/decoding_merge.py` and merge_methods.md § Silent wrong-count footgun). DataJoint silently drops restriction fields that aren't in the heading, so `& {'nwb_file_name': ...}` reduces to no restriction and `len(...)` returns the entire master table. Verify with `code_graph.py describe DecodingOutput` (heading is just merge_id/source) or `DecodingOutput.heading.primary_key` in a session.\n\nUse a merge-aware helper instead:\n\n```python\nlen(DecodingOutput.merge_restrict({'nwb_file_name': 'j1620210710_.nwb'}))\n```\n\n`merge_restrict` walks the part tables to resolve attributes that aren't on the master. Routes to merge_methods.md and common_mistakes.md."
+}

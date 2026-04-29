@@ -1,0 +1,42 @@
+{
+  "eval_id": 45,
+  "eval_name": "config-permission-triage",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'SHOW GRANTS'",
+      "passed": true,
+      "evidence": "found — 'SHOW GRANTS'"
+    },
+    {
+      "text": "required_substring: 'LabMemberInfo'",
+      "passed": false,
+      "evidence": "MISSING — 'LabMemberInfo'"
+    },
+    {
+      "text": "behavioral_check: Splits the diagnosis into three layers (MySQL grants, filesystem, LabMember) rather than guessing one",
+      "passed": false,
+      "evidence": "Focuses entirely on MySQL grants. Section 5 'Things this is not' briefly mentions filesystem (to dismiss) but never raises LabMember as a distinct triage layer."
+    },
+    {
+      "text": "behavioral_check: Gives concrete diagnostic commands for each layer (SHOW GRANTS, filesystem writability check, LabMember check)",
+      "passed": false,
+      "evidence": "Concrete commands only for MySQL grants (SHOW GRANTS, CURRENT_USER). No filesystem writability check (ls -ld / os.access) and no LabMember check command."
+    },
+    {
+      "text": "behavioral_check: For the filesystem layer, either verify_spyglass_env.py --check base_dir_exists_writable/subdirs_exist_writable OR ls -ld + os.access is acceptable",
+      "passed": false,
+      "evidence": "Doesn't show a filesystem-layer diagnostic at all. Says filesystem is 'not' the problem rather than running the check."
+    },
+    {
+      "text": "behavioral_check: Runs SHOW GRANTS and LabMember check before assuming filesystem",
+      "passed": false,
+      "evidence": "Runs SHOW GRANTS first (good) but never runs a LabMember check; only dismisses filesystem in section 5 without explicitly checking LabMember."
+    },
+    {
+      "text": "behavioral_check: Does not recommend chmod -R 777, super_delete(), or force_permission=True as the fix — these are bypasses for legitimate edge cases, not first-line responses to a permission-denied error",
+      "passed": true,
+      "evidence": "Doesn't recommend chmod -R 777, super_delete, or force_permission=True. Recommends asking admin for proper GRANT instead."
+    }
+  ]
+}

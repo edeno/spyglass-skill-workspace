@@ -1,0 +1,33 @@
+{
+  "eval_id": 84,
+  "eval_name": "recover-partial-populate-common",
+  "stage": "runtime-debugging",
+  "tier": "workflow-recovery",
+  "difficulty": "hard",
+  "prompt": "`populate_all_common('j1620210710_.nwb')` finished 20 minutes ago with no exception. `Session`, `IntervalList`, and `Raw` have entries, but `Electrode` and `ElectrodeGroup` are empty for this file. What's the safest next diagnostic — before I delete anything or re-run the whole populate?",
+  "assertions": {
+    "required_substrings": [
+      "InsertError",
+      "raise_err=True",
+      "populate_all_common_debugging.md"
+    ],
+    "required_substrings_exempt": [
+      "raise_err=True"
+    ],
+    "expected_output_tables_exempt": [
+      "Session",
+      "IntervalList",
+      "Raw",
+      "Electrode",
+      "ElectrodeGroup"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Recommends inspecting `common_usage.InsertError` as the first diagnostic",
+      "Recommends re-running with `raise_err=True` to surface the swallowed traceback, scoped narrowly (not a blanket rerun)",
+      "Explicitly warns against deleting the already-ingested rows (Session/IntervalList/Raw) as a recovery step",
+      "Explicitly warns against naively re-running the full `populate_all_common` without inspecting InsertError first"
+    ]
+  },
+  "expected_output": "Inspect `common_usage.InsertError & {'nwb_file_name': 'j1620210710_.nwb'}` first — that's where `populate_all_common` writes the short error message per silently-skipped table when `raise_err=False` (its default). Once the failed table and message are identified, re-run only the affected table(s) with `raise_err=True` to surface the full traceback — e.g., `populate_all_common(nwb_file_name, raise_err=True)` on a fresh kernel, or directly call the affected table's `populate()` with the restriction. Do NOT delete Session/IntervalList/Raw rows — they ingested correctly, and deleting them would cascade across the whole schema. Do NOT blindly re-run the full `populate_all_common` without first reading InsertError, since the same per-table failure will silently happen again. Routes to populate_all_common_debugging.md."
+}

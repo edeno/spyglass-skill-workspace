@@ -1,0 +1,67 @@
+{
+  "eval_id": 107,
+  "eval_name": "compound-sorted-spikes-across-sort-groups",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'SortedSpikesGroup'",
+      "passed": true,
+      "evidence": "found — 'SortedSpikesGroup'"
+    },
+    {
+      "text": "required_substring: 'SpikeSortingOutput'",
+      "passed": true,
+      "evidence": "found — 'SpikeSortingOutput'"
+    },
+    {
+      "text": "required_substring: 'UnitSelectionParams'",
+      "passed": true,
+      "evidence": "found — 'UnitSelectionParams'"
+    },
+    {
+      "text": "required_substring: 'create_group'",
+      "passed": true,
+      "evidence": "found — 'create_group'"
+    },
+    {
+      "text": "required_substring: 'spikesorting_merge_id'",
+      "passed": true,
+      "evidence": "found — 'spikesorting_merge_id'"
+    },
+    {
+      "text": "forbidden_substring: 'store sort_group_ids as a list in a blob column'",
+      "passed": true,
+      "evidence": "absent — 'store sort_group_ids as a list in a blob column'"
+    },
+    {
+      "text": "forbidden_substring: 'sort_group_ids = ['",
+      "passed": true,
+      "evidence": "absent — 'sort_group_ids = ['"
+    },
+    {
+      "text": "behavioral_check: Routes to `SortedSpikesGroup` (group.py:63-74) as the existing aggregation abstraction; does NOT propose building a new aggregation table from scratch or stuffing a list of sort_group_ids into a single blob column",
+      "passed": true,
+      "evidence": "TL;DR step 2: 'Bundle them into a single SortedSpikesGroup row via create_group(...)'. Section 'Why a group table' explicitly cites SortedSpikesGroup as the prebuilt one. Rejected alternatives include building a custom MyTetrodeSet that 'reinvents SortedSpikesGroup'."
+    },
+    {
+      "text": "behavioral_check: Recommends inserting one `SortedSpikesGroup` row via `create_group(...)`, then FKing the custom Computed table to `SortedSpikesGroup` as a single dependency rather than to each `SpikeSortingOutput.merge_id` individually",
+      "passed": true,
+      "evidence": "Step 2 calls SortedSpikesGroup().create_group(... keys=candidate_units). Step 3 TetrodePopSelection: `-> SortedSpikesGroup` as a single FK."
+    },
+    {
+      "text": "behavioral_check: Names `UnitSelectionParams` (the parameter table that controls which unit labels are included) and at least one default value (`'all_units'` or `'exclude_noise'`)",
+      "passed": true,
+      "evidence": "Imports `UnitSelectionParams` in step 2; `filter_name = \"exclude_noise\"   # or \"all_units\" / \"default_exclusion\"` shows the canonical defaults."
+    },
+    {
+      "text": "behavioral_check: Notes that `SortedSpikesGroup.Units` part FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73), so the keys passed into `create_group(...)` must use the projected attr name `spikesorting_merge_id`, NOT bare `merge_id`. Use `SpikeSortingOutput().get_restricted_merge_ids(...)` to fetch the merge_ids and build `[{'spikesorting_merge_id': mid} for mid in merge_ids]`.",
+      "passed": true,
+      "evidence": "Step 1 uses `SpikeSortingOutput.merge_restrict(...).proj(spikesorting_merge_id=\"merge_id\")` and step 2 gotcha: 'keys entries must use spikesorting_merge_id, not merge_id. The part table FKs the renamed projection (spikesorting/analysis/v1/group.py:73)'."
+    },
+    {
+      "text": "behavioral_check: Explains why this is reusable: once the group exists, multiple downstream tables (decoding / MUA / custom) can all FK to the same group key without re-listing the constituent merge_ids",
+      "passed": true,
+      "evidence": "'This is the shape SortedSpikesDecodingV1 and MuaEventsV1 already use.' Frames groups as 'aggregate many distinct upstream entities under one user-named key' so downstream tables FK the master row 'regardless of cardinality'."
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "eval_id": 83,
+  "eval_name": "resource-first-ref-custom-pipeline-author",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'custom_pipeline_authoring.md'",
+      "passed": true,
+      "evidence": "found — 'custom_pipeline_authoring.md'"
+    },
+    {
+      "text": "required_substring: 'spyglassmixin_methods.md'",
+      "passed": false,
+      "evidence": "MISSING — 'spyglassmixin_methods.md'"
+    },
+    {
+      "text": "required_substring: 'AnalysisNwbfile'",
+      "passed": true,
+      "evidence": "found — 'AnalysisNwbfile'"
+    },
+    {
+      "text": "forbidden_substring: 'spyglassmixin_methods.md is the first'",
+      "passed": true,
+      "evidence": "absent — 'spyglassmixin_methods.md is the first'"
+    },
+    {
+      "text": "forbidden_substring: 'merge_methods.md is where you start'",
+      "passed": true,
+      "evidence": "absent — 'merge_methods.md is where you start'"
+    },
+    {
+      "text": "behavioral_check: Names `custom_pipeline_authoring.md` as the first reference",
+      "passed": true,
+      "evidence": "Opens with 'Open references/custom_pipeline_authoring.md first'."
+    },
+    {
+      "text": "behavioral_check: Explicitly identifies `spyglassmixin_methods.md` as a distractor and explains the author-vs-consumer split",
+      "passed": false,
+      "evidence": "Doesn't mention spyglassmixin_methods.md anywhere; discusses the author-vs-consumer split (stage 4 vs stage 5) but doesn't flag spyglassmixin_methods.md as the consumer-side distractor."
+    },
+    {
+      "text": "behavioral_check: Mentions the `_object_id` + AnalysisNwbfile FK convention as a signal that this is an authoring task",
+      "passed": true,
+      "evidence": "Section #5 'AnalysisNwbfile Storage Pattern' covers the canonical _object_id write block; #4 explicitly: 'master row carries `analysis_file_name` + `result_object_id`'."
+    },
+    {
+      "text": "behavioral_check: Does not recommend merge_methods.md or ingestion.md as the first stop",
+      "passed": true,
+      "evidence": "merge_methods.md only suggested as a 'natural follow-up' if the upstream is a merge master; ingestion.md not mentioned. custom_pipeline_authoring.md is the first stop."
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "eval_id": 102,
+  "eval_name": "session-recording-devices",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'Session.DataAcquisitionDevice'",
+      "passed": true,
+      "evidence": "found — 'Session.DataAcquisitionDevice'"
+    },
+    {
+      "text": "required_substring: 'DataAcquisitionDevice'",
+      "passed": true,
+      "evidence": "found — 'DataAcquisitionDevice'"
+    },
+    {
+      "text": "required_substring: 'nwb_file_name'",
+      "passed": true,
+      "evidence": "found — 'nwb_file_name'"
+    },
+    {
+      "text": "required_substring: 'part table'",
+      "passed": true,
+      "evidence": "found — 'part table'"
+    },
+    {
+      "text": "behavioral_check: Joins through `Session.DataAcquisitionDevice` (part table) rather than expecting a `device` or `data_acquisition_device_name` column on `Session` directly",
+      "passed": true,
+      "evidence": "Lead query is `Session.DataAcquisitionDevice & {\"nwb_file_name\": nwb_file}` and explicitly warns against `Session.fetch1(\"device\")`."
+    },
+    {
+      "text": "behavioral_check: Recognizes that one session can have multiple devices, so the answer uses `.fetch()` (or a join that returns multiple rows), not `.fetch1()`",
+      "passed": true,
+      "evidence": "Says 'one session can map to several devices' and uses `.fetch(...)`; warns 'Don't reach for .fetch1()'."
+    },
+    {
+      "text": "behavioral_check: Restricts the part table by `nwb_file_name` (which it inherits via `-> Session`); does NOT restrict `DataAcquisitionDevice` by `nwb_file_name` (DataAcquisitionDevice is keyed by `data_acquisition_device_name` and has no session FK)",
+      "passed": true,
+      "evidence": "Restricts the part table by nwb_file_name and explicitly warns 'Don't write DataAcquisitionDevice & {\"nwb_file_name\": nwb_file}' since DataAcquisitionDevice has no nwb_file_name."
+    }
+  ]
+}

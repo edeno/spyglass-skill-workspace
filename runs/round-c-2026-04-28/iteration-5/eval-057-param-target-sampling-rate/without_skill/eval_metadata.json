@@ -1,0 +1,21 @@
+{
+  "eval_id": 57,
+  "eval_name": "param-target-sampling-rate",
+  "prompt": "`LFPSelection` has a `target_sampling_rate` field. What does this control, and what goes wrong if I set it too low for a ripple-band analysis I want to do later?",
+  "stage": "parameter-understanding",
+  "tier": "parameter-semantics",
+  "difficulty": "hard",
+  "required_substrings": [
+    "Nyquist",
+    "LFPV1"
+  ],
+  "forbidden_substrings": [
+    "sample rate doesn't matter"
+  ],
+  "behavioral_checks": [
+    "Explains that target_sampling_rate sets the downsampled output rate of LFPV1",
+    "Connects the rate to the Nyquist constraint for downstream band filters (e.g., ripple band 150–250 Hz needs > 500 Hz sampling)",
+    "Names 1000 Hz as the canonical default and the consequence of going lower (aliasing in the downstream band)",
+    "Does not say the sample rate is arbitrary or that any value works (this would contradict the Nyquist constraint)"
+  ]
+}

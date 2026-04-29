@@ -1,0 +1,37 @@
+{
+  "eval_id": 120,
+  "eval_name": "slow-fetch-db-lock",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (check_threads, lock, performance_schema, RippleParameters).",
+      "passed": true,
+      "evidence": "All required substrings present (check_threads mentioned as 'check whether your codebase has something like a check_threads(...) utility')."
+    },
+    {
+      "text": "Response does not contain forbidden substring `the fix is to restart the kernel`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent. Response says 'restart the kernel as a last resort. But do the diagnostic first'."
+    },
+    {
+      "text": "Routes to check_threads(detailed=True) BEFORE suggesting a kernel restart",
+      "passed": true,
+      "evidence": "Step 3 in 'Recommended order of operations' explicitly: 'If your lab has a check_threads(detailed=True)-style helper on the table, use that — it'll combine the performance_schema.metadata_locks + threads views'. Step 1 'Don't restart the kernel yet'."
+    },
+    {
+      "text": "Distinguishes idle hang from slow-compute, picks lock contention for params table",
+      "passed": true,
+      "evidence": "Opening: 'a 2-minute hang fetching a parameters table is almost never about data volume ... if it's been 2 minutes and still hasn't returned, the fetch isn't slow — it's blocked'. Slow query in section 4 'least likely here'."
+    },
+    {
+      "text": "Names performance_schema.metadata_locks (joined with threads); user reads LOCK_STATUS/PROCESSLIST_STATE",
+      "passed": true,
+      "evidence": "'Joining performance_schema.metadata_locks against performance_schema.threads ... gives you ... LOCK_STATUS (GRANTED vs PENDING), PROCESSLIST_STATE'; explicit 'a row with LOCK_STATUS = PENDING on the same OBJECT_NAME as another row with LOCK_STATUS = GRANTED is the waiter/holder pair, even though the view doesn't draw an explicit blocker→waiter graph'."
+    },
+    {
+      "text": "Recommends coordinating with the lab before killing",
+      "passed": true,
+      "evidence": "'Don't unilaterally KILL it — it might be a teammate's running populate ... Ping the lab / Slack first; coordinate before terminating someone else's transaction'."
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "eval_id": 111,
+  "eval_name": "custom-table-multiple-nwbs-blob-pushback",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'AnalysisNwbfile'",
+      "passed": true,
+      "evidence": "found — 'AnalysisNwbfile'"
+    },
+    {
+      "text": "forbidden_substring: 'yes, inline blob is fine at that size'",
+      "passed": true,
+      "evidence": "absent — 'yes, inline blob is fine at that size'"
+    },
+    {
+      "text": "forbidden_substring: '5 MB is fine as a blob'",
+      "passed": true,
+      "evidence": "absent — '5 MB is fine as a blob'"
+    },
+    {
+      "text": "forbidden_substring: 'correlations: longblob is fine'",
+      "passed": true,
+      "evidence": "absent — 'correlations: longblob is fine'"
+    },
+    {
+      "text": "behavioral_check: Pushes back on the inline-blob plan — does NOT capitulate even though the user explicitly asks for a yes",
+      "passed": true,
+      "evidence": "Opens with 'I'd push back. Only ~5 MB is exactly the size where this decision compounds badly'."
+    },
+    {
+      "text": "behavioral_check: Names at least two reasons the size-per-row framing is the wrong yardstick: (a) downstream-portability / export-flow opacity (DANDI / Kachery / paper-export / FigURL); (b) aggregate scaling (5 MB x N sessions x N params crosses the practical blob ceiling faster than expected); (c) the Spyglass design contract that exactly-one AnalysisNwbfile per table is what lets cross-cutting tooling enumerate result-bearing rows",
+      "passed": true,
+      "evidence": "Reason 1 'Per-row size is not the right unit; total table size is' (multiplies 5MB x 200 sessions x params); Reason 3 'Export, DANDI uploads, and Kachery sharing operate on AnalysisNwbfile rows'; Reason 2 fetch() semantics."
+    },
+    {
+      "text": "behavioral_check: Cites the relevant Non-Negotiable: heavy arrays go to AnalysisNwbfile; tables reference exactly one AnalysisNwbfile (Spyglass validates on declaration)",
+      "passed": true,
+      "evidence": "Cites Non-Negotiable #4 verbatim 'Write analysis outputs to AnalysisNwbfile when the result is sizeable' and links to custom_pipeline_authoring.md."
+    },
+    {
+      "text": "behavioral_check: Shows the AnalysisNwbfile().build(...) context-manager shape as the recommended alternative — does not let 'I don't want to deal with AnalysisNwbfile' override the design contract",
+      "passed": true,
+      "evidence": "Shows `with AnalysisNwbfile().build(nwb_file_name) as builder: obj_id = builder.add_nwb_object(corr_matrix, table_name=\"cross_corr\")` as the recommended ~5-line shape and contrasts with the pre-build() interleaved create/add path that motivated the context manager."
+    }
+  ]
+}

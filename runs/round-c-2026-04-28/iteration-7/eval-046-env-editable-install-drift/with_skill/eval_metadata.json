@@ -1,0 +1,20 @@
+{
+  "eval_id": 46,
+  "eval_name": "env-editable-install-drift",
+  "prompt": "Just did `git pull` on my spyglass checkout at `~/spyglass/` — new commit landed, I can see a class `NewlyAddedThing` in `src/spyglass/spikesorting/v1/` that wasn't there before. But when I `import spyglass` in Jupyter, I hit `AttributeError: module 'spyglass.spikesorting.v1' has no attribute 'NewlyAddedThing'`. Tracebacks point at `/opt/miniforge/envs/spyglass/lib/python3.11/site-packages/spyglass/spikesorting/v1/...`. What's going on?",
+  "stage": "setup",
+  "tier": "environment-triage",
+  "difficulty": "medium",
+  "required_substrings": [
+    "spyglass.__file__",
+    "pip install -e .",
+    "Jupyter kernel"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Identifies site-packages shadowing as the root cause (not a spyglass code bug) — does NOT recommend filing a bug or waiting for the next release; the fix is user-side (`pip install -e .` from the checkout)",
+    "Shows `print(spyglass.__file__)` as the concrete diagnostic",
+    "Includes the `pip install -e .` step AND the Jupyter kernel restart",
+    "Mentions uninstalling `spyglass-neuro` if both installs coexist"
+  ]
+}

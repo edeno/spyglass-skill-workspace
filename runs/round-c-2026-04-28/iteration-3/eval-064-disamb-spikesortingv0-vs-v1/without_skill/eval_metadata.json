@@ -1,0 +1,22 @@
+{
+  "eval_id": 64,
+  "eval_name": "disamb-spikesortingv0-vs-v1",
+  "stage": "pipeline-usage",
+  "tier": "disambiguation",
+  "difficulty": "easy",
+  "prompt": "I see both `spyglass.spikesorting.v0` and `spyglass.spikesorting.v1` imports in old lab code. Which should I use for a fresh session today and why?",
+  "assertions": {
+    "required_substrings": [
+      "SpikeSortingOutput",
+      "SpikeSortingOutput.CurationV1",
+      "CuratedSpikeSorting"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Recommends v1 for new work; identifies v0 as legacy and directs the user not to populate v0 tables for new sessions",
+      "Routes to spikesorting_v0_legacy.md only for querying pre-v1 sortings, not for new work",
+      "Does not recommend v0 for new sessions or as the default — v0 is for reading legacy data only"
+    ]
+  },
+  "expected_output": "Routes to spikesorting_v1_pipeline.md (v1 flow) and spikesorting_v0_legacy.md (read-only access to pre-v1 sortings). Recommends v1 for all new work; identifies v0 as legacy — do not populate v0 tables for new sessions, and query existing v0 sortings through the merge wrapper `SpikeSortingOutput.CuratedSpikeSorting` rather than the v0 tables directly. Names `SpikeSortingOutput` as the merge table surfacing both v0 (CuratedSpikeSorting part) and v1 (`SpikeSortingOutput.CurationV1` part) sortings uniformly for downstream consumers."
+}

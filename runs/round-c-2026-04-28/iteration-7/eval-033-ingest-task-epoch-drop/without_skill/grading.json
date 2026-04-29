@@ -1,0 +1,57 @@
+{
+  "eval_id": 33,
+  "eval_name": "ingest-task-epoch-drop",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'epochs.tags'",
+      "passed": true,
+      "evidence": "found — 'epochs.tags'"
+    },
+    {
+      "text": "required_substring: 'task_epochs'",
+      "passed": true,
+      "evidence": "found — 'task_epochs'"
+    },
+    {
+      "text": "required_substring: 'IntervalList'",
+      "passed": true,
+      "evidence": "found — 'IntervalList'"
+    },
+    {
+      "text": "required_substring: 'TaskEpoch'",
+      "passed": true,
+      "evidence": "found — 'TaskEpoch'"
+    },
+    {
+      "text": "forbidden_substring: 'silently fine'",
+      "passed": true,
+      "evidence": "absent — 'silently fine'"
+    },
+    {
+      "text": "forbidden_substring: 'insert_sessions silently succeeded'",
+      "passed": true,
+      "evidence": "absent — 'insert_sessions silently succeeded'"
+    },
+    {
+      "text": "behavioral_check: Confirms epochs are silently dropped (not errored) when task_epochs/tags don't match IntervalList rows",
+      "passed": true,
+      "evidence": "Opens with 'Whenever two NWB epochs collide on that constructed name (or an epoch produces an unusable name / unusable interval), the second one silently disappears.' Says 'No warning is raised'."
+    },
+    {
+      "text": "behavioral_check: Shows the concrete pynwb introspection for both epochs.tags and task_table",
+      "passed": false,
+      "evidence": "Shows `nwb.epochs.to_dataframe()` and tags inspection but never shows `nwb.processing['tasks'].task_table` introspection. Mentions task linking conceptually but no concrete pynwb code for task_table."
+    },
+    {
+      "text": "behavioral_check: Does not over-emphasize zero-padded tag format — the matcher tries exact, 2-digit, and 3-digit numeric matches",
+      "passed": true,
+      "evidence": "Mentions the constructed-name format `02_r1` once but doesn't claim zero-padding is required. The wrongness here is in the mechanism (collision-on-constructed-name vs. tag-to-existing-IntervalList-name matching), not zero-padding over-emphasis. Caveats with 'name builder may differ between Spyglass versions'."
+    },
+    {
+      "text": "behavioral_check: Recommends NWB-side rewrite plus re-ingest with reinsert=True (not skip_duplicates=True)",
+      "passed": false,
+      "evidence": "Recommends NWB rewrite (correct) but the re-ingest path uses `(Session & {...}).delete()` followed by `insert_sessions(...)` rather than `reinsert=True`. Misses the canonical reinsert=True flag entirely."
+    }
+  ]
+}

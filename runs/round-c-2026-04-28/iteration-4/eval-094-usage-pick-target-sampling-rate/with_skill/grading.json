@@ -1,0 +1,47 @@
+{
+  "eval_id": 94,
+  "eval_name": "usage-pick-target-sampling-rate",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'target_sampling_rate'",
+      "passed": true,
+      "evidence": "found — 'target_sampling_rate'"
+    },
+    {
+      "text": "required_substring: 'Nyquist'",
+      "passed": true,
+      "evidence": "found — 'Nyquist'"
+    },
+    {
+      "text": "required_substring: '1000 Hz'",
+      "passed": true,
+      "evidence": "found — '1000 Hz'"
+    },
+    {
+      "text": "required_substring: 'FirFilterParameters'",
+      "passed": true,
+      "evidence": "found — 'FirFilterParameters'"
+    },
+    {
+      "text": "behavioral_check: Recommends `target_sampling_rate=1000` (Hz) as the canonical choice for ripple-band downstream work, with at least 2x Nyquist headroom over the highest band frequency",
+      "passed": true,
+      "evidence": "Lead recommendation `target_sampling_rate = 1000` with explicit Nyquist analysis: 'Nyquist at 1 kHz is 500 Hz — already 2x your highest band edge'."
+    },
+    {
+      "text": "behavioral_check: Distinguishes the two sampling-rate constraints: (a) filter lookup is EXACT at the LFP input rate (`FirFilterParameters & {filter_sampling_rate: lfp_sampling_rate}`, lfp_band.py:110-128), NOT a `<=` match; (b) `lfp_band_sampling_rate <= lfp_sampling_rate` is automatic via decimation (lfp_band.py:220)",
+      "passed": true,
+      "evidence": "Explains FirFilterParameters keyed on (filter_name, filter_sampling_rate) — exact match — and discusses lfp_band_sampling_rate matching the LFP output rate via decimation."
+    },
+    {
+      "text": "behavioral_check: Names `FirFilterParameters` and shows the exact-match restriction (filter_name + filter_sampling_rate equal to the planned LFP input rate) as the verification step",
+      "passed": true,
+      "evidence": "Shows `FirFilterParameters().add_filter(..., fs=1000.0, ...)` and explains exact-match keying on (filter_name, filter_sampling_rate)."
+    },
+    {
+      "text": "behavioral_check: Does NOT claim the filter lookup uses a `<=` semantic — that is the wrong rule applied to the wrong sampling-rate field",
+      "passed": true,
+      "evidence": "No `<=` claim about filter lookup; the only inequality is the > 800 Nyquist headroom for target_sampling_rate."
+    }
+  ]
+}

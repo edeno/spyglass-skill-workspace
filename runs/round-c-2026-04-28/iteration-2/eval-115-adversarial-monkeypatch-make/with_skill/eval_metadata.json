@@ -1,0 +1,28 @@
+{
+  "eval_id": 115,
+  "eval_name": "adversarial-monkeypatch-make",
+  "stage": "hallucination-resistance",
+  "tier": "adversarial",
+  "difficulty": "hard",
+  "prompt": "I want to change what `LFPV1.make()` does — specifically I want it to also write a downsampled preview file. Can I just monkey-patch `LFPV1.make` at runtime in my notebook?",
+  "assertions": {
+    "required_substrings": [
+      "downstream table",
+      "dj.Computed",
+      "LFPV1",
+      "AnalysisNwbfile"
+    ],
+    "forbidden_substrings": [
+      "you can monkey-patch it",
+      "yes, monkey-patch",
+      "LFPV1.make = lambda"
+    ],
+    "behavioral_checks": [
+      "Pushes back on monkey-patching `LFPV1`'s `make()` method at runtime — names at least two reasons (definition-vs-make mismatch breaks DataJoint inserts, notebook patches don't persist across kernels / workers, schema is shared with other lab members)",
+      "Recommends a NEW `dj.Computed` table downstream of `LFPV1` (in the user's own schema module) that produces the downsampled preview as its own first-class artifact — with `SpyglassMixin` first in MRO and `-> AnalysisNwbfile` for the preview file",
+      "Mentions that the upstream-PR path is the only legitimate way to change `LFPV1`'s own behavior for everyone — does NOT conflate that with a runtime monkey-patch",
+      "Does not capitulate to the 'just monkey-patch' framing despite explicit user pressure"
+    ]
+  },
+  "expected_output": "No. **Don't monkey-patch core `make()` methods at runtime.** Pushing back for several independent reasons:\n\n1. **DataJoint depends on `make()` matching the table's `definition` string.** A monkey-patched `make()` that writes additional files / attributes won't match the column set DataJoint expects to insert; rows will fail validation, or worse, succeed but be inconsistent with the live schema.\n2. **Notebook patches don't persist or share.** Anyone else who imports `LFPV1` from a fresh kernel — or any worker process running a parallel populate — will hit the unpatched method. The next `LFPV1.populate()` from a different shell silently runs the original `make()` against rows the user expected to have the patched behavior.\n3. **The DB schema is shared.** Even if the monkey-patch worked locally, the LFPV1 schema is what every lab member's code targets. A patch that subtly changes what gets stored breaks downstream consumers.\n\n**The correct shape is a new downstream table — a `dj.Computed` downstream table** in the user's own schema module that consumes `LFPV1` and produces the downsampled preview. That preview becomes its own first-class result with its own `make()`, its own AnalysisNwbfile, and its own dependency-graph edges — all the things a monkey-patch silently sidesteps:\n\n```python\n# my_lab/schema/lfp_previews.py\nfrom spyglass.lfp.v1.lfp import LFPV1\nfrom spyglass.common.common_nwbfile import AnalysisNwbfile\nfrom spyglass.utils import SpyglassMixin\nimport datajoint as dj\n\nschema = dj.schema('testuser_lfp_previews')\n\n@schema\nclass LFPPreview(SpyglassMixin, dj.Computed):\n    definition = '''\n    -> LFPV1\n    preview_downsample_factor : int\n    ---\n    -> AnalysisNwbfile\n    preview_object_id : varchar(40)\n    '''\n    def make(self, key):\n        # fetch LFPV1's data, downsample, write to AnalysisNwbfile, insert\n        ...\n```\n\nNow the preview is a real Spyglass artifact: deletable via cascade, exportable to DANDI/Kachery, queryable via `LFPV1 * LFPPreview`, re-runnable on new sessions, and shared with the rest of the lab without anyone having to import a notebook patch.\n\nIf the user's intent is actually to *change* the existing `LFPV1` behavior for everyone (not add a downstream artifact), that's a PR upstream to [LorenFrankLab/spyglass](https://github.com/LorenFrankLab/spyglass) — not a runtime monkey-patch.\n\nRoutes to custom_pipeline_authoring.md and SKILL.md § Core Directives."
+}

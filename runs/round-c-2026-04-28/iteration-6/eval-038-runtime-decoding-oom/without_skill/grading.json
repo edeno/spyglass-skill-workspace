@@ -1,0 +1,42 @@
+{
+  "eval_id": 38,
+  "eval_name": "runtime-decoding-oom",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (n_chunks, cache_likelihood, XLA_PYTHON_CLIENT_MEM_FRACTION, DecodingParameters, ClusterlessDecodingV1).",
+      "passed": true,
+      "evidence": "All required substrings present throughout response.md."
+    },
+    {
+      "text": "Shows DecodingParameters.insert1 with decoding_kwargs as sibling top-level (NOT nested in decoding_params)",
+      "passed": true,
+      "evidence": "Insert example has decoding_params and decoding_kwargs as sibling keys; explicitly: 'decoding_kwargs is a separate top-level attribute on the parameters row, not something you nest inside decoding_params'."
+    },
+    {
+      "text": "Includes concrete n_chunks (integer) and cache_likelihood=False values",
+      "passed": true,
+      "evidence": "{'n_chunks': 10, 'cache_likelihood': False}."
+    },
+    {
+      "text": "Mentions XLA_PYTHON_CLIENT_MEM_FRACTION as a complementary lever",
+      "passed": true,
+      "evidence": "Section (2) sets `XLA_PYTHON_CLIENT_MEM_FRACTION='0.95'` and notes 'complementary to (1), not a replacement'."
+    },
+    {
+      "text": "Identifies decoding_kwargs are passed through; doesn't claim estimate_parameters rejects them",
+      "passed": true,
+      "evidence": "Notes both branches: predict() in False branch (default), estimate_parameters() in True branch with EM re-fit caveat. Mentions inspect.signature for verification of what the installed package accepts."
+    },
+    {
+      "text": "Does not recommend upgrading the GPU as the primary fix",
+      "passed": true,
+      "evidence": "Section 'Why a bigger GPU is the wrong first move': 'Buying an H100 or moving to a 96 GB card would mask the problem ... Tune the knobs first'."
+    },
+    {
+      "text": "Does not include v0 decoding knobs",
+      "passed": true,
+      "evidence": "Response only references clusterless v1 / non_local_detector kwargs (n_chunks, cache_likelihood); no mention of sorted_spikes_algorithm_params or block_size."
+    }
+  ]
+}

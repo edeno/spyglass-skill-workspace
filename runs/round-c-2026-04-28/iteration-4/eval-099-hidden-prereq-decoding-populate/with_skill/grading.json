@@ -1,0 +1,57 @@
+{
+  "eval_id": 99,
+  "eval_name": "hidden-prereq-decoding-populate",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'UnitWaveformFeaturesGroup'",
+      "passed": true,
+      "evidence": "found — 'UnitWaveformFeaturesGroup'"
+    },
+    {
+      "text": "required_substring: 'PositionGroup'",
+      "passed": true,
+      "evidence": "found — 'PositionGroup'"
+    },
+    {
+      "text": "required_substring: 'DecodingParameters'",
+      "passed": true,
+      "evidence": "found — 'DecodingParameters'"
+    },
+    {
+      "text": "required_substring: 'ClusterlessDecodingSelection'",
+      "passed": true,
+      "evidence": "found — 'ClusterlessDecodingSelection'"
+    },
+    {
+      "text": "required_substring: 'IntervalList'",
+      "passed": true,
+      "evidence": "found — 'IntervalList'"
+    },
+    {
+      "text": "required_substring: 'key_source'",
+      "passed": false,
+      "evidence": "MISSING — 'key_source'"
+    },
+    {
+      "text": "forbidden_substring: 'populate_all_common('",
+      "passed": true,
+      "evidence": "absent — 'populate_all_common('"
+    },
+    {
+      "text": "forbidden_substring: 'edit the ClusterlessDecodingV1 schema'",
+      "passed": true,
+      "evidence": "absent — 'edit the ClusterlessDecodingV1 schema'"
+    },
+    {
+      "text": "behavioral_check: First diagnostic step is `len(ClusterlessDecodingSelection & key)` (or equivalent inspection of the selection key) — because `ClusterlessDecodingV1`'s only direct parent is `ClusterlessDecodingSelection`, an empty key_source most directly means the selection row is missing or the restriction does not match",
+      "passed": true,
+      "evidence": "Verification script ends with `len(ClusterlessDecodingSelection & f)` and the response opens by enumerating the seven slots in ClusterlessDecodingSelection's heading that must resolve."
+    },
+    {
+      "text": "behavioral_check: Walks `ClusterlessDecodingSelection.parents()` and checks `(parent & key)` for each *only* if building the selection or if the selection insert itself is blocked by a missing FK target — names UnitWaveformFeaturesGroup AND PositionGroup AND DecodingParameters AND IntervalList as those parents",
+      "passed": true,
+      "evidence": "Names all four parents (UnitWaveformFeaturesGroup, PositionGroup, DecodingParameters, IntervalList) and gives a per-section verification (`len(... & f)`)."
+    }
+  ]
+}

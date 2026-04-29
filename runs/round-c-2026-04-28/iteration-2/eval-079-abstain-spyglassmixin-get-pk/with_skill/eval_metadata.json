@@ -1,0 +1,25 @@
+{
+  "eval_id": 79,
+  "eval_name": "abstain-spyglassmixin-get-pk",
+  "stage": "hallucination-resistance",
+  "tier": "adversarial",
+  "difficulty": "easy",
+  "prompt": "I need the primary-key dicts for every row in my current restriction. I vaguely remember there's a `.get_pk()` convenience on SpyglassMixin — can you show me the exact signature?",
+  "assertions": {
+    "required_substrings": [
+      "fetch('KEY')",
+      "spyglassmixin_methods.md"
+    ],
+    "required_substrings_exempt": [
+      "fetch('KEY')"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "States that `get_pk` does not exist on SpyglassMixin",
+      "Recommends `.fetch('KEY')` (or `.proj().fetch()`) as the real way to get PK dicts",
+      "Names `dir(SpyglassMixin)` or a source-grep as the verification primitive",
+      "Does not fabricate a signature, docstring, or return-shape for `get_pk`"
+    ]
+  },
+  "expected_output": "`get_pk()` is not a method on `SpyglassMixin`. The skill should say so directly and not fabricate a signature. The real idioms are `(Table & restriction).fetch('KEY')` (returns a list of PK dicts) or `(Table & restriction).proj().fetch(as_dict=True)`. Names `dir(SpyglassMixin)` or a grep of `src/spyglass/utils/dj_mixin.py` as the verification path. Routes to spyglassmixin_methods.md for the supported helper surface. Does not invent a signature like `def get_pk(self, ...) -> list[dict]`."
+}

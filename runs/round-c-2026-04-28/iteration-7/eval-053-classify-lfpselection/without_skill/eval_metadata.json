@@ -1,0 +1,21 @@
+{
+  "eval_id": 53,
+  "eval_name": "classify-lfpselection",
+  "prompt": "Is `LFPSelection` a manual, lookup, computed, or imported table? And is it a 'selection' or 'parameter' table in spyglass terms? I'm trying to understand what I put into it vs. what gets computed.",
+  "stage": "table-understanding",
+  "tier": "table-classification",
+  "difficulty": "easy",
+  "required_substrings": [
+    "selection table",
+    "filter_name",
+    "lfp_electrode_group_name",
+    "LFPSelection",
+    "LFPV1"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Distinguishes DataJoint tier (Manual) from Spyglass role (selection table — picks input for the paired Computed table)",
+    "Names LFPV1 as the Computed counterpart whose populate() consumes LFPSelection rows",
+    "Does not classify LFPSelection itself as Computed, Lookup, or Imported (LFPSelection is Manual; LFPV1 is the Computed counterpart, but the question is about LFPSelection)"
+  ]
+}

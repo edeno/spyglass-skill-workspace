@@ -1,0 +1,42 @@
+{
+  "eval_id": 57,
+  "eval_name": "param-target-sampling-rate",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'Nyquist'",
+      "passed": true,
+      "evidence": "found — 'Nyquist'"
+    },
+    {
+      "text": "required_substring: 'LFPV1'",
+      "passed": true,
+      "evidence": "found — 'LFPV1'"
+    },
+    {
+      "text": "forbidden_substring: \"sample rate doesn't matter\"",
+      "passed": true,
+      "evidence": "absent — \"sample rate doesn't matter\""
+    },
+    {
+      "text": "behavioral_check: Explains that target_sampling_rate sets the downsampled output rate of LFPV1",
+      "passed": true,
+      "evidence": "Says the field tells the LFP pipeline 'what sampling rate, in Hz, the output LFP should be written at after filtering and decimation'; describes the decimation step that produces the stored output."
+    },
+    {
+      "text": "behavioral_check: Connects the rate to the Nyquist constraint for downstream band filters (e.g., ripple band 150–250 Hz needs > 500 Hz sampling)",
+      "passed": true,
+      "evidence": "Section '1. Nyquist — the band you want literally isn't there' walks through Nyquist explicitly for 500/400/300/250 Hz target rates and the 150–250 Hz ripple band."
+    },
+    {
+      "text": "behavioral_check: Names 1000 Hz as the canonical default and the consequence of going lower (aliasing in the downstream band)",
+      "passed": true,
+      "evidence": "States '1000 Hz is the safe, conventional choice', the default is 1000 Hz, and going lower causes aliasing back into the band."
+    },
+    {
+      "text": "behavioral_check: Does not say the sample rate is arbitrary or that any value works (this would contradict the Nyquist constraint)",
+      "passed": true,
+      "evidence": "Explicit recommendation 'don't go below 1000 Hz for ripple work'; rate is constrained by Nyquist + filter design."
+    }
+  ]
+}

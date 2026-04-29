@@ -1,0 +1,23 @@
+{
+  "eval_id": 61,
+  "eval_name": "param-sort-group-by-electrode-group",
+  "prompt": "What does `SortGroup().set_group_by_electrode_group(nwb_file_name=nwb_file)` actually do — what defines a sort group when you call it? And on a multi-shank probe, why does this conflict with the clusterless decoding / spike sorting pipeline?",
+  "stage": "parameter-understanding",
+  "tier": "parameter-semantics",
+  "difficulty": "hard",
+  "required_substrings": [
+    "electrode_group_name",
+    "set_group_by_shank",
+    "contact positions",
+    "SortGroup",
+    "SpikeSortingRecording"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Identifies that set_group_by_electrode_group groups by electrode_group_name (one sort group per electrode_group)",
+    "Explains the clusterless failure: multi-shank electrode_groups produce duplicate (x, y) contact positions; SpikeInterface rejects at SpikeSortingRecording.populate()",
+    "Recommends set_group_by_shank for clusterless / waveform-based pipelines",
+    "Notes that set_group_by_electrode_group is only available in the v0 API (spyglass.spikesorting.v0), not in v1",
+    "Does not claim set_group_by_electrode_group produces one electrode per sort group (it groups by electrode_group_name, which can include multiple electrodes per group — that is precisely the source of the multi-shank conflict)"
+  ]
+}

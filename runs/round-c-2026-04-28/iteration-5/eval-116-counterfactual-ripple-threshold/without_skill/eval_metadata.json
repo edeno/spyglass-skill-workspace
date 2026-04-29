@@ -1,0 +1,24 @@
+{
+  "eval_id": 116,
+  "eval_name": "counterfactual-ripple-threshold",
+  "prompt": "If I change `ripple_params.zscore_threshold` from 2 to 3 and re-populate `RippleTimesV1`, which downstream rows will differ?",
+  "stage": "parameter-understanding",
+  "tier": "counterfactual",
+  "difficulty": "hard",
+  "required_substrings": [
+    "RippleTimesV1",
+    "RippleLFPSelection",
+    "ripple_param_dict",
+    "provenance"
+  ],
+  "forbidden_substrings": [
+    "yes, just update1 the row"
+  ],
+  "behavioral_checks": [
+    "Recommends inserting a NEW `RippleParameters` row (e.g. `ripple_param_name='zscore3'`) and populating `RippleTimesV1` against the new name — does NOT recommend mutating the existing `'default'` row via `update1()`",
+    "Frames the issue as **provenance**: existing `RippleTimesV1` rows still reference the old param name but the blob would have changed, breaking reproducibility",
+    "Predicts the qualitative direction correctly: raising `zscore_threshold` from 2 to 3 yields FEWER detected ripple events (higher threshold = stricter trigger)",
+    "Notes that no new `RippleLFPSelection` row is needed — selection rows already exist for the LFP band + electrode group; just populate `RippleTimesV1` for the new param name",
+    "Notes that old rows under `'default'` are unchanged (intact provenance) and the two sets coexist queryable side-by-side — that's the value of the new-name shape"
+  ]
+}

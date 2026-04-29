@@ -1,0 +1,21 @@
+{
+  "eval_id": 47,
+  "eval_name": "env-conda-pip-drift",
+  "prompt": "`import spyglass.common` now fails with `AttributeError: module 'cv2' has no attribute 'gapi'`. Worked yesterday. I pip installed `opencv-python-headless` for another project into the same conda env last night — is that related? How do I get back to working?",
+  "stage": "setup",
+  "tier": "environment-triage",
+  "difficulty": "medium",
+  "required_substrings": [
+    "environments/environment_min.yml",
+    "--dry-run"
+  ],
+  "forbidden_substrings": [
+    "pin cv2 to"
+  ],
+  "behavioral_checks": [
+    "Identifies the pip-install-broke-conda-env pattern (not a spyglass code issue)",
+    "Recommends recreating the env from `environments/environment_min.yml` (the default minimal file per setup_install.md) or `environments/environment.yml` (full install) using either `mamba env update --prune` or `conda env update --prune` (either tool is acceptable — labs use both)",
+    "Mentions `pip install --dry-run` as a future safeguard",
+    "Does not recommend pinning a specific cv2 version or installing another package on top"
+  ]
+}

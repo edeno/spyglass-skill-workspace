@@ -1,0 +1,31 @@
+{
+  "eval_id": 63,
+  "eval_name": "disamb-lfpselection-vs-electrodegroup",
+  "expectations": [
+    {
+      "text": "Response contains substring `create_lfp_electrode_group`.",
+      "passed": true,
+      "evidence": "Substring 'create_lfp_electrode_group' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPElectrodeGroup.LFPElectrode`.",
+      "passed": true,
+      "evidence": "Substring 'LFPElectrodeGroup.LFPElectrode' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPSelection.insert1`.",
+      "passed": true,
+      "evidence": "Substring 'LFPSelection.insert1' found in response.md"
+    },
+    {
+      "text": "Establishes ordering: electrode group must exist before LFPSelection.insert1 can succeed",
+      "passed": true,
+      "evidence": "'LFPElectrodeGroup must be populated before LFPSelection, because LFPSelection has a foreign key into it'; explicit FK constraint reasoning."
+    },
+    {
+      "text": "Explains the group is a reusable electrode bundle while the selection picks group + interval + filter for one populate run",
+      "passed": true,
+      "evidence": "'LFPElectrodeGroup = what channels to ever consider together ... LFPSelection = compute LFP for this group on this interval with this filter, right now. One row per intended LFPV1.populate() job'."
+    }
+  ]
+}

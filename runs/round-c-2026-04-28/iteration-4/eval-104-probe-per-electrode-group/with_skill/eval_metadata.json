@@ -1,0 +1,23 @@
+{
+  "eval_id": 104,
+  "eval_name": "probe-per-electrode-group",
+  "prompt": "For session `j1620210710_.nwb`, which probe model is each electrode group using?",
+  "stage": "pipeline-usage",
+  "tier": "atomic-read",
+  "difficulty": "easy",
+  "required_substrings": [
+    "ElectrodeGroup",
+    "Probe",
+    "probe_id",
+    "nwb_file_name"
+  ],
+  "forbidden_substrings": [
+    "Probe & {'nwb_file_name'",
+    "Probe & {\"nwb_file_name\""
+  ],
+  "behavioral_checks": [
+    "Restricts ONLY `ElectrodeGroup` by `nwb_file_name` (which it has as a PK field) — does NOT restrict `Probe` by `nwb_file_name` (Probe is keyed by `probe_id` and has no session FK; the restriction would silently no-op)",
+    "Joins on the shared `probe_id` column (ElectrodeGroup's nullable FK to Probe) to surface `probe_type` / Probe-side fields",
+    "Mentions that `-> [nullable] Probe` means some electrode groups may have NULL `probe_id` and won't survive the inner join — handle via projection or a separate restriction if those rows matter"
+  ]
+}

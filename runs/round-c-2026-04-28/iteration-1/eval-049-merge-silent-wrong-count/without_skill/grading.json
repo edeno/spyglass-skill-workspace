@@ -1,0 +1,56 @@
+{
+  "eval_id": 49,
+  "eval_name": "merge-silent-wrong-count",
+  "expectations": [
+    {
+      "text": "Response contains substring `merge_restrict`.",
+      "passed": true,
+      "evidence": "Substring 'merge_restrict' found in response.md"
+    },
+    {
+      "text": "Response contains substring `nwb_file_name`.",
+      "passed": true,
+      "evidence": "Substring 'nwb_file_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DecodingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'DecodingOutput' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `DB really is that full`.",
+      "passed": true,
+      "evidence": "Substring 'DB really is that full' absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `your DB has 2735`.",
+      "passed": true,
+      "evidence": "Substring 'your DB has 2735' absent in response.md"
+    },
+    {
+      "text": "Identifies that the 2735 is the full table — not the sessions, not a bug in the count",
+      "passed": true,
+      "evidence": "Says '2735 is almost certainly the entire DecodingOutput master table, not the 4 sessions you asked for. The restriction silently did nothing.'"
+    },
+    {
+      "text": "Explains the silent no-op: nwb_file_name is not on the merge master's heading, DataJoint drops it",
+      "passed": true,
+      "evidence": "States 'nwb_file_name is not in that heading, so DataJoint applies a no-op restriction ... and & returns the full master table. No error, no warning'."
+    },
+    {
+      "text": "Shows `merge_restrict` per-file as the correct shape (NOT `merge_get_part`, since the question is about counting not loading)",
+      "passed": true,
+      "evidence": "Provides `total = sum(len(DecodingOutput.merge_restrict({'nwb_file_name': f})) for f in files)` and an explicit section 'don't reach for merge_get_part here'."
+    },
+    {
+      "text": "Mentions the five merge masters by name OR at least that this applies to any table with `merge_id` as its PK",
+      "passed": true,
+      "evidence": "Lists all five merge masters (SpikeSortingOutput, LFPOutput, PositionOutput, LinearizedPositionOutput, DecodingOutput)."
+    },
+    {
+      "text": "Does not propose `merge_get_part` for a counting task (that would raise on multi-source)",
+      "passed": true,
+      "evidence": "Has dedicated section 'Important: don't reach for merge_get_part here' and explains it 'will either raise (multiple sources) or only count one source'."
+    }
+  ]
+}

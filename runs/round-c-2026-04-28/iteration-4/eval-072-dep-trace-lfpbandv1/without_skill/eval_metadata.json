@@ -1,0 +1,27 @@
+{
+  "eval_id": 72,
+  "eval_name": "dep-trace-lfpbandv1",
+  "prompt": "Starting from a populated `LFPBandV1` row, list all upstream tables whose entries it depends on. I want to know the minimum set I'd need to re-create this from scratch.",
+  "stage": "pipeline-usage",
+  "tier": "dependency-tracing",
+  "difficulty": "hard",
+  "required_substrings": [
+    "Nwbfile",
+    "IntervalList",
+    "LFPElectrodeGroup",
+    "LFPSelection",
+    "LFPV1",
+    "LFPOutput",
+    "FirFilterParameters",
+    "LFPBandSelection",
+    "LFPBandV1",
+    "Raw",
+    "Session"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Names every upstream table including the parameter (FirFilterParameters) and selection tables (LFPSelection, LFPBandSelection)",
+    "Names the Raw table as the data source fetched inside LFPV1's `make()` body (Raw is not an FK of LFPSelection; it is pulled via `(Raw & key).fetch_nwb()` at make() time and must be present to regenerate LFPV1 from scratch)",
+    "Does not skip the LFPOutput merge wrapper between LFPV1 and LFPBandSelection"
+  ]
+}

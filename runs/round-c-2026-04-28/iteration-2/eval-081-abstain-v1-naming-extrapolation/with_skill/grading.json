@@ -1,0 +1,46 @@
+{
+  "eval_id": 81,
+  "eval_name": "abstain-v1-naming-extrapolation",
+  "expectations": [
+    {
+      "text": "Response contains substring `SpikeSorting`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSorting' found in response.md"
+    },
+    {
+      "text": "Response contains substring `spikesorting_v1_pipeline.md`.",
+      "passed": true,
+      "evidence": "Substring 'spikesorting_v1_pipeline.md' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `class SpikeSortingV1`.",
+      "passed": true,
+      "evidence": "Substring 'class SpikeSortingV1' absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `SpikeSortingV1 is the v1 class`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingV1 is the v1 class' absent in response.md"
+    },
+    {
+      "text": "States that `SpikeSortingV1` does not exist",
+      "passed": true,
+      "evidence": "States: 'SpikeSortingV1 does not exist in the v1 pipeline.'"
+    },
+    {
+      "text": "Identifies `SpikeSorting` (no V1 suffix) as the correct v1 spike-sorting Computed class and names its module (`spyglass.spikesorting.v1`)",
+      "passed": true,
+      "evidence": "States: 'The v1 spike-sorting Computed class is just SpikeSorting (no V1 suffix), defined in src/spyglass/spikesorting/v1/sorting.py:234 and re-exported from spyglass.spikesorting.v1.'"
+    },
+    {
+      "text": "Explicitly flags the v0\u2192v1 naming asymmetry (some v1 classes keep the `V1` suffix, some drop it) \u2014 recommends verifying by import rather than extrapolating",
+      "passed": true,
+      "evidence": "Section 'v0 \u2192 v1 naming is asymmetric' lists both groups (suffix-keepers like LFPV1, RippleTimesV1 vs suffix-droppers like SpikeSorting). Says 'verify by import or by listing the module.'"
+    },
+    {
+      "text": "Does not fabricate a signature for `SpikeSortingV1.populate` or claim it is an alias / deprecated name for `SpikeSorting`",
+      "passed": true,
+      "evidence": "Notes 'from spyglass.spikesorting.v1 import SpikeSortingV1 # ImportError' \u2014 confirms it doesn't exist and does not claim alias."
+    }
+  ]
+}

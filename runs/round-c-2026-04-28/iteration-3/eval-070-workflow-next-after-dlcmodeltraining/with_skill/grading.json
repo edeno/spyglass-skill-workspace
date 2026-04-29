@@ -1,0 +1,81 @@
+{
+  "eval_id": 70,
+  "eval_name": "workflow-next-after-dlcmodeltraining",
+  "expectations": [
+    {
+      "text": "Response contains substring `DLCPoseEstimation`.",
+      "passed": true,
+      "evidence": "Substring 'DLCPoseEstimation' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCSmoothInterpCohort`.",
+      "passed": true,
+      "evidence": "Substring 'DLCSmoothInterpCohort' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'DLCPosV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionOutput.DLCPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput.DLCPosV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `BodyPart`.",
+      "passed": true,
+      "evidence": "Substring 'BodyPart' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCCentroid`.",
+      "passed": true,
+      "evidence": "Substring 'DLCCentroid' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCCentroidSelection`.",
+      "passed": true,
+      "evidence": "Substring 'DLCCentroidSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCOrientation`.",
+      "passed": true,
+      "evidence": "Substring 'DLCOrientation' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCOrientationSelection`.",
+      "passed": true,
+      "evidence": "Substring 'DLCOrientationSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCPosSelection`.",
+      "passed": true,
+      "evidence": "Substring 'DLCPosSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCPoseEstimationSelection`.",
+      "passed": true,
+      "evidence": "Substring 'DLCPoseEstimationSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCSmoothInterpCohortSelection`.",
+      "passed": true,
+      "evidence": "Substring 'DLCSmoothInterpCohortSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCSmoothInterpSelection`.",
+      "passed": true,
+      "evidence": "Substring 'DLCSmoothInterpSelection' found in response.md"
+    },
+    {
+      "text": "Lists the ordered tables (at least: DLCPoseEstimation \u2192 DLCSmoothInterp per bodypart \u2192 DLCSmoothInterpCohort \u2192 DLCCentroid + DLCOrientation \u2192 DLCPosV1 \u2192 PositionOutput.DLCPosV1)",
+      "passed": true,
+      "evidence": "Numbered ordered checklist (1-7) covers DLCPoseEstimation \u2192 DLCSmoothInterp per bodypart \u2192 DLCSmoothInterpCohort \u2192 DLCCentroid + DLCOrientation \u2192 DLCPosV1 \u2192 PositionOutput.DLCPosV1."
+    },
+    {
+      "text": "Mentions the bodypart-aggregation step (DLCSmoothInterpCohort) explicitly \u2014 it is the non-obvious step that's easy to skip",
+      "passed": true,
+      "evidence": "Step 3 'DLCSmoothInterpCohortSelection \u2192 DLCSmoothInterpCohort (non-obvious aggregation step) ... This is the step people skip'."
+    }
+  ]
+}

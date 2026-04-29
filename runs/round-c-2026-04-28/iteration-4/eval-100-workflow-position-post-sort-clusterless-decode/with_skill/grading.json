@@ -1,0 +1,42 @@
+{
+  "eval_id": 100,
+  "eval_name": "workflow-position-post-sort-clusterless-decode",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'CurationV1'",
+      "passed": true,
+      "evidence": "found — 'CurationV1'"
+    },
+    {
+      "text": "required_substring: 'SpikeSortingOutput'",
+      "passed": true,
+      "evidence": "found — 'SpikeSortingOutput'"
+    },
+    {
+      "text": "required_substring: 'UnitWaveformFeaturesGroup'",
+      "passed": true,
+      "evidence": "found — 'UnitWaveformFeaturesGroup'"
+    },
+    {
+      "text": "required_substring: 'ClusterlessDecodingSelection'",
+      "passed": true,
+      "evidence": "found — 'ClusterlessDecodingSelection'"
+    },
+    {
+      "text": "required_substring: 'PositionGroup'",
+      "passed": true,
+      "evidence": "found — 'PositionGroup'"
+    },
+    {
+      "text": "behavioral_check: Identifies `CurationV1` as the mandatory next step (initial curation, not optional) before anything downstream of spike sorting can be reached",
+      "passed": false,
+      "evidence": "Response assumes user has already finished CurationV1 ('You finished SpikeSorting.populate() + CurationV1'); never flags CurationV1 as the mandatory next step the user still needs to do."
+    },
+    {
+      "text": "behavioral_check: Calls out the merge insert into `SpikeSortingOutput` (e.g. `insert([curation_key], part_name='CurationV1')`) as a separate explicit step that does not happen automatically",
+      "passed": true,
+      "evidence": "Step 1 says 'Get your curated sort into SpikeSortingOutput. CurationV1 results are exposed to downstream pipelines via the SpikeSortingOutput merge table (its CurationV1 part). Confirm your curation rows are visible there before extracting features.'"
+    }
+  ]
+}

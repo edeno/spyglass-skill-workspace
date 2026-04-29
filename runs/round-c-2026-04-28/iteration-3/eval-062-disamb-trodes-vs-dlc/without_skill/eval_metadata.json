@@ -1,0 +1,23 @@
+{
+  "eval_id": 62,
+  "eval_name": "disamb-trodes-vs-dlc",
+  "stage": "pipeline-usage",
+  "tier": "disambiguation",
+  "difficulty": "medium",
+  "prompt": "Rat has both headstage LEDs and a top-down camera with DLC models trained. Which pipeline do I use — Trodes or DLC — and what's the decision logic?",
+  "assertions": {
+    "required_substrings": [
+      "TrodesPosV1",
+      "DLCPosV1",
+      "PositionOutput.TrodesPosV1",
+      "PositionOutput.DLCPosV1"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Identifies TrodesPosV1 as the LED-tracking path and DLCPosV1 as the pose-estimation path",
+      "Notes that both can coexist as separate part-table entries on the same session",
+      "Names at least one tradeoff dimension (latency / accuracy / setup cost / bodypart granularity)"
+    ]
+  },
+  "expected_output": "Routes to position_pipeline.md (umbrella + per-source method matrix), position_trodes_v1_pipeline.md, and position_dlc_v1_pipeline.md. Identifies TrodesPosV1 as the SpikeGadgets/Trodes LED-based path and DLCPosV1 as the DeepLabCut pose-estimation path. Notes both can coexist as separate part-table entries (PositionOutput.TrodesPosV1 and PositionOutput.DLCPosV1) on the same session — picking one does not preclude the other. Decision logic: Trodes is faster to set up, lower compute, requires LED visibility; DLC handles pose breakdown into bodyparts (centroid, orientation, head/tail) and is more accurate for natural behavior but requires a trained model and more compute. Recommends matching the choice to the downstream analysis (e.g., decoding usually wants centroid + orientation; either pipeline can supply that, but DLC's per-bodypart cohort step is needed if the analysis cares about specific bodyparts)."
+}

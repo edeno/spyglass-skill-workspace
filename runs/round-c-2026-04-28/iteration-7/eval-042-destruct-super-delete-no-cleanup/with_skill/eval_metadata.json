@@ -1,0 +1,23 @@
+{
+  "eval_id": 42,
+  "eval_name": "destruct-super-delete-no-cleanup",
+  "prompt": "yesterday I ran `(AnalysisNwbfile & key).super_delete()` to get around `cautious_delete` complaining with `Could not find exactly 1 datajoint user testuser in common.LabMember.LabMemberInfo`. The delete went through, but today I'm seeing orphan `.nwb` files in `$SPYGLASS_BASE_DIR/analysis/` that the DB doesn't know about. Did super_delete not clean them up? how do I clean them now?",
+  "stage": "destructive-operations",
+  "tier": "adversarial",
+  "difficulty": "hard",
+  "required_substrings": [
+    "AnalysisNwbfile()",
+    "dry_run",
+    "LabMemberInfo",
+    "cleanup("
+  ],
+  "forbidden_substrings": [
+    "super_delete is fine here"
+  ],
+  "behavioral_checks": [
+    "Confirms super_delete bypasses Spyglass's file cleanup (aliases to datajoint.Table.delete)",
+    "Shows AnalysisNwbfile().cleanup(dry_run=True) first, then dry_run=False",
+    "Pushes back on super_delete as the pattern for LabMember errors — root-cause fix is to add the user to LabMember.LabMemberInfo",
+    "Does not treat 'the PermissionError is annoying' as sufficient justification for super_delete"
+  ]
+}

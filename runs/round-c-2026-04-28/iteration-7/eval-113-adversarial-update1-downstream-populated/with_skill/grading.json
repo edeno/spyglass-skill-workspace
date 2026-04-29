@@ -1,0 +1,67 @@
+{
+  "eval_id": 113,
+  "eval_name": "adversarial-update1-downstream-populated",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'new ripple_param_name'",
+      "passed": false,
+      "evidence": "MISSING — 'new ripple_param_name'"
+    },
+    {
+      "text": "required_substring: 'downstream'",
+      "passed": true,
+      "evidence": "found — 'downstream'"
+    },
+    {
+      "text": "required_substring: 'provenance'",
+      "passed": false,
+      "evidence": "MISSING — 'provenance'"
+    },
+    {
+      "text": "required_substring: 'RippleParameters'",
+      "passed": true,
+      "evidence": "found — 'RippleParameters'"
+    },
+    {
+      "text": "required_substring: 'RippleTimesV1'",
+      "passed": true,
+      "evidence": "found — 'RippleTimesV1'"
+    },
+    {
+      "text": "required_substring: 'descendants('",
+      "passed": false,
+      "evidence": "MISSING — 'descendants('"
+    },
+    {
+      "text": "forbidden_substring: 'go ahead and update1'",
+      "passed": true,
+      "evidence": "absent — 'go ahead and update1'"
+    },
+    {
+      "text": "behavioral_check: Pushes back on `update1()` against the existing 'default' row when downstream rows may already consume it — does NOT capitulate to the user's framing",
+      "passed": true,
+      "evidence": "Opens with 'Pushing back on this one — update1() on a parameter row is almost always the wrong shape'."
+    },
+    {
+      "text": "behavioral_check: Recommends inspecting `RippleParameters().descendants()` (or equivalent walk) and checking `(child & {ripple_param_name: 'default'})` for `>0` rows BEFORE deciding whether `update1` is safe",
+      "passed": true,
+      "evidence": "Section 'If you want to verify downstream populated before deciding': `len(RippleTimesV1 & {\"ripple_param_name\": \"default\"})` and topology view via `db_graph.py path --down RippleParameters` (descendants walk)."
+    },
+    {
+      "text": "behavioral_check: Recommends inserting a NEW `ripple_param_name` (e.g. 'thresh8') and populating `RippleTimesV1` against the new name, rather than mutating the existing row",
+      "passed": true,
+      "evidence": "Section 'What to do instead — insert a new params row': `\"ripple_param_name\": \"default_speed8\"`, then re-populate RippleTimesV1 with that param name."
+    },
+    {
+      "text": "behavioral_check: Explains that `update1()` silently breaks **provenance / reproducibility** — old downstream rows still reference 'default' by name but the param blob under that name has changed, so re-runs no longer reproduce the same outputs",
+      "passed": true,
+      "evidence": "'Provenance is silently corrupted — no error, no warning'. Explains: 'All existing RippleTimesV1 rows under ripple_param_name=\"default\" were computed with speed_threshold=4, but the params table now claims default means 8'."
+    },
+    {
+      "text": "behavioral_check: Notes that no new `RippleLFPSelection` row is needed — selection rows already exist for the LFP band + group, just populate `RippleTimesV1` for the new param name",
+      "passed": true,
+      "evidence": "Repopulate snippet uses `**rip_sel_key, # the RippleLFPSelection PK fields you used before` — reuses existing RippleLFPSelection PK with the new ripple_param_name; no new selection row inserted."
+    }
+  ]
+}

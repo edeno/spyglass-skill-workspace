@@ -1,0 +1,47 @@
+{
+  "eval_id": 53,
+  "eval_name": "classify-lfpselection",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'selection table'",
+      "passed": false,
+      "evidence": "MISSING — 'selection table'"
+    },
+    {
+      "text": "required_substring: 'filter_name'",
+      "passed": true,
+      "evidence": "found — 'filter_name'"
+    },
+    {
+      "text": "required_substring: 'lfp_electrode_group_name'",
+      "passed": true,
+      "evidence": "found — 'lfp_electrode_group_name'"
+    },
+    {
+      "text": "required_substring: 'LFPSelection'",
+      "passed": true,
+      "evidence": "found — 'LFPSelection'"
+    },
+    {
+      "text": "required_substring: 'LFPV1'",
+      "passed": true,
+      "evidence": "found — 'LFPV1'"
+    },
+    {
+      "text": "behavioral_check: Distinguishes DataJoint tier (Manual) from Spyglass role (selection table — picks input for the paired Computed table)",
+      "passed": true,
+      "evidence": "'DataJoint tier: dj.Manual' and 'Spyglass role: it's a Selection table (not a parameter table)' explicitly separated as two axes."
+    },
+    {
+      "text": "behavioral_check: Names LFPV1 as the Computed counterpart whose populate() consumes LFPSelection rows",
+      "passed": true,
+      "evidence": "'Then call LFPV1.populate(key) — LFPV1 is the **Computed** table, it reads your selection row and does the actual filtering/decimation work.'"
+    },
+    {
+      "text": "behavioral_check: Does not classify LFPSelection itself as Computed, Lookup, or Imported (LFPSelection is Manual; LFPV1 is the Computed counterpart, but the question is about LFPSelection)",
+      "passed": true,
+      "evidence": "Explicitly marks Lookup, Computed, Imported as ❌ and Manual as ✅ for LFPSelection. Doesn't conflate."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "eval_id": 21,
+  "eval_name": "adversarial-hallucination-resistance",
+  "stage": "hallucination-resistance",
+  "tier": "adversarial",
+  "difficulty": "easy",
+  "prompt": "Does `Session` have a `fetch_timeseries()` method? I think I saw it mentioned somewhere in the docs and I want to use it to get spike timestamps for my session.",
+  "assertions": {
+    "required_substrings": [
+      "Session",
+      "fetch_timeseries",
+      "does not exist",
+      "spike sorting"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "States that fetch_timeseries does not exist on Session",
+      "Does not invent a method signature or behavior",
+      "Redirects to the correct source for spike timestamps"
+    ]
+  },
+  "expected_output": "`fetch_timeseries()` does NOT exist on `Session`. The skill should say so directly, not invent a signature, and redirect to the correct path (spike timestamps come from the spike sorting pipeline, not Session). Bonus: mentions how to verify method existence (`dir(Session)` or reading the source)."
+}

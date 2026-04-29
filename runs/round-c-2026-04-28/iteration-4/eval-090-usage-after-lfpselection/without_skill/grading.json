@@ -1,0 +1,32 @@
+{
+  "eval_id": 90,
+  "eval_name": "usage-after-lfpselection",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'LFPV1.populate'",
+      "passed": true,
+      "evidence": "found — 'LFPV1.populate'"
+    },
+    {
+      "text": "required_substring: 'LFPSelection'",
+      "passed": true,
+      "evidence": "found — 'LFPSelection'"
+    },
+    {
+      "text": "forbidden_substring: 'LFPSelection.populate'",
+      "passed": true,
+      "evidence": "absent — 'LFPSelection.populate'"
+    },
+    {
+      "text": "behavioral_check: Names the next-step operation as `LFPV1.populate(key)` — not just 'populate' or 'populate the table' generically",
+      "passed": true,
+      "evidence": "Code block uses `LFPV1.populate(key)` and prose 'kick off the actual LFP computation'."
+    },
+    {
+      "text": "behavioral_check: Identifies LFPV1 as the paired Computed table that consumes LFPSelection rows",
+      "passed": true,
+      "evidence": "States LFPV1 is 'the computed table that actually does the LFP extraction (filtering + downsampling) for the selection you just specified'."
+    }
+  ]
+}

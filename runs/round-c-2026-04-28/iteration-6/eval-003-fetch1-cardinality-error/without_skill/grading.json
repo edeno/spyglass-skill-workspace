@@ -1,0 +1,37 @@
+{
+  "eval_id": 3,
+  "eval_name": "fetch1-cardinality-error",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains substring `merge_restrict`.",
+      "passed": true,
+      "evidence": "Substring 'merge_restrict' found in response.md ('Run `PositionOutput.merge_restrict({'nwb_file_name': ...})` first')."
+    },
+    {
+      "text": "Response contains substring `PositionOutput`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput' found throughout response.md."
+    },
+    {
+      "text": "Response does not contain substring `trodes_pos_params_name='default'`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent; response uses '<the params name you populated>' as a placeholder and warns against hardcoding."
+    },
+    {
+      "text": "Leads with a discovery step (merge_restrict or fetch as_dict) before narrowing",
+      "passed": true,
+      "evidence": "Step 1 (titled 'discover what those 14 rows actually are') uses `PositionOutput.merge_restrict(key)` and `(PositionOutput & key).fetch(as_dict=True)` before any narrowing."
+    },
+    {
+      "text": "Does not assume Trodes or DLC without evidence from the prompt",
+      "passed": true,
+      "evidence": "Response explicitly says 'Don't assume Trodes' and conditions Trodes-specific advice on 'if Step 1 shows your row came from TrodesPosV1'."
+    },
+    {
+      "text": "Names the cardinality problem explicitly (too many rows matching)",
+      "passed": true,
+      "evidence": "Calls it 'a cardinality (too-loose-restriction) bug' and explains 'your restriction matches 14 rows, fetch1 needs 1'."
+    }
+  ]
+}

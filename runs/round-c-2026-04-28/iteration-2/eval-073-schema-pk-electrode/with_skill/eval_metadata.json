@@ -1,0 +1,28 @@
+{
+  "eval_id": 73,
+  "eval_name": "schema-pk-electrode",
+  "stage": "framework-concepts",
+  "tier": "schema-introspection",
+  "difficulty": "easy",
+  "prompt": "What is the primary key of the `Electrode` table? Show me the one-liner you'd run to verify, and list the field names.",
+  "assertions": {
+    "required_substrings": [
+      "nwb_file_name",
+      "electrode_group_name",
+      "electrode_id",
+      "Electrode.primary_key"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Calls Table.primary_key in the response (with the correct receiver — `Electrode.primary_key`), not just a textual description of 'the primary key'.",
+      "Lists exactly the three PK fields (nwb_file_name, electrode_group_name, electrode_id), with no extra fields",
+      "Does not list region_id as a PK field — region_id is a secondary FK to BrainRegion, not part of the Electrode primary key"
+    ],
+    "expected_output_tables_exempt": [
+      "BrainRegion",
+      "Electrode",
+      "ElectrodeGroup"
+    ]
+  },
+  "expected_output": "Routes to common_tables.md (Electrode entry) + datajoint_api.md (schema introspection). Run `Electrode.primary_key` — DataJoint returns the PK fields as a list. Output is exactly the three PK fields: `nwb_file_name`, `electrode_group_name`, `electrode_id` (order set by inheritance). Inheritance: `Electrode -> ElectrodeGroup` contributes `nwb_file_name` + `electrode_group_name`; `Electrode` adds its own `electrode_id`. Does not include `region_id` (which is a secondary FK to BrainRegion, not a PK)."
+}

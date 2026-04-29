@@ -1,0 +1,23 @@
+{
+  "eval_id": 103,
+  "eval_name": "session-subject-owner",
+  "prompt": "whose animal is wilbur? i need to figure out which lab member runs the sessions on this subject",
+  "stage": "pipeline-usage",
+  "tier": "joins",
+  "difficulty": "medium",
+  "required_substrings": [
+    "Subject",
+    "LabMember",
+    "Session.Experimenter",
+    "subject_id"
+  ],
+  "forbidden_substrings": [
+    "Subject.fetch1('owner')",
+    "Subject.fetch1('lab_member_name')"
+  ],
+  "behavioral_checks": [
+    "Goes via `Session` -> `Session.Experimenter` -> `LabMember` rather than assuming a direct `Subject -> owner` FK or column",
+    "Narrows to the specific `subject_id` BEFORE joining (`Session & {subject_id: 'wilbur'}`), so the join surface is bounded and the dependent-attribute refusal cannot fire",
+    "Recognizes that `subject_id` is a secondary attr on `Session` propagated via `-> [nullable] Subject`, queryable via `&` — does NOT claim `Subject` itself has an `owner` or `lab_member_name` column"
+  ]
+}

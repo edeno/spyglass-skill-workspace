@@ -1,0 +1,67 @@
+{
+  "eval_id": 108,
+  "eval_name": "sorted-spikes-group-hippocampal",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'SortedSpikesGroup'",
+      "passed": true,
+      "evidence": "found — 'SortedSpikesGroup'"
+    },
+    {
+      "text": "required_substring: 'UnitSelectionParams'",
+      "passed": true,
+      "evidence": "found — 'UnitSelectionParams'"
+    },
+    {
+      "text": "required_substring: 'BrainRegion'",
+      "passed": true,
+      "evidence": "found — 'BrainRegion'"
+    },
+    {
+      "text": "required_substring: 'create_group'",
+      "passed": true,
+      "evidence": "found — 'create_group'"
+    },
+    {
+      "text": "required_substring: 'region_name'",
+      "passed": false,
+      "evidence": "MISSING — 'region_name'"
+    },
+    {
+      "text": "required_substring: 'SortGroupElectrode'",
+      "passed": false,
+      "evidence": "MISSING — 'SortGroupElectrode'"
+    },
+    {
+      "text": "required_substring: 'spikesorting_merge_id'",
+      "passed": false,
+      "evidence": "MISSING — 'spikesorting_merge_id'"
+    },
+    {
+      "text": "behavioral_check: Recommends `SortedSpikesGroup` as the existing aggregation (don't loop sort_group_ids)",
+      "passed": true,
+      "evidence": "Lead recommendation: 'Spyglass has a first-class abstraction for exactly this. It's called SortedSpikesGroup'."
+    },
+    {
+      "text": "behavioral_check: DERIVES the hippocampal sort_group_ids by walking `SortGroup.SortGroupElectrode * Electrode * BrainRegion` filtered by `region_name`, AND restricts the merge IDs by those sort_group_ids before passing to `create_group(...)` — does NOT pass all session merge_ids unfiltered (which would defeat the point of the eval)",
+      "passed": false,
+      "evidence": "Mentions 'restrict on BrainRegion / electrode-location info... otherwise restrict by sort_group_id list' but does not show the SortGroup.SortGroupElectrode * Electrode * BrainRegion walk; passes CurationV1 keys with a placeholder restriction comment instead."
+    },
+    {
+      "text": "behavioral_check: Names `UnitSelectionParams` as the parameter table that filters unit labels within the group, with `'all_units'` / `'exclude_noise'` defaults",
+      "passed": false,
+      "evidence": "Mentions UnitSelectionParams as a sibling table 'that records which (merge_id, unit_id) pairs are in the group' but does not name `'all_units'`/`'exclude_noise'` defaults or its filtering role."
+    },
+    {
+      "text": "behavioral_check: Builds keys with the projected attr name `spikesorting_merge_id` (NOT bare `merge_id`) because `SortedSpikesGroup.Units` part FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73). Calls `SpikeSortingOutput().get_restricted_merge_ids(key, ...)` with a **single dict per call** — looping per recording key and extending the list — because the source raises `TypeError` on a list arg (spikesorting_merge.py:138).",
+      "passed": false,
+      "evidence": "Builds keys via `CurationV1.fetch('KEY')` and passes them directly to create_group; never references the spikesorting_merge_id projection or get_restricted_merge_ids."
+    },
+    {
+      "text": "behavioral_check: Explains why this is reusable: once the group exists, downstream Computed tables FK to the group key, not to tetrode-level merge IDs",
+      "passed": true,
+      "evidence": "States 'It's the input format the decoder expects. SortedSpikesDecodingSelection keys directly off SortedSpikesGroup'."
+    }
+  ]
+}

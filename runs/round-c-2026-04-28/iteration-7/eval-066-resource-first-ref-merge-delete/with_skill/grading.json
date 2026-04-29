@@ -1,0 +1,22 @@
+{
+  "eval_id": 66,
+  "eval_name": "resource-first-ref-merge-delete",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'destructive_operations.md'",
+      "passed": true,
+      "evidence": "found — 'destructive_operations.md'"
+    },
+    {
+      "text": "behavioral_check: Names destructive_operations.md as the first reference (merge_methods.md acceptable as the second stop for the merge-specific classmethod-discard mechanics)",
+      "passed": true,
+      "evidence": "Opens with 'Consult destructive_operations.md first' and then 'Why merge_methods.md is the second read, not the first'."
+    },
+    {
+      "text": "behavioral_check: Mentions inspect-before-destroy as the operative pattern; bonus credit for naming the classmethod-discard merge gotcha",
+      "passed": true,
+      "evidence": "Five-phase workflow: Inspect → Report → Wait for explicit confirmation → Execute → Verify. Bonus: explicitly names the classmethod-discard footgun: '(PositionOutput & merge_key).merge_delete() silently drops the restriction because merge_delete is a classmethod with restriction=True as the default'."
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "eval_id": 109,
+  "eval_name": "group-tables-concept",
+  "stage": "framework-concepts",
+  "tier": "table-classification",
+  "difficulty": "medium",
+  "prompt": "What is a 'group table' in Spyglass? I see `SortedSpikesGroup`, `PositionGroup`, `UnitSelectionParams` — are those all the same kind of thing? When would I make one of my own?",
+  "assertions": {
+    "required_substrings": [
+      "SortedSpikesGroup",
+      "PositionGroup",
+      "many-to-one",
+      "dj.Part"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Distinguishes group tables (many-to-one aggregation: many rows of one analysis bundled into one downstream-facing key) from merge tables (interchangeable versions of one analysis behind a single `merge_id`) — these are different patterns, not synonyms",
+      "Lists the shared shape: master with group-name PK + a `dj.Part` table keyed on the upstream rows the group includes (typically merge IDs via `.proj()` to rename)",
+      "Explains that `UnitSelectionParams` is a parameter table, NOT a group table itself — it FK-feeds into `SortedSpikesGroup`'s PK as the parameter axis but isn't the same kind of object",
+      "Names at least `SortedSpikesGroup` and `PositionGroup` as the two concrete examples in source"
+    ],
+    "expected_output_tables_exempt": [
+      "DLCPosV1",
+      "PositionOutput",
+      "Session",
+      "SpikeSortingOutput",
+      "TrodesPosV1",
+      "UnitSelectionParams"
+    ]
+  },
+  "expected_output": "**Group tables are a many-to-one aggregation pattern.** A master row carries a group-name PK; a `dj.Part` table hangs off it, with one row per upstream entry the group includes. The group bundles many upstream rows (sortings, position sources, …) into a single downstream-facing key, so downstream Computed tables FK to the group instead of to the individual upstream rows.\n\n**Two real examples in Spyglass:**\n\n- **`SortedSpikesGroup`** (`src/spyglass/spikesorting/analysis/v1/group.py:63-74`). Master keyed by `(Session, UnitSelectionParams, sorted_spikes_group_name)`. The `SortedSpikesGroup.Units` part FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` — one row per curated-sorting merge entry included in the group. Bundles many tetrode sortings into one named group like `'hippocampal'`.\n- **`PositionGroup`** (`src/spyglass/decoding/v1/core.py:130-143`). Master keyed by `(Session, position_group_name)`. The `PositionGroup.Position` part FKs to `PositionOutput.proj(pos_merge_id='merge_id')` — one row per position merge entry included in the group. Bundles multiple position sources into one named group used by decoding selections.\n\n**`UnitSelectionParams` is not a group table** — it's a `dj.Manual` *parameter* table that controls which unit labels the group filters in / out (`'all_units'`, `'exclude_noise'` defaults). It happens to live next to `SortedSpikesGroup` in the source because `SortedSpikesGroup` FKs to it as part of its PK, but conceptually it's a different role (parameters, not aggregation).\n\n**Group tables are not merge tables.** A merge table wraps *interchangeable versions of one analysis* under a single `merge_id` (e.g., `PositionOutput` lets a downstream consumer not care whether a position row came from `TrodesPosV1` or `DLCPosV1`). A group table aggregates *many rows of one analysis* into one downstream-facing key. Different problem, different shape.\n\n**When to author your own.** When you find yourself iterating across many rows of the same analysis to feed one downstream computation — and you'd like that bundle to be reusable and FK-able. Shape: a `dj.Manual` master with `(... + group_name)` PK, plus a `dj.Part` table with `-> master + -> upstream` (often projected to rename the merge key). Provide a `create_group(...)` classmethod that inserts master + parts atomically.\n\nRoutes to custom_pipeline_authoring.md (group-tables section)."
+}

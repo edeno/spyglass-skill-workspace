@@ -1,0 +1,37 @@
+{
+  "eval_id": 119,
+  "eval_name": "permission-error-analysis-nwbfile-write",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (SPYGLASS_BASE_DIR, permission, umask, group, analysis_dir).",
+      "passed": true,
+      "evidence": "All required substrings present."
+    },
+    {
+      "text": "Response does not contain forbidden substrings (fix it with chmod -R 777, run chmod -R 777, the answer is chmod -R 777).",
+      "passed": true,
+      "evidence": "Forbidden substrings absent. Response actively warns against `chmod -R 777`."
+    },
+    {
+      "text": "Identifies failure as filesystem / group-permission layer (not Spyglass code bug)",
+      "passed": true,
+      "evidence": "Opening: 'this is a filesystem / group-permission problem ... The path is the resolved analysis_dir derived from SPYGLASS_BASE_DIR ... every byte of the failure is below the Python layer'."
+    },
+    {
+      "text": "Diagnoses in three layers (group membership, group-write+setgid, umask 002)",
+      "passed": true,
+      "evidence": "'Diagnose three layers, in order': (1) Group membership, (2) Group-write bit + setgid on the directory, (3) Your shell's umask."
+    },
+    {
+      "text": "Does NOT recommend chmod -R 777 as the fix",
+      "passed": true,
+      "evidence": "'Don't `chmod -R 777 /stelmo/nwb/analysis` — removes the group-permission gate ... A lab admin will revert this'."
+    },
+    {
+      "text": "Notes other lab members can populate fine because they're already in the shared group",
+      "passed": true,
+      "evidence": "'The fact that other lab members can populate fine is the strongest single clue ... They are in the lab's shared Unix group; you are not'."
+    }
+  ]
+}

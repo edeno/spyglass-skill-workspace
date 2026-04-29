@@ -1,0 +1,31 @@
+{
+  "eval_id": 96,
+  "eval_name": "dependency-downstream-decoding-output",
+  "expectations": [
+    {
+      "text": "Response contains substring `DecodingOutput.descendants(`.",
+      "passed": true,
+      "evidence": "Substring 'DecodingOutput.descendants(' found"
+    },
+    {
+      "text": "Response contains substring `children(`.",
+      "passed": true,
+      "evidence": "Substring 'children(' found"
+    },
+    {
+      "text": "Response contains substring `merge master`.",
+      "passed": true,
+      "evidence": "Substring 'merge master' found"
+    },
+    {
+      "text": "Recommends `DecodingOutput.descendants()` (transitive walk) over `DecodingOutput.children()` (one-hop) and explains the distinction between the two",
+      "passed": true,
+      "evidence": "Section 'Why descendants() and not children()' explains: 'children() — only the one-hop children... descendants() — the transitive walk.'"
+    },
+    {
+      "text": "Notes that `DecodingOutput` is a merge master, so downstream consumers FK to the master itself, not to its part tables (e.g. ClusterlessDecodingV1)",
+      "passed": true,
+      "evidence": "States: 'DecodingOutput is a merge master... By Spyglass convention, downstream consumers FK to the merge master itself (DecodingOutput), not to the part tables.'"
+    }
+  ]
+}

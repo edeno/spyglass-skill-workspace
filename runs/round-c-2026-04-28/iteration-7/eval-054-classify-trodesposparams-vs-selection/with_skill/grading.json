@@ -1,0 +1,42 @@
+{
+  "eval_id": 54,
+  "eval_name": "classify-trodesposparams-vs-selection",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'insert1'",
+      "passed": true,
+      "evidence": "found — 'insert1'"
+    },
+    {
+      "text": "required_substring: 'trodes_pos_params_name'",
+      "passed": true,
+      "evidence": "found — 'trodes_pos_params_name'"
+    },
+    {
+      "text": "required_substring: 'TrodesPosParams'",
+      "passed": true,
+      "evidence": "found — 'TrodesPosParams'"
+    },
+    {
+      "text": "required_substring: 'TrodesPosSelection'",
+      "passed": true,
+      "evidence": "found — 'TrodesPosSelection'"
+    },
+    {
+      "text": "behavioral_check: Identifies TrodesPosParams as the parameter table (named, reusable param dict; insert once per param set)",
+      "passed": true,
+      "evidence": "'TrodesPosParams — *the recipe* — Holds the parameters of the position-processing algorithm... One row per parameter set. You typically insert it **once** and reuse it across many sessions.'"
+    },
+    {
+      "text": "behavioral_check: Identifies TrodesPosSelection as the selection table (picks session + interval + params name for one populate run)",
+      "passed": true,
+      "evidence": "'TrodesPosSelection — *the work order* — Primary key: nwb_file_name, interval_list_name, trodes_pos_params_name... it just *picks* which session + which interval + which params row to run on. One row per (session, interval, params) combo you actually want computed.'"
+    },
+    {
+      "text": "behavioral_check: Does not claim TrodesPosParams and TrodesPosSelection are the same table or interchangeable",
+      "passed": true,
+      "evidence": "Explicitly distinct: 'they play different roles in the standard 3-step Spyglass pipeline pattern: params → selection → populate'."
+    }
+  ]
+}

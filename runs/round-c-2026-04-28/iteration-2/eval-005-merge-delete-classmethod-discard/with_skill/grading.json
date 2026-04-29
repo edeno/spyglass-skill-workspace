@@ -1,0 +1,31 @@
+{
+  "eval_id": 5,
+  "eval_name": "merge-delete-classmethod-discard",
+  "expectations": [
+    {
+      "text": "Response contains substring `PositionOutput.merge_delete(merge_key)`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput.merge_delete(merge_key)' found in response.md"
+    },
+    {
+      "text": "Response contains substring `classmethod-restriction-discard`.",
+      "passed": true,
+      "evidence": "Substring 'classmethod-restriction-discard' found in response.md"
+    },
+    {
+      "text": "Explicitly warns the user to NOT confirm the 200-row prompt",
+      "passed": true,
+      "evidence": "Opens with 'STOP \u2014 do not confirm that 200-row prompt' and 'Hit no / abort the prompt right now'."
+    },
+    {
+      "text": "Shows the corrected form with restriction as an argument",
+      "passed": true,
+      "evidence": "Shows 'PositionOutput.merge_delete(merge_key)' explicitly contrasted against the wrong form '(PositionOutput & merge_key).merge_delete()'."
+    },
+    {
+      "text": "Cites the classmethod-restriction-discard pattern",
+      "passed": true,
+      "evidence": "Names the pattern explicitly: 'You hit the classmethod-restriction-discard footgun on merge tables (Common Mistake #1 in this skill)' and references common_mistakes.md and merge_methods.md."
+    }
+  ]
+}

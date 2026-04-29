@@ -1,0 +1,52 @@
+{
+  "eval_id": 103,
+  "eval_name": "session-subject-owner",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'Subject'",
+      "passed": true,
+      "evidence": "found — 'Subject'"
+    },
+    {
+      "text": "required_substring: 'LabMember'",
+      "passed": true,
+      "evidence": "found — 'LabMember'"
+    },
+    {
+      "text": "required_substring: 'Session.Experimenter'",
+      "passed": true,
+      "evidence": "found — 'Session.Experimenter'"
+    },
+    {
+      "text": "required_substring: 'subject_id'",
+      "passed": true,
+      "evidence": "found — 'subject_id'"
+    },
+    {
+      "text": "forbidden_substring: \"Subject.fetch1('owner')\"",
+      "passed": true,
+      "evidence": "absent — \"Subject.fetch1('owner')\""
+    },
+    {
+      "text": "forbidden_substring: \"Subject.fetch1('lab_member_name')\"",
+      "passed": true,
+      "evidence": "absent — \"Subject.fetch1('lab_member_name')\""
+    },
+    {
+      "text": "behavioral_check: Goes via `Session` -> `Session.Experimenter` -> `LabMember` rather than assuming a direct `Subject -> owner` FK or column",
+      "passed": true,
+      "evidence": "Step 2 joins `Session.Experimenter & wilbur_sessions` and step 3 fetches LabMember rows via lab_member_name."
+    },
+    {
+      "text": "behavioral_check: Narrows to the specific `subject_id` BEFORE joining (`Session & {subject_id: 'wilbur'}`), so the join surface is bounded and the dependent-attribute refusal cannot fire",
+      "passed": true,
+      "evidence": "`wilbur_sessions = Session & {\"subject_id\": subject_id}` is taken first, then joined to Session.Experimenter."
+    },
+    {
+      "text": "behavioral_check: Recognizes that `subject_id` is a secondary attr on `Session` propagated via `-> [nullable] Subject`, queryable via `&` — does NOT claim `Subject` itself has an `owner` or `lab_member_name` column",
+      "passed": true,
+      "evidence": "States 'Session itself has subject_id and nwb_file_name' and only uses Subject as a name-lookup; never claims Subject has an owner column."
+    }
+  ]
+}

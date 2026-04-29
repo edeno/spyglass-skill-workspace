@@ -1,0 +1,22 @@
+{
+  "eval_id": 13,
+  "eval_name": "atomic-trodes-position-dataframe",
+  "stage": "pipeline-usage",
+  "tier": "atomic-read",
+  "difficulty": "medium",
+  "prompt": "Fetch the Trodes position dataframe via `PositionOutput` for session j1620210710_, interval 02_r1, default params — I want the merge-wrapper-routed call so downstream code can pass `merge_id`s around instead of part-table-specific keys. I already ran the pipeline on this.",
+  "assertions": {
+    "required_substrings": [
+      "PositionOutput",
+      "fetch1_dataframe",
+      "trodes_pos_params_name",
+      "TrodesPosV1"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Fetches through the merge master (PositionOutput), not the part table directly",
+      "Uses trodes_pos_params_name in the restriction to disambiguate the part"
+    ]
+  },
+  "expected_output": "Two-step: resolve the merge_key via `PositionOutput.TrodesPosV1 & {'nwb_file_name': 'j1620210710_.nwb', 'interval_list_name': '02_r1', 'trodes_pos_params_name': 'default'}` → `.fetch1('KEY')` (or via `merge_get_part`), then `(PositionOutput & merge_key).fetch1_dataframe()`."
+}

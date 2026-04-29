@@ -1,0 +1,37 @@
+{
+  "eval_id": 3,
+  "eval_name": "fetch1-cardinality-error",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains substring `merge_restrict`.",
+      "passed": true,
+      "evidence": "Substring 'merge_restrict' found in response.md (Step 1 calls `PositionOutput.merge_restrict(session_key)`)."
+    },
+    {
+      "text": "Response contains substring `PositionOutput`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput' found throughout response.md."
+    },
+    {
+      "text": "Response does not contain substring `trodes_pos_params_name='default'`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent; response explicitly warns 'do NOT hardcode 'default' without confirming a row exists with that value'."
+    },
+    {
+      "text": "Leads with a discovery step (merge_restrict or fetch as_dict) before narrowing",
+      "passed": true,
+      "evidence": "Step 1 is titled 'discover what those 14 rows actually are' and calls `merge_restrict` and `merge_get_part(..., multi_source=True, join_master=True)` before any narrowing in Step 2."
+    },
+    {
+      "text": "Does not assume Trodes or DLC without evidence from the prompt",
+      "passed": true,
+      "evidence": "Response explicitly says 'Don't assume Trodes — your prompt doesn't say which pipeline you populated' in TL;DR, and conditions Trodes-specific advice on 'If step 1 confirmed Trodes'."
+    },
+    {
+      "text": "Names the cardinality problem explicitly (too many rows matching)",
+      "passed": true,
+      "evidence": "Title is 'too-loose restriction on a merge table'; explains '14 rows is the cross-product of all of those for this session' and that fetch1 'expects exactly one row, so 14 rows blows up'."
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "eval_id": 60,
+  "eval_name": "param-trodes-smoothing",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'speed_smoothing_std_dev'",
+      "passed": true,
+      "evidence": "found — 'speed_smoothing_std_dev'"
+    },
+    {
+      "text": "required_substring: 'position_smoothing_duration'",
+      "passed": true,
+      "evidence": "found — 'position_smoothing_duration'"
+    },
+    {
+      "text": "behavioral_check: Names `speed_smoothing_std_dev` (Gaussian sigma) as the field that controls speed-trace noise",
+      "passed": true,
+      "evidence": "Bullet: 'speed_smoothing_std_dev — standard deviation (in seconds) of a Gaussian smoother applied when computing speed.' Section 2 calls out its role in speed."
+    },
+    {
+      "text": "behavioral_check: Distinguishes `speed_smoothing_std_dev` (Gaussian sigma applied at the velocity stage inside `get_velocity`, common_position.py:475) from `position_smoothing_duration` (moving-average applied to the LED positions BEFORE centroid / velocity / speed are computed, common_position.py:431-435). Both affect the returned `speed` column — they just enter the pipeline at different stages — and shrinking either produces a noisier speed trace. Does NOT claim either field is decoupled from `speed`, and does NOT claim `position_smoothing_duration` is applied after speed is computed.",
+      "passed": true,
+      "evidence": "Distinguishes the two: position_smoothing applied before differencing, speed_smoothing after; explains both affect speed. Pipeline order places position smoothing on centroid x,y rather than on raw LED positions (with_skill is more precise per source common_position.py:432-438), but the response correctly puts both BEFORE the speed column is final and does not claim either is decoupled. Negative requirements are met."
+    },
+    {
+      "text": "behavioral_check: Predicts: shrinking / disabling `speed_smoothing_std_dev` gives a noisier speed trace, causing spurious crossings of downstream thresholds",
+      "passed": true,
+      "evidence": "Says 'speed will be much noisier and biased high', and 'expect ... spurious movement epochs from camera jitter' if smoothing is off."
+    },
+    {
+      "text": "behavioral_check: Recommends inspecting `TrodesPosParams.describe()` / `.heading` for exact field names rather than guessing",
+      "passed": false,
+      "evidence": "Does not recommend `.describe()` or `.heading`; uses TrodesPosParams().fetch instead, which exposes params but is not what the rubric asked for."
+    }
+  ]
+}

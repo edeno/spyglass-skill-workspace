@@ -1,0 +1,24 @@
+{
+  "eval_id": 17,
+  "eval_name": "join-sessions-with-ripples-and-decoding",
+  "stage": "pipeline-usage",
+  "tier": "joins",
+  "difficulty": "medium",
+  "prompt": "List all sessions that have both `RippleTimesV1` populated AND `ClusterlessDecodingV1` populated.",
+  "assertions": {
+    "required_substrings": [
+      "nwb_file_name",
+      "RippleTimesV1",
+      "ClusterlessDecodingV1"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Uses the * join operator (not nested restrictions)",
+      "Addresses row multiplication (unique nwb_file_name via set() or distinct)"
+    ],
+    "expected_output_tables_exempt": [
+      "Session"
+    ]
+  },
+  "expected_output": "`set((RippleTimesV1 * ClusterlessDecodingV1).fetch('nwb_file_name'))` or similar. DataJoint's `*` is a natural join — it joins on ALL shared attribute names, not just direct primary-key fields. Neither RippleTimesV1 nor ClusterlessDecodingV1 declares `nwb_file_name` in its own `definition`, but both inherit it (and many other Session-derived attributes) via FK chains back to `Session`, so `*` intersects on them and produces only sessions that have both populated. Uses `set()` / distinct if the join multiplies rows (which it will — ripple has interval parts; decoding has encoding/decoding intervals)."
+}

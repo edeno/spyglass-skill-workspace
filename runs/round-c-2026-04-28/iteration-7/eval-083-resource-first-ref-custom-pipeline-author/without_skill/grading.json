@@ -1,0 +1,52 @@
+{
+  "eval_id": 83,
+  "eval_name": "resource-first-ref-custom-pipeline-author",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'custom_pipeline_authoring.md'",
+      "passed": false,
+      "evidence": "MISSING — 'custom_pipeline_authoring.md'"
+    },
+    {
+      "text": "required_substring: 'spyglassmixin_methods.md'",
+      "passed": false,
+      "evidence": "MISSING — 'spyglassmixin_methods.md'"
+    },
+    {
+      "text": "required_substring: 'AnalysisNwbfile'",
+      "passed": true,
+      "evidence": "found — 'AnalysisNwbfile'"
+    },
+    {
+      "text": "forbidden_substring: 'spyglassmixin_methods.md is the first'",
+      "passed": true,
+      "evidence": "absent — 'spyglassmixin_methods.md is the first'"
+    },
+    {
+      "text": "forbidden_substring: 'merge_methods.md is where you start'",
+      "passed": true,
+      "evidence": "absent — 'merge_methods.md is where you start'"
+    },
+    {
+      "text": "behavioral_check: Names `custom_pipeline_authoring.md` as the first reference",
+      "passed": true,
+      "evidence": "Names it conceptually as 'the **custom pipeline / writing your own table** reference' — picks the right reference even without using the exact filename. Clearly the right concept identification."
+    },
+    {
+      "text": "behavioral_check: Explicitly identifies `spyglassmixin_methods.md` as a distractor and explains the author-vs-consumer split",
+      "passed": false,
+      "evidence": "Doesn't mention spyglassmixin_methods.md as a distractor at all; merely contrasts authoring vs. consuming pipelines in passing without flagging the specific consumer-side reference."
+    },
+    {
+      "text": "behavioral_check: Mentions the `_object_id` + AnalysisNwbfile FK convention as a signal that this is an authoring task",
+      "passed": true,
+      "evidence": "Step 2 of the canonical write path: 'AnalysisNwbfile().add_nwb_object(...) to get back an object_id'. Step 4 stores 'analysis_file_name and the returned object_id on the key' — the _object_id pattern signals authoring."
+    },
+    {
+      "text": "behavioral_check: Does not recommend merge_methods.md or ingestion.md as the first stop",
+      "passed": true,
+      "evidence": "Custom-pipeline reference first; merge-table reference is 'only if you intend the new table to feed a _Merge table downstream'. Ingestion not raised."
+    }
+  ]
+}

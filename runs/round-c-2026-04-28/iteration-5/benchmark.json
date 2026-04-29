@@ -1,0 +1,152 @@
+{
+  "skill_name": "spyglass",
+  "iteration": 5,
+  "batch": 5,
+  "configurations": {
+    "with_skill": {
+      "n_runs": 8,
+      "n_timings": 8,
+      "evals_full_pass": 6,
+      "expectation_pass_rate": 0.9473684210526315,
+      "expectations_passed": 54,
+      "expectations_total": 57,
+      "tokens_mean": 53648.625,
+      "tokens_total": 429189,
+      "duration_mean_s": 263.679625,
+      "eval_results": [
+        {
+          "eval_id": 57,
+          "eval_name": "param-target-sampling-rate",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 58,
+          "eval_name": "param-speed-threshold-ripple",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 59,
+          "eval_name": "param-encoding-vs-decoding-interval",
+          "all_passed": true,
+          "passed_count": 3,
+          "total": 3
+        },
+        {
+          "eval_id": 60,
+          "eval_name": "param-trodes-smoothing",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 6
+        },
+        {
+          "eval_id": 61,
+          "eval_name": "param-sort-group-by-electrode-group",
+          "all_passed": true,
+          "passed_count": 10,
+          "total": 10
+        },
+        {
+          "eval_id": 116,
+          "eval_name": "counterfactual-ripple-threshold",
+          "all_passed": true,
+          "passed_count": 10,
+          "total": 10
+        },
+        {
+          "eval_id": 117,
+          "eval_name": "counterfactual-sort-interval-change",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 118,
+          "eval_name": "counterfactual-decoding-bin-size",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 7
+        }
+      ]
+    },
+    "without_skill": {
+      "n_runs": 8,
+      "n_timings": 8,
+      "evals_full_pass": 5,
+      "expectation_pass_rate": 0.8596491228070176,
+      "expectations_passed": 49,
+      "expectations_total": 57,
+      "tokens_mean": 26654.625,
+      "tokens_total": 213237,
+      "duration_mean_s": 176.48125000000002,
+      "eval_results": [
+        {
+          "eval_id": 57,
+          "eval_name": "param-target-sampling-rate",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 58,
+          "eval_name": "param-speed-threshold-ripple",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 59,
+          "eval_name": "param-encoding-vs-decoding-interval",
+          "all_passed": true,
+          "passed_count": 3,
+          "total": 3
+        },
+        {
+          "eval_id": 60,
+          "eval_name": "param-trodes-smoothing",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 6
+        },
+        {
+          "eval_id": 61,
+          "eval_name": "param-sort-group-by-electrode-group",
+          "all_passed": false,
+          "passed_count": 6,
+          "total": 10
+        },
+        {
+          "eval_id": 116,
+          "eval_name": "counterfactual-ripple-threshold",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 10
+        },
+        {
+          "eval_id": 117,
+          "eval_name": "counterfactual-sort-interval-change",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 118,
+          "eval_name": "counterfactual-decoding-bin-size",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        }
+      ]
+    }
+  },
+  "delta": {
+    "expectation_pass_rate_pp": 8.77,
+    "evals_full_pass": 1,
+    "tokens_mean": 26994,
+    "duration_mean_s": 87.2
+  },
+  "note": "Batch 5: parameter-understanding + counterfactual cluster (8 evals × 2 conditions). Substring grading after applying 7 over-strict literal-phrasing relaxations (commit pending): with_skill 6/8 full-pass (94.7% expectations), without_skill 5/8 (86.0%). Behavioral checks: ws 29/32 (90.6%) vs bs 28/32 (87.5%). Real skill-content wins: eval-061 (multi-shank v0/v1 + 'contact positions' SpikeInterface error) and eval-116 (RippleLFPSelection no-rebuild + provenance framing). Outlier: eval-118 ws 2/4 vs bs 4/4 — with_skill response got distracted by source-skeptical caveats and missed naming the qualitative direction; not a skill-content gap, a generation-time choice."
+}

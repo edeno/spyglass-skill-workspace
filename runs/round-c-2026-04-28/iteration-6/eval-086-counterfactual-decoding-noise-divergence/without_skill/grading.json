@@ -1,0 +1,37 @@
+{
+  "eval_id": 86,
+  "eval_name": "counterfactual-decoding-noise-divergence",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (ClusterlessDecodingSelection, decoding_param_name, decoding_pipeline.md).",
+      "passed": true,
+      "evidence": "All required substrings present (decoding_pipeline.md mentioned in 'see the Spyglass decoding pipeline notebook / docs (decoding_pipeline.md in the Spyglass tutorials)')."
+    },
+    {
+      "text": "Enumerates at least four distinct direct-FK divergence surfaces",
+      "passed": true,
+      "evidence": "All five direct-FK surfaces enumerated as items 1-5 (waveform features group, position group, decoding parameters, encoding interval, decoding interval) plus the estimate_decoding_params bool."
+    },
+    {
+      "text": "Recommends fetching and diffing ClusterlessDecodingSelection & key as the minimal isolating diagnostic",
+      "passed": true,
+      "evidence": "Section 'The minimal isolating diagnostic': `(ClusterlessDecodingSelection & key).fetch(as_dict=True)` field-by-field diff."
+    },
+    {
+      "text": "Does not commit to one cause before the diagnostic is run",
+      "passed": true,
+      "evidence": "'Don't speculate which of the six surfaces above is responsible — just diff the selection row directly'."
+    },
+    {
+      "text": "Distinguishes direct-FK surfaces from upstream-chain differences",
+      "passed": true,
+      "evidence": "'Second-order: upstream-chain differences' subsection explicitly: 'they are a second-order check: they matter only if the direct selection keys above already match'."
+    },
+    {
+      "text": "Does not misattribute divergence purely to environment / package drift",
+      "passed": true,
+      "evidence": "'I would not jump to environment / package drift ... as the primary explanation. Spyglass's design intent is that the selection primary keys gate determinism'."
+    }
+  ]
+}

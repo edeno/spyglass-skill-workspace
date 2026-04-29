@@ -1,0 +1,25 @@
+{
+  "eval_id": 48,
+  "eval_name": "runtime-positiongroup-variable-mismatch",
+  "stage": "runtime-debugging",
+  "tier": "runtime-errors",
+  "difficulty": "hard",
+  "prompt": "clusterless decoding populate failed with `KeyError: 'head_position_x'` inside `_upsample` / `fetch_position_info`. My `PositionGroup` points at a DLC source (a `PositionOutput.DLCPosV1` merge entry). I set `position_variables=['head_position_x', 'head_position_y']` on the group (the default name didn't look like it matched DLC). Is the DLC output missing the head-position columns?",
+  "assertions": {
+    "required_substrings": [
+      "position_variables",
+      "(DLCPosV1 & key).fetch1_dataframe",
+      "ClusterlessDecodingSelection",
+      "PositionGroup"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Identifies the variable-name mismatch (NOT empty DLC output) as the root cause — DLC's `fetch1_dataframe()` already emits `position_x` / `position_y`, matching `PositionGroup`'s default `position_variables`",
+      "Shows `(DLCPosV1 & key).fetch1_dataframe().columns` as the concrete diagnostic to confirm the actual column names on the fetched DataFrame",
+      "Recognizes that the default `position_variables=['position_x', 'position_y']` matches DLC; the user's custom `['head_position_x', 'head_position_y']` override is the bug",
+      "Names `_upsample` (or the downstream `make()` slice) as the line that raises `KeyError` when `position_variables` references columns that don't exist on the fetched DataFrame",
+      "Does not recommend re-running DLC populate as the fix — the DLC output already has the expected columns"
+    ]
+  },
+  "expected_output": "Routes to decoding_pipeline.md `PositionGroup` Gotcha. The `KeyError` is the right shape but the diagnosis is wrong: the DLC output is **not** missing the head position columns — `DLCPosV1.fetch1_dataframe()` literally emits columns named `position_x` and `position_y` (`src/spyglass/position/v1/position_dlc_selection.py:184-186`), the same names Trodes positions emit. `PositionGroup.create_group`'s default `position_variables=['position_x', 'position_y']` already matches both Trodes and DLC sources without modification.\n\nThe custom `['head_position_x', 'head_position_y']` doesn't exist on `DLCPosV1`'s fetched DataFrame, so `_upsample` raises `KeyError` while iterating the requested variable names inside `_upsample` (`src/spyglass/decoding/v1/core.py`). The fix is to drop the override:\n\n```python\ncols = list((DLCPosV1 & key).fetch1_dataframe().columns)\n# DLCPosV1 typically emits position_x, position_y (alongside orientation,\n# velocity_x, velocity_y, speed, video_frame_ind).\nPositionGroup().create_group(\n    nwb_file_name='...',\n    group_name='...',\n    keys=[...],\n    position_variables=['position_x', 'position_y'],   # the default\n)\n```\n\nThen re-insert the `ClusterlessDecodingSelection` row pointing at the corrected `PositionGroup` and re-populate. (If `(DLCPosV1 & key).fetch1_dataframe()` itself returned a DataFrame missing the position columns, *that* would be a real DLC output problem — but the columns at fetch time should exist; the column-listing diagnostic above confirms it.)"
+}

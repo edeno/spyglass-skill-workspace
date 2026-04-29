@@ -1,0 +1,67 @@
+{
+  "eval_id": 95,
+  "eval_name": "join-dependent-attr-refusal",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'dependent attribute'",
+      "passed": true,
+      "evidence": "found — 'dependent attribute'"
+    },
+    {
+      "text": "required_substring: 'secondary'",
+      "passed": true,
+      "evidence": "found — 'secondary'"
+    },
+    {
+      "text": "required_substring: 'primary key'",
+      "passed": false,
+      "evidence": "MISSING — 'primary key'"
+    },
+    {
+      "text": "required_substring: '.proj('",
+      "passed": true,
+      "evidence": "found — '.proj('"
+    },
+    {
+      "text": "required_substring: 'recording_id'",
+      "passed": true,
+      "evidence": "found — 'recording_id'"
+    },
+    {
+      "text": "required_substring: 'SpikeSortingSelection'",
+      "passed": true,
+      "evidence": "found — 'SpikeSortingSelection'"
+    },
+    {
+      "text": "required_substring: 'SpikeSortingRecordingSelection'",
+      "passed": true,
+      "evidence": "found — 'SpikeSortingRecordingSelection'"
+    },
+    {
+      "text": "forbidden_substring: 'wrap with set()'",
+      "passed": true,
+      "evidence": "absent — 'wrap with set()'"
+    },
+    {
+      "text": "behavioral_check: Distinguishes primary-key inheritance (FK declarations propagate the parent's PK) from secondary-attribute inheritance (a secondary FK below the `---` divider contributes secondary attrs, which do NOT propagate further downstream)",
+      "passed": false,
+      "evidence": "Discusses 'inherited from a common parent' vs not, but does not explicitly distinguish primary-key inheritance from secondary-attribute inheritance via the `---` divider."
+    },
+    {
+      "text": "behavioral_check: Names `nwb_file_name` as the colliding secondary attribute on both SpikeSortingSelection (via -> IntervalList) and SpikeSortingRecordingSelection (via -> Raw)",
+      "passed": false,
+      "evidence": "Diagnoses the collision on `interval_list_name` only; the prompt's exact error names `nwb_file_name`, which the response never identifies as the colliding attribute."
+    },
+    {
+      "text": "behavioral_check: Demonstrates BOTH fixes — two-restriction chain via fetch1('recording_id'), AND .proj('recording_id') on the LHS to drop the colliding secondary",
+      "passed": true,
+      "evidence": "Shows project-rename, two-step restriction chain (`recordings = ... ; sortings = SpikeSortingSelection & recordings.proj()`), and direct restriction — multiple working fixes."
+    },
+    {
+      "text": "behavioral_check: Does not suggest set() or np.unique() — the failure is a join refusal, not a multiplied join",
+      "passed": true,
+      "evidence": "No set()/np.unique() suggestions."
+    }
+  ]
+}

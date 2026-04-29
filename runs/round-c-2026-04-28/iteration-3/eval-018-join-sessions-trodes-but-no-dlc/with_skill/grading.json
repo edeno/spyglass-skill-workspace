@@ -1,0 +1,56 @@
+{
+  "eval_id": 18,
+  "eval_name": "join-sessions-trodes-but-no-dlc",
+  "expectations": [
+    {
+      "text": "Response contains substring `.fetch(`.",
+      "passed": true,
+      "evidence": "Substring '.fetch(' found in response.md"
+    },
+    {
+      "text": "Response contains substring `set(`.",
+      "passed": true,
+      "evidence": "Substring 'set(' found in response.md"
+    },
+    {
+      "text": "Response contains substring `TrodesPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'TrodesPosV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'DLCPosV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `AnalysisNwbfile`.",
+      "passed": true,
+      "evidence": "Substring 'AnalysisNwbfile' found in response.md"
+    },
+    {
+      "text": "Response contains substring `nwb_file_name`.",
+      "passed": true,
+      "evidence": "Substring 'nwb_file_name' found in response.md"
+    },
+    {
+      "text": "Computes set difference (Trodes minus DLC) via set(A.fetch('nwb_file_name')) - set(B.fetch('nwb_file_name'))",
+      "passed": true,
+      "evidence": "TL;DR computes `trodes_sessions - dlc_sessions` from `set(TrodesPosV1.fetch('nwb_file_name'))` and `set(DLCPosV1.fetch('nwb_file_name'))`."
+    },
+    {
+      "text": "Does not use an inner join (`*`) when a difference is needed",
+      "passed": true,
+      "evidence": "Uses set-difference; no `*` inner join is recommended (only mentions `*` to note same dependent-attribute refusal)."
+    },
+    {
+      "text": "If the response reaches for the DataJoint antijoin `-` form, it projects BOTH sides with .proj() first \u2014 bare `TrodesPosV1 - DLCPosV1` raises DataJointError because both tables share `analysis_file_name` and the three NWB object_id columns as secondary attrs",
+      "passed": true,
+      "evidence": "Working antijoin form uses `(TrodesPosV1.proj() - DLCPosV1.proj())` and explicitly cites the dependent-attribute collision (`analysis_file_name`, three object_ids)."
+    },
+    {
+      "text": "Does not claim the naive antijoin `TrodesPosV1 - DLCPosV1` is a valid drop-in for the set-difference form \u2014 it raises at query-build time (see common_mistakes.md \u00a7 9)",
+      "passed": true,
+      "evidence": "Explicitly marks `(TrodesPosV1 - DLCPosV1).fetch(...)` as 'DOES NOT WORK \u2014 raises at query-build time' with the exact DataJointError message."
+    }
+  ]
+}

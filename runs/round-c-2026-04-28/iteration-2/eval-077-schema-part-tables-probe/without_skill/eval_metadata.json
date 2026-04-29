@@ -1,0 +1,21 @@
+{
+  "eval_id": 77,
+  "eval_name": "schema-part-tables-probe",
+  "stage": "framework-concepts",
+  "tier": "schema-introspection",
+  "difficulty": "easy",
+  "prompt": "What are the part tables of `Probe`? Show me the one-liner you'd run to enumerate them, then list the names.",
+  "assertions": {
+    "required_substrings": [
+      "Probe.Shank",
+      "Probe.Electrode",
+      "Probe.parts"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Calls Probe.parts() in the response to enumerate part tables.",
+      "Lists both part tables in Master.Part notation; does not invent additional Probe.* parts that don't exist"
+    ]
+  },
+  "expected_output": "Routes to common_tables.md (Probe entry) + datajoint_api.md (schema introspection). Run `Probe.parts()` — DataJoint returns the part-table classes attached to `Probe`. The two parts in Master.Part notation: `Probe.Shank`, `Probe.Electrode`. Does not invent additional Probe.* parts."
+}

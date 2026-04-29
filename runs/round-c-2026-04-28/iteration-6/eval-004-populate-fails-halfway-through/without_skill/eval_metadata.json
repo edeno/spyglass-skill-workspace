@@ -1,0 +1,22 @@
+{
+  "eval_id": 4,
+  "eval_name": "populate-fails-halfway-through",
+  "stage": "runtime-debugging",
+  "tier": "baseline",
+  "difficulty": "hard",
+  "prompt": "I ran `LFPV1.populate()` on about 20 sessions last night and woke up to find it failed somewhere in the middle. The traceback goes 30+ frames deep into datajoint internals and I can't tell which session is broken. Is there a way to figure out the failing key without rerunning everything one at a time by hand?",
+  "assertions": {
+    "required_substrings": [
+      "key_source",
+      "LFPV1"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Isolates the failing key via one of the three legitimate shapes — manual try/except over key_source, OR `suppress_errors=True, return_exception_objects=True`, OR inspecting `~jobs` for rows with status='error'",
+      "Enumerates or references keys from `key_source` (either for iteration, for comparison against jobs, or to define the populate scope)",
+      "Mentions transaction rollback or post-mortem inspection behavior — populate with `_use_transaction=True` (Spyglass default) leaves no residue on failure",
+      "Does not invent a Spyglass-specific `debug_populate` or `populate_one` helper — the recovery path is standard DataJoint facilities"
+    ]
+  },
+  "expected_output": "Routes to runtime_debugging.md § 'Identify the failing key' (~line 110). Three legitimate shapes, each of which admits isolating which session broke: (1) **Manual try/except loop over `key_source`** — `for key in LFPV1.key_source.fetch('KEY'): try: LFPV1.populate(key) except Exception as e: print(key, e); break`. Most explicit, gives a clean traceback per-key. (2) **DataJoint's `suppress_errors=True, return_exception_objects=True`** — `LFPV1.populate(suppress_errors=True, return_exception_objects=True)` returns a list of (key, exception) pairs for every failed key in one pass. Most efficient; no manual loop needed. (3) **Inspect the `~jobs` table** — if populate was running with `reserve_jobs=True`, the error traceback and failing key are already recorded in `schema.jobs` under `status='error'`. Query with `(schema.jobs & \"status='error'\")` or SpyglassMixin's equivalent helpers. Notes that Spyglass ships no `debug_populate` / `populate_one` helper — these are standard DataJoint facilities. Notes that `use_transaction=True` (Spyglass default, `_use_transaction = True` at `src/spyglass/utils/mixins/populate.py:10`) rolls back partial state on failure, so post-mortem inspection shows no residue. Once the failing key is identified, re-running it serially with `processes=1` (the single-process default) gives a cleanest traceback."
+}

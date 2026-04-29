@@ -1,0 +1,23 @@
+{
+  "eval_id": 105,
+  "eval_name": "camera-devices-lookup",
+  "prompt": "What camera(s) recorded position for `j1620210710_.nwb`? I need the camera IDs for a DLC config.",
+  "stage": "pipeline-usage",
+  "tier": "atomic-read",
+  "difficulty": "easy",
+  "required_substrings": [
+    "VideoFile",
+    "CameraDevice",
+    "camera_name",
+    "nwb_file_name"
+  ],
+  "forbidden_substrings": [
+    "CameraDevice & {'nwb_file_name'",
+    "CameraDevice & {\"nwb_file_name\""
+  ],
+  "behavioral_checks": [
+    "Routes through `VideoFile` (the per-session mapping) restricted by `nwb_file_name`, NOT through `CameraDevice` alone (which is a global name-keyed lookup with no session attr in its heading)",
+    "Recognizes that `camera_name` on `VideoFile` is a secondary column — NOT a declared `-> CameraDevice` FK — and the link is by name match (validated at ingest in `_prepare_video_entry`)",
+    "Restricts `VideoFile` by `nwb_file_name` (a PK field via `-> TaskEpoch`); does NOT attempt `CameraDevice & {nwb_file_name: ...}` (silent no-op, no such attr in CameraDevice's heading)"
+  ]
+}

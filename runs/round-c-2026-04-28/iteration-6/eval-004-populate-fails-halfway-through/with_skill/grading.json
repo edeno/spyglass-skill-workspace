@@ -1,0 +1,37 @@
+{
+  "eval_id": 4,
+  "eval_name": "populate-fails-halfway-through",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains substring `key_source`.",
+      "passed": true,
+      "evidence": "Substring 'key_source' found multiple times (Option 1 fetches keys from `LFPV1.key_source`)."
+    },
+    {
+      "text": "Response contains substring `LFPV1`.",
+      "passed": true,
+      "evidence": "Substring 'LFPV1' found throughout response.md."
+    },
+    {
+      "text": "Isolates the failing key via one of the three legitimate shapes",
+      "passed": true,
+      "evidence": "All three shapes are presented: Option 1 (manual try/except over key_source), Option 2 (`suppress_errors=True, return_exception_objects=True`), Option 3 (~jobs status='error' inspection)."
+    },
+    {
+      "text": "Enumerates or references keys from `key_source`",
+      "passed": true,
+      "evidence": "Option 1 calls `LFPV1.key_source.fetch('KEY')` to enumerate, and the response explicitly notes 'a single key in LFPV1.key_source ... hit a data-shape or upstream-lookup problem'."
+    },
+    {
+      "text": "Mentions transaction rollback or post-mortem inspection behavior",
+      "passed": true,
+      "evidence": "Explicitly notes 'Spyglass's default is `_use_transaction = True` (`src/spyglass/utils/mixins/populate.py:10`). When a `make()` raises, DataJoint rolls the transaction back, so post-mortem you will not see partial residue'."
+    },
+    {
+      "text": "Does not invent a Spyglass-specific `debug_populate` or `populate_one` helper",
+      "passed": true,
+      "evidence": "Explicitly states 'Spyglass ships **no** `debug_populate` / `populate_one` helper' in opening and again in Watch-outs."
+    }
+  ]
+}

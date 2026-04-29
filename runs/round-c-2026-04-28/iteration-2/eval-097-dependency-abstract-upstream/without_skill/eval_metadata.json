@@ -1,0 +1,36 @@
+{
+  "eval_id": 97,
+  "eval_name": "dependency-abstract-upstream",
+  "stage": "framework-concepts",
+  "tier": "dependency-tracing",
+  "difficulty": "medium",
+  "prompt": "How do I figure out where a Spyglass table gets its data from? Is there a general way to do this for any table?",
+  "assertions": {
+    "required_substrings": [
+      "parents(",
+      "ancestors(",
+      ".describe()"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Distinguishes `parents()` (one hop) from `ancestors()` (transitive walk) and gives a use case for each",
+      "Mentions `.describe()` as the schema-level companion that shows FK declarations inline in the table's definition string"
+    ],
+    "required_substrings_exempt": [
+      "parents(",
+      "ancestors(",
+      ".describe()"
+    ],
+    "expected_output_tables_exempt": [
+      "LFPBandV1",
+      "LFPBandSelection",
+      "AnalysisNwbfile",
+      "Session",
+      "Nwbfile",
+      "IntervalList",
+      "Electrode",
+      "FirFilterParameters"
+    ]
+  },
+  "expected_output": "Yes — every Spyglass (and DataJoint) table inherits two complementary methods for upstream traversal:\n\n- **`Table.parents()`** — the *one-hop* upstreams. Returns the tables `Table` directly FKs to. Quick check for 'what does this immediately depend on?'\n- **`Table.ancestors()`** — the *full transitive walk*. Returns every table reachable by following FKs upward, including grandparents and beyond. This is the answer to 'where does this table ultimately get its data from?'\n\n```python\nfrom spyglass.lfp.analysis.v1.lfp_band import LFPBandV1\nLFPBandV1.parents()    # one hop: LFPBandSelection, AnalysisNwbfile, ...\nLFPBandV1.ancestors()  # transitive: ...up to Session, Nwbfile, IntervalList, Electrode, FirFilterParameters\n```\n\nPair this with **`Table.describe()`** for the schema-level companion view: it prints the table's `definition` string, which shows the FK declarations (`-> ParentTable`) inline with the column list. `describe()` is the static schema view; `parents()` / `ancestors()` are the runtime graph walk. Use `describe()` when you want to read the FK arrows in source order; use `parents()` / `ancestors()` when you want a programmatic enumeration to iterate over.\n\nRoutes to spyglassmixin_methods.md and datajoint_api.md."
+}

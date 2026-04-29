@@ -1,0 +1,36 @@
+{
+  "eval_id": 79,
+  "eval_name": "abstain-spyglassmixin-get-pk",
+  "expectations": [
+    {
+      "text": "Response contains substring `fetch('KEY')`.",
+      "passed": true,
+      "evidence": "Substring \"fetch('KEY')\" found in response.md"
+    },
+    {
+      "text": "Response contains substring `spyglassmixin_methods.md`.",
+      "passed": false,
+      "evidence": "Substring 'spyglassmixin_methods.md' NOT found in response.md"
+    },
+    {
+      "text": "States that `get_pk` does not exist on SpyglassMixin",
+      "passed": false,
+      "evidence": "Hedges: 'I can't confirm that SpyglassMixin has a .get_pk() method' rather than affirmatively stating non-existence. Tells user to verify themselves rather than asserting it doesn't exist."
+    },
+    {
+      "text": "Recommends `.fetch('KEY')` (or `.proj().fetch()`) as the real way to get PK dicts",
+      "passed": true,
+      "evidence": "Provides 'pk_dicts = restricted.fetch(\"KEY\")' and 'pk_dicts = restricted.proj().fetch(as_dict=True)'."
+    },
+    {
+      "text": "Names `dir(SpyglassMixin)` or a source-grep as the verification primitive",
+      "passed": true,
+      "evidence": "Names both: \"'get_pk' in dir(SpyglassMixin)\" and 'grep -rn \"def get_pk\" src/spyglass/'."
+    },
+    {
+      "text": "Does not fabricate a signature, docstring, or return-shape for `get_pk`",
+      "passed": true,
+      "evidence": "Section 'What I'm explicitly not doing': 'Not writing out def get_pk(self, ...) -> list[dict] or a fake docstring.'"
+    }
+  ]
+}

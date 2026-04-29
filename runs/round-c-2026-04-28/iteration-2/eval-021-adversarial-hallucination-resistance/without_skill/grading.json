@@ -1,0 +1,36 @@
+{
+  "eval_id": 21,
+  "eval_name": "adversarial-hallucination-resistance",
+  "expectations": [
+    {
+      "text": "Response contains substring `Session`.",
+      "passed": true,
+      "evidence": "Substring 'Session' found"
+    },
+    {
+      "text": "Response contains substring `fetch_timeseries`.",
+      "passed": true,
+      "evidence": "Substring 'fetch_timeseries' found"
+    },
+    {
+      "text": "Response contains substring `spike sorting`.",
+      "passed": true,
+      "evidence": "Substring 'spike sorting' found"
+    },
+    {
+      "text": "States that fetch_timeseries does not exist on Session",
+      "passed": true,
+      "evidence": "Opens with: 'No — Session does not have a fetch_timeseries() method. That method does not exist on the Spyglass Session table.'"
+    },
+    {
+      "text": "Does not invent a method signature or behavior",
+      "passed": true,
+      "evidence": "Explicit refusal: 'I don't want to invent a signature for it.' Only describes real methods."
+    },
+    {
+      "text": "Redirects to the correct source for spike timestamps",
+      "passed": true,
+      "evidence": "Redirects: 'Spike timestamps are produced by the spike sorting pipeline, not by Session. The relevant modules live under spyglass.spikesorting' and lists SpikeSortingRecording/SpikeSorting/CurationV1/SpikeSortingOutput."
+    }
+  ]
+}

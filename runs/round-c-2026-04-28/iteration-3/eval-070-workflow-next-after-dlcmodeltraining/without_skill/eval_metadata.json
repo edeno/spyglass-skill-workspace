@@ -1,0 +1,36 @@
+{
+  "eval_id": 70,
+  "eval_name": "workflow-next-after-dlcmodeltraining",
+  "stage": "pipeline-usage",
+  "tier": "workflow-position",
+  "difficulty": "hard",
+  "prompt": "DLC model is trained and in the DLC model table. I want to get from here to a merge_id in `PositionOutput`. What's the ordered list of tables I still need to touch?",
+  "assertions": {
+    "required_substrings": [
+      "DLCPoseEstimation",
+      "DLCSmoothInterpCohort",
+      "DLCPosV1",
+      "PositionOutput.DLCPosV1",
+      "BodyPart",
+      "DLCCentroid",
+      "DLCCentroidSelection",
+      "DLCOrientation",
+      "DLCOrientationSelection",
+      "DLCPosSelection",
+      "DLCPoseEstimationSelection",
+      "DLCSmoothInterpCohortSelection",
+      "DLCSmoothInterpSelection"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Lists the ordered tables (at least: DLCPoseEstimation → DLCSmoothInterp per bodypart → DLCSmoothInterpCohort → DLCCentroid + DLCOrientation → DLCPosV1 → PositionOutput.DLCPosV1)",
+      "Mentions the bodypart-aggregation step (DLCSmoothInterpCohort) explicitly — it is the non-obvious step that's easy to skip"
+    ],
+    "expected_output_tables_exempt": [
+      "DLCCentroidParams",
+      "DLCOrientationParams",
+      "DLCSmoothInterpParams"
+    ]
+  },
+  "expected_output": "Routes to position_dlc_v1_pipeline.md. Lists the ordered 7-step DLC inference workflow: (1) DLCPoseEstimationSelection.insert_estimation_task → DLCPoseEstimation.populate (writes DLCPoseEstimation.BodyPart per bodypart); (2) DLCSmoothInterpSelection insert (per bodypart) → DLCSmoothInterp.populate; (3) DLCSmoothInterpCohortSelection insert (combines bodyparts) → DLCSmoothInterpCohort.populate; (4) DLCCentroidSelection + DLCCentroid.populate; (5) DLCOrientationSelection + DLCOrientation.populate; (6) DLCPosSelection insert → DLCPosV1.populate. The cohort-projection footgun (the same `dlc_si_cohort_selection_name` is renamed to two aliases — `dlc_si_cohort_centroid` and `dlc_si_cohort_orientation` — by `DLCPosSelection.definition` at `src/spyglass/position/v1/position_dlc_selection.py:33-34`) lives structurally on `DLCPosSelection`, not in `DLCPosV1.populate`; it just surfaces when DLCPosV1 inserts; (7) PositionOutput.DLCPosV1 insert (the merge insert). Notes the cohort step is non-obvious (it aggregates per-bodypart smoothed traces). Each of the per-stage selection tables FKs to its own parameters table — `DLCSmoothInterpSelection -> DLCSmoothInterpParams`, `DLCCentroidSelection -> DLCCentroidParams`, `DLCOrientationSelection -> DLCOrientationParams` — so a row in each params table must exist before the corresponding selection insert. These typically already exist via the labs' `insert_default()` calls; a thorough answer either confirms the defaults are present (`(DLCSmoothInterpParams & {'dlc_si_params_name': 'default'}).fetch1(...)`) or inserts custom rows before the selection step."
+}

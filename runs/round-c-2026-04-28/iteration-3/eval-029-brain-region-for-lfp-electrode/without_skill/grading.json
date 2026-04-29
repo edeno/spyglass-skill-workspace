@@ -1,0 +1,36 @@
+{
+  "eval_id": 29,
+  "eval_name": "brain-region-for-lfp-electrode",
+  "expectations": [
+    {
+      "text": "Response contains substring `Electrode`.",
+      "passed": true,
+      "evidence": "Substring 'Electrode' found in response.md"
+    },
+    {
+      "text": "Response contains substring `BrainRegion`.",
+      "passed": true,
+      "evidence": "Substring 'BrainRegion' found in response.md"
+    },
+    {
+      "text": "Response contains substring `region_name`.",
+      "passed": true,
+      "evidence": "Substring 'region_name' found in response.md"
+    },
+    {
+      "text": "Recognizes that brain region is anatomical metadata on Electrode, not derived from LFP processing \u2014 filter/sampling rate do not affect it",
+      "passed": true,
+      "evidence": "'anatomical metadata that lives on Electrode ... Filtering a signal doesn't change where the contact was implanted'."
+    },
+    {
+      "text": "Uses the simple join Electrode * BrainRegion as the primary answer; does not require routing through LFPOutput unless the user specifically asks to verify inclusion in the LFP group",
+      "passed": true,
+      "evidence": "Primary query is `(Electrode * BrainRegion & key).fetch1('region_name')`; LFP inclusion check is in an 'Optional' section."
+    },
+    {
+      "text": "Does not invent a `region` attribute on LFPV1, LFPOutput, or any LFP-pipeline table",
+      "passed": true,
+      "evidence": "'LFPV1, LFPOutput, and the merge entry have no region attribute of their own. Don't go looking for one'."
+    }
+  ]
+}

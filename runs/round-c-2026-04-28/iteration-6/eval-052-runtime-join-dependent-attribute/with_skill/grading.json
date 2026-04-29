@@ -1,0 +1,52 @@
+{
+  "eval_id": 52,
+  "eval_name": "runtime-join-dependent-attribute",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (dependent attribute, secondary, .proj(, recording_id, BrainRegion, Electrode, IntervalList, Raw, SortGroup, SpikeSortingRecordingSelection, SpikeSortingSelection).",
+      "passed": true,
+      "evidence": "All required substrings present (dependent-attribute refusal, secondary, .proj('recording_id'), BrainRegion in chain, Electrode, IntervalList, Raw, SortGroup, etc.)."
+    },
+    {
+      "text": "Explains the rule: * refuses when shared attribute is secondary on both sides",
+      "passed": true,
+      "evidence": "'A * B refuses when a shared attribute is secondary on both sides — not just when it appears in one side'."
+    },
+    {
+      "text": "Identifies nwb_file_name as the specific collision and names FK paths",
+      "passed": true,
+      "evidence": "'SpikeSortingSelection ... gets nwb_file_name through -> IntervalList. SpikeSortingRecordingSelection ... gets nwb_file_name through -> Raw and -> SortGroup, plus interval_list_name through its own -> IntervalList.'"
+    },
+    {
+      "text": "Recommends .proj('recording_id') as canonical/primary fix, with two-restriction split as debug-friendly alternative",
+      "passed": true,
+      "evidence": "Section 'Canonical fix — .proj() the left side' presents `.proj('recording_id')` as preferred ('Prefer this form'); 'Debug-friendly alternative' for the split. Explicitly: 'use .proj() as the default; reach for the split when you're actively debugging'."
+    },
+    {
+      "text": "Notes error fires at query-build time, not runtime",
+      "passed": true,
+      "evidence": "'Crucially, this fires at query-build time, not at fetch ... This is not a no matching rows / under-restricted problem. Restricting harder won't help'."
+    },
+    {
+      "text": "Points to common_mistakes.md § 9 (or equivalent location) for the full rule",
+      "passed": true,
+      "evidence": "References section explicitly links to `common_mistakes.md § 9`."
+    },
+    {
+      "text": "Does not misdiagnose as under-specified restriction, data-missing, or merge-table issue",
+      "passed": true,
+      "evidence": "Explicitly: 'sorting_id isn't too loose'; 'Don't reach for a merge-table helper. Neither table here is a merge master'."
+    },
+    {
+      "text": "Does not propose 'use & instead of *' as the fix",
+      "passed": true,
+      "evidence": "'Don't replace * with &. & is a restriction, not a join — it would silently change the semantics'."
+    },
+    {
+      "text": "Does not blame the restriction key (sorting_id is not too loose)",
+      "passed": true,
+      "evidence": "'sorting_id alone is the full PK of SpikeSortingSelection; nothing about the restriction is wrong'."
+    }
+  ]
+}

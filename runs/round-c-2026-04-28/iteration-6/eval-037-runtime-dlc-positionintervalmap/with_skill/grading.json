@@ -1,0 +1,42 @@
+{
+  "eval_id": 37,
+  "eval_name": "runtime-dlc-positionintervalmap",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (PositionIntervalMap, convert_epoch_interval_name_to_position_interval_name, interval_list_name, PositionSource, RawPosition, IntervalList).",
+      "passed": true,
+      "evidence": "All required substrings present throughout response.md."
+    },
+    {
+      "text": "Notes that DLCPoseEstimation's make() already calls convert_epoch... with populate_missing=True",
+      "passed": true,
+      "evidence": "'Important context first' section shows the make() code calling the converter, and 'old advice — just call the converter manually with populate_missing=True — is no longer the typical fix. That code path already ran during DLCPoseEstimation.populate'."
+    },
+    {
+      "text": "Restricts PositionIntervalMap by nwb_file_name + interval_list_name, NOT by epoch",
+      "passed": true,
+      "evidence": "Layer 1 explicitly notes 'PositionIntervalMap is not keyed by epoch. It inherits its primary key from IntervalList. ... PK is nwb_file_name + interval_list_name' and resolves epoch via get_interval_list_name_from_epoch first."
+    },
+    {
+      "text": "Walks at least three diagnostic layers (PositionIntervalMap empty/null; PositionSource/RawPosition prereq; TaskEpoch/IntervalList alignment)",
+      "passed": true,
+      "evidence": "Three labeled layers: Layer 1 (PositionIntervalMap), Layer 2 (PositionSource/RawPosition/IntervalList), Layer 3 (TaskEpoch ↔ IntervalList valid_times alignment)."
+    },
+    {
+      "text": "Frames PositionSource / RawPosition as prerequisites, NOT as tables PositionIntervalMap queries directly",
+      "passed": true,
+      "evidence": "'PositionIntervalMap._no_transaction_make doesn't query RawPosition at all — it walks IntervalList rows whose names pass PositionSource._is_valid_name(). ... matter as prerequisites that anchor those pos N valid times rows during ingest, not as tables PositionIntervalMap itself queries'."
+    },
+    {
+      "text": "Treats empty/null PositionIntervalMap as a data-shape problem, not a populate_missing problem",
+      "passed": true,
+      "evidence": "Layer 1 outcomes: 'Re-running the converter with populate_missing=True will not help — it sees the null entry, deletes it, re-runs make(), and re-inserts the same null. That's the same path that already ran.'"
+    },
+    {
+      "text": "Does not tell user to re-run DLCPosV1.populate without first confirming upstream gap",
+      "passed": true,
+      "evidence": "What-not-to-do: 'Don't just retry DLCPosV1.populate(key) — the upstream gap will reproduce the same IndexError on the next run'."
+    }
+  ]
+}

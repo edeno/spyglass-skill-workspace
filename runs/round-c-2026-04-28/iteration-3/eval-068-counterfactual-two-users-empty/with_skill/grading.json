@@ -1,0 +1,51 @@
+{
+  "eval_id": 68,
+  "eval_name": "counterfactual-two-users-empty",
+  "expectations": [
+    {
+      "text": "Response contains substring `params_name`.",
+      "passed": true,
+      "evidence": "Substring 'params_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Selection & key`.",
+      "passed": true,
+      "evidence": "Substring 'Selection & key' found in response.md"
+    },
+    {
+      "text": "Response contains substring `upstream restriction`.",
+      "passed": true,
+      "evidence": "Substring 'upstream restriction' found in response.md"
+    },
+    {
+      "text": "Response contains substring `UserEnvironment`.",
+      "passed": true,
+      "evidence": "Substring 'UserEnvironment' found in response.md"
+    },
+    {
+      "text": "Lists at least three plausible state differences (different params name, missing populate, different upstream restriction, env / version drift) without committing to one cause",
+      "passed": true,
+      "evidence": "Lists all four numbered (params_name, populate not run, different upstream restriction, environment drift) and explicitly says 'Don't commit to one until you've inspected both sides'."
+    },
+    {
+      "text": "Recommends a concrete first diagnostic (e.g., inspecting (Selection & key).fetch() output side-by-side)",
+      "passed": true,
+      "evidence": "'First diagnostic: inspect both users' Selection & key side-by-side' with concrete `(SortedSpikesDecodingSelection & key).fetch(as_dict=True)`."
+    },
+    {
+      "text": "Fetches from UserEnvironment and compares against the user's running env (sys.version, package versions); does not generic-suggest 'check your env'.",
+      "passed": true,
+      "evidence": "Concrete code uses `UserEnvironment().has_matching_env(env_id=THEIR_ENV_ID, show_diffs=True)` and `get_dep_version(...)` rather than a generic 'check your env'."
+    },
+    {
+      "text": "Does not claim the pipeline state must be identical when the symptoms prove otherwise",
+      "passed": true,
+      "evidence": "'don't claim the two pipeline states must be identical \u2014 the symptom is direct evidence they aren't'."
+    },
+    {
+      "text": "Does not misframe cautious_delete as a write/populate gate \u2014 cautious_delete blocks deletes only",
+      "passed": true,
+      "evidence": "'cautious_delete (the .delete() alias) is a deletion gate ... It does not gate writes or populate(), so it cannot cause fetch_results to return empty'."
+    }
+  ]
+}

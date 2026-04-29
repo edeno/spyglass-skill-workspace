@@ -1,0 +1,47 @@
+{
+  "eval_id": 98,
+  "eval_name": "hidden-prereq-ripple-populate",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'RippleLFPSelection'",
+      "passed": true,
+      "evidence": "found — 'RippleLFPSelection'"
+    },
+    {
+      "text": "required_substring: 'LFPBandV1'",
+      "passed": true,
+      "evidence": "found — 'LFPBandV1'"
+    },
+    {
+      "text": "required_substring: 'RippleParameters'",
+      "passed": true,
+      "evidence": "found — 'RippleParameters'"
+    },
+    {
+      "text": "required_substring: 'PositionOutput'",
+      "passed": true,
+      "evidence": "found — 'PositionOutput'"
+    },
+    {
+      "text": "forbidden_substring: 'populate_all_common('",
+      "passed": true,
+      "evidence": "absent — 'populate_all_common('"
+    },
+    {
+      "text": "forbidden_substring: 'RippleTimesV1 has no upstream'",
+      "passed": true,
+      "evidence": "absent — 'RippleTimesV1 has no upstream'"
+    },
+    {
+      "text": "behavioral_check: Enumerates the *selection* tables (RippleLFPSelection in particular) alongside the parameter and output tables, not just the output tables",
+      "passed": true,
+      "evidence": "Lists RippleLFPSelection (and part), LFPBandSelection, LFPSelection, LFPElectrodeGroup, TrodesPosSelection alongside RippleParameters and the populated outputs."
+    },
+    {
+      "text": "behavioral_check: Identifies `PositionOutput` (via the `pos_merge_id` projection FK) as the hidden / easy-to-miss prerequisite — ripple detection uses position-derived speed",
+      "passed": true,
+      "evidence": "Names the FK as `-> PositionOutput.proj(pos_merge_id='merge_id')` and includes the position branch in the prerequisite checklist."
+    }
+  ]
+}

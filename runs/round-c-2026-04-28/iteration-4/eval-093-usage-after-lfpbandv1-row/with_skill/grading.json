@@ -1,0 +1,37 @@
+{
+  "eval_id": 93,
+  "eval_name": "usage-after-lfpbandv1-row",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'fetch1_dataframe'",
+      "passed": true,
+      "evidence": "found — 'fetch1_dataframe'"
+    },
+    {
+      "text": "required_substring: 'LFPBandV1'",
+      "passed": true,
+      "evidence": "found — 'LFPBandV1'"
+    },
+    {
+      "text": "forbidden_substring: 'LFPBandV1.fetch1_dataframe('",
+      "passed": true,
+      "evidence": "absent — 'LFPBandV1.fetch1_dataframe('"
+    },
+    {
+      "text": "forbidden_substring: 'LFPBandV1.compute_signal_power('",
+      "passed": true,
+      "evidence": "absent — 'LFPBandV1.compute_signal_power('"
+    },
+    {
+      "text": "behavioral_check: Names `(LFPBandV1 & key).fetch1_dataframe()` OR `(LFPBandV1 & key).compute_signal_power(...)` as the next operation — not both as a vague 'either fetch or compute'",
+      "passed": true,
+      "evidence": "Names both fetch1_dataframe and compute_signal_phase/power but commits in TL;DR: 'Most likely next thing: option 2 — compute_signal_phase / compute_signal_power'."
+    },
+    {
+      "text": "behavioral_check: Calls the methods on a restricted relation `(LFPBandV1 & key).method(...)`, not on the bare class",
+      "passed": true,
+      "evidence": "All calls use `(LFPBandV1 & band_sel_key).method(...)` form."
+    }
+  ]
+}

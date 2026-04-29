@@ -1,0 +1,27 @@
+{
+  "eval_id": 75,
+  "eval_name": "schema-dep-probe-electrode",
+  "stage": "framework-concepts",
+  "tier": "schema-introspection",
+  "difficulty": "easy",
+  "prompt": "Why is `Electrode` connected to `Probe` in this schema? I see `probe_*` columns when I query Electrode but I'd like to verify the connection from inside Python — what should I run to inspect it without reading the source?",
+  "assertions": {
+    "required_substrings": [
+      "Electrode",
+      "Probe",
+      ".heading",
+      ".parents"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Names BOTH `Electrode().heading.attributes` (or `.heading`) AND `Electrode.parents()` as the inspection path — heading shows the carried columns, parents shows the FK declarations that contributed them",
+      "Identifies the link as a `-> [nullable] Probe.Electrode` declaration (secondary FK to a part table, nullable) — does not claim Probe is a primary parent of Electrode",
+      "Explains nullable secondary FK semantics: the probe_* columns appear in Electrode's heading via FK inheritance, but Electrode rows are allowed to have NULL there (so a session without probe metadata still ingests)",
+      "Does not invent a primary `-> Probe` declaration on Electrode — the actual link is to the part table Probe.Electrode and is below the `---` divider"
+    ],
+    "expected_output_tables_exempt": [
+      "Probe.Electrode"
+    ]
+  },
+  "expected_output": "Routes to common_tables.md + datajoint_api.md (schema introspection). Two complementary commands answer this. (1) `Electrode().heading.attributes` (or `Electrode.heading`) shows every column the table carries, including the `probe_*` fields the user is seeing — these come from FK inheritance. (2) `Electrode.parents()` lists the FK declarations that contribute to `Electrode`'s heading; `Probe.Electrode` (the part table) is one of them. The full link declared in `src/spyglass/common/common_ephys.py:78` is `-> [nullable] Probe.Electrode` — a nullable secondary FK to the `Probe.Electrode` part table. 'Nullable secondary' means: the FK lives below the `---` divider in `Electrode.definition` (so `Probe`'s primary keys appear as Electrode's secondary attributes, not part of Electrode's PK), and a row in Electrode is allowed to have NULL for those probe fields (so a session ingested without probe metadata still populates Electrode). The user's `probe_*` columns come from this declaration. Does NOT speculate about other connections without naming a check the user can run to verify."
+}

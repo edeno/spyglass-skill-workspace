@@ -1,0 +1,52 @@
+{
+  "eval_id": 104,
+  "eval_name": "probe-per-electrode-group",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'ElectrodeGroup'",
+      "passed": true,
+      "evidence": "found — 'ElectrodeGroup'"
+    },
+    {
+      "text": "required_substring: 'Probe'",
+      "passed": true,
+      "evidence": "found — 'Probe'"
+    },
+    {
+      "text": "required_substring: 'probe_id'",
+      "passed": true,
+      "evidence": "found — 'probe_id'"
+    },
+    {
+      "text": "required_substring: 'nwb_file_name'",
+      "passed": true,
+      "evidence": "found — 'nwb_file_name'"
+    },
+    {
+      "text": "forbidden_substring: \"Probe & {'nwb_file_name'\"",
+      "passed": true,
+      "evidence": "absent — \"Probe & {'nwb_file_name'\""
+    },
+    {
+      "text": "forbidden_substring: 'Probe & {\"nwb_file_name\"'",
+      "passed": true,
+      "evidence": "absent — 'Probe & {\"nwb_file_name\"'"
+    },
+    {
+      "text": "behavioral_check: Restricts ONLY `ElectrodeGroup` by `nwb_file_name` (which it has as a PK field) — does NOT restrict `Probe` by `nwb_file_name` (Probe is keyed by `probe_id` and has no session FK; the restriction would silently no-op)",
+      "passed": true,
+      "evidence": "Query is `(ElectrodeGroup & {\"nwb_file_name\": f}) * Probe * ProbeType`; Probe is never restricted by nwb_file_name."
+    },
+    {
+      "text": "behavioral_check: Joins on the shared `probe_id` column (ElectrodeGroup's nullable FK to Probe) to surface `probe_type` / Probe-side fields",
+      "passed": true,
+      "evidence": "States chain `ElectrodeGroup -> Probe (via probe_id) -> ProbeType (via probe_type)` and fetches probe_id, probe_type, probe_description, manufacturer, num_shanks."
+    },
+    {
+      "text": "behavioral_check: Mentions that `-> [nullable] Probe` means some electrode groups may have NULL `probe_id` and won't survive the inner join — handle via projection or a separate restriction if those rows matter",
+      "passed": true,
+      "evidence": "Item 3 of 'Things to verify': 'Some groups can have no probe. If probe_id is nullable in your install and a group has it null, the inner join above will drop that group.'"
+    }
+  ]
+}

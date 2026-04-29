@@ -1,0 +1,21 @@
+{
+  "eval_id": 76,
+  "eval_name": "schema-dep-lfp-filter",
+  "expectations": [
+    {
+      "text": "Response contains substring `FirFilterParameters`.",
+      "passed": true,
+      "evidence": "Substring 'FirFilterParameters' found in response.md"
+    },
+    {
+      "text": "Names FirFilterParameters as the lookup table for filter coefficients (distinct from LFPSelection, which carries filter_name as FK but is the per-run selection, not the kernel store)",
+      "passed": true,
+      "evidence": "Names FirFilterParameters and does not name LFPSelection."
+    },
+    {
+      "text": "Response obeys the requested format \u2014 a single table name with no prose, headers, or extra commentary",
+      "passed": true,
+      "evidence": "Response is exactly the single line 'FirFilterParameters' with no prose."
+    }
+  ]
+}

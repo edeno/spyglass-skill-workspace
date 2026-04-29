@@ -1,0 +1,37 @@
+{
+  "eval_id": 48,
+  "eval_name": "runtime-positiongroup-variable-mismatch",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (position_variables, (DLCPosV1 & key).fetch1_dataframe, ClusterlessDecodingSelection, PositionGroup).",
+      "passed": true,
+      "evidence": "All required substrings present."
+    },
+    {
+      "text": "Identifies variable-name mismatch (NOT empty DLC output) as root cause",
+      "passed": true,
+      "evidence": "Opening: 'DLC's output is fine. DLCPosV1.fetch1_dataframe() already emits a column literally named position_x ... Overriding it with [head_position_x, head_position_y] points at columns that do not exist'."
+    },
+    {
+      "text": "Shows (DLCPosV1 & key).fetch1_dataframe().columns as the concrete diagnostic",
+      "passed": true,
+      "evidence": "Concrete diagnostic section: `cols = list((DLCPosV1 & key).fetch1_dataframe().columns)` with expected output."
+    },
+    {
+      "text": "Recognizes that the default position_variables=['position_x', 'position_y'] matches DLC",
+      "passed": true,
+      "evidence": "'PositionGroup.create_group's default position_variables=[position_x, position_y] matches both upstream sources without modification'."
+    },
+    {
+      "text": "Names _upsample as the line that raises KeyError when position_variables references columns that don't exist",
+      "passed": true,
+      "evidence": "Quotes the exact `_upsample` code (`for column in position_variable_names: ... position_df[column].isna()`) and explains 'pandas raises KeyError: head_position_x, and you see it bubble out of _upsample / fetch_position_info'."
+    },
+    {
+      "text": "Does not recommend re-running DLC populate as the fix",
+      "passed": true,
+      "evidence": "What-NOT-to-do: 'Don't re-run DLC populate. The DLC outputs already have the columns the decoder expects'."
+    }
+  ]
+}

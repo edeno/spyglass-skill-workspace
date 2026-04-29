@@ -1,0 +1,36 @@
+{
+  "eval_id": 126,
+  "eval_name": "key-hygiene-merge-master-silent-no-op",
+  "expectations": [
+    {
+      "text": "Response contains substring `merge_restrict`.",
+      "passed": true,
+      "evidence": "Substring 'merge_restrict' found in response.md"
+    },
+    {
+      "text": "Response contains substring `merge_methods.md`.",
+      "passed": true,
+      "evidence": "Substring 'merge_methods.md' found in response.md"
+    },
+    {
+      "text": "Response contains substring `merge_id`.",
+      "passed": true,
+      "evidence": "Substring 'merge_id' found in response.md"
+    },
+    {
+      "text": "Identifies the silent no-op shape: merge master's heading is only `(merge_id, source)`, so unknown restriction keys are dropped without error",
+      "passed": true,
+      "evidence": "Says 'That's the entire heading: a primary key of merge_id and a single secondary attribute source. There is no nwb_file_name on the master ... DataJoint sees a restriction key that isn't in the heading and silently drops it — no error, no warning.'"
+    },
+    {
+      "text": "Recommends `merge_restrict` (or `merge_get_part`) as the fix; does NOT confirm the user's bare `& {nwb_file_name: ...}` count of 2735 as correct, and does NOT recommend rerunning the bare form",
+      "passed": true,
+      "evidence": "Recommends `merge_restrict` and `merge_get_part`; says 'Don't rerun the bare len(DecodingOutput & {nwb_file_name: ...}) and trust the answer'."
+    },
+    {
+      "text": "Verifies the merge-master heading with `code_graph.py describe DecodingOutput` (agent tool) or `DecodingOutput.heading.primary_key` in the user's Python session, not invented merge-master fields",
+      "passed": true,
+      "evidence": "Recommends `DecodingOutput.heading.primary_key`/`heading.names` and `python skills/spyglass/scripts/code_graph.py describe DecodingOutput`."
+    }
+  ]
+}

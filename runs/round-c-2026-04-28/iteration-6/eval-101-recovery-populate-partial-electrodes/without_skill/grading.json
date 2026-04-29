@@ -1,0 +1,27 @@
+{
+  "eval_id": 101,
+  "eval_name": "recovery-populate-partial-electrodes",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (InsertError, raise_err=True, ProbeType).",
+      "passed": true,
+      "evidence": "All required substrings present."
+    },
+    {
+      "text": "Response does not contain forbidden substrings (reinsert=True before, should super_delete).",
+      "passed": true,
+      "evidence": "Forbidden substrings absent verbatim. Response actively warns against both."
+    },
+    {
+      "text": "Inspects common_usage.InsertError first (with the session's nwb_file_name restriction)",
+      "passed": true,
+      "evidence": "Section 1: 'Read what populate_all_common already recorded' — `(InsertError & {nwb_file_name: 'j1620210710_.nwb'}).fetch(as_dict=True)` framed as 'before doing anything else'."
+    },
+    {
+      "text": "Mentions missing Probe rows often indicate upstream DataAcquisitionDevice / ProbeType dependency",
+      "passed": true,
+      "evidence": "Section 2 'Expect the failure to be upstream of Probe, not on Probe itself': 'when you see missing Probe rows, the bug is almost always one level up — typically ProbeType, occasionally DataAcquisitionDevice'."
+    }
+  ]
+}

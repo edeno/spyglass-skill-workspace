@@ -1,0 +1,24 @@
+{
+  "eval_id": 9,
+  "eval_name": "atomic-fetch-session-row",
+  "stage": "pipeline-usage",
+  "tier": "atomic-read",
+  "difficulty": "easy",
+  "prompt": "Get the Session row for `nwb_file_name='j1620210710_.nwb'`.",
+  "assertions": {
+    "required_substrings": [
+      "Session",
+      ".fetch1",
+      "j1620210710_.nwb"
+    ],
+    "forbidden_substrings": [
+      "fetch(as_dict=True)"
+    ],
+    "behavioral_checks": [
+      "Response is one-liner or near-minimal (no cardinality check)",
+      "Does not route to runtime_debugging.md or common_mistakes.md",
+      "Does not over-explain with a cardinality-verification dance (len/print) when the PK is unique — the one-liner fetch1() suffices for a known-unique PK lookup"
+    ]
+  },
+  "expected_output": "One-liner: `(Session & {'nwb_file_name': 'j1620210710_.nwb'}).fetch1()`. No over-explanation — the PK is unique, no cardinality dance needed."
+}

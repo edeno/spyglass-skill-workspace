@@ -1,0 +1,41 @@
+{
+  "eval_id": 10,
+  "eval_name": "atomic-fetch-session-attributes",
+  "expectations": [
+    {
+      "text": "Response contains substring `Session`.",
+      "passed": true,
+      "evidence": "Substring 'Session' found in response.md"
+    },
+    {
+      "text": "Response contains substring `fetch1`.",
+      "passed": true,
+      "evidence": "Substring 'fetch1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `session_description`.",
+      "passed": true,
+      "evidence": "Substring 'session_description' found in response.md"
+    },
+    {
+      "text": "Response contains substring `session_start_time`.",
+      "passed": true,
+      "evidence": "Substring 'session_start_time' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `for row in`.",
+      "passed": true,
+      "evidence": "Substring 'for row in' absent in response.md"
+    },
+    {
+      "text": "Uses fetch1 with the two attribute names as positional args",
+      "passed": true,
+      "evidence": "Code: `.fetch1('session_description', 'session_start_time')` \u2014 passed as positional args."
+    },
+    {
+      "text": "Does not loop or use fetch() (which returns a list)",
+      "passed": true,
+      "evidence": "Uses fetch1 only; explicitly notes 'Use fetch (no 1) only when you expect multiple rows ... For a single known session, fetch1 is preferred'."
+    }
+  ]
+}

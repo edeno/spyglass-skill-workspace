@@ -1,0 +1,26 @@
+{
+  "eval_id": 95,
+  "eval_name": "join-dependent-attr-refusal",
+  "prompt": "I'm trying to join `SpikeSortingSelection` with `SpikeSortingRecordingSelection` to get `sort_group_id` for a given `sorting_id`. I tried `(SpikeSortingSelection & {'sorting_id': sid}) * SpikeSortingRecordingSelection * SortGroup.SortGroupElectrode` and got `DataJointError: Cannot join query expressions on dependent attribute 'nwb_file_name'`. What does that error mean, and how do I fix it?",
+  "stage": "pipeline-usage",
+  "tier": "joins",
+  "difficulty": "hard",
+  "required_substrings": [
+    "dependent attribute",
+    "secondary",
+    "primary key",
+    ".proj(",
+    "recording_id",
+    "SpikeSortingSelection",
+    "SpikeSortingRecordingSelection"
+  ],
+  "forbidden_substrings": [
+    "wrap with set()"
+  ],
+  "behavioral_checks": [
+    "Distinguishes primary-key inheritance (FK declarations propagate the parent's PK) from secondary-attribute inheritance (a secondary FK below the `---` divider contributes secondary attrs, which do NOT propagate further downstream)",
+    "Names `nwb_file_name` as the colliding secondary attribute on both SpikeSortingSelection (via -> IntervalList) and SpikeSortingRecordingSelection (via -> Raw)",
+    "Demonstrates BOTH fixes — two-restriction chain via fetch1('recording_id'), AND .proj('recording_id') on the LHS to drop the colliding secondary",
+    "Does not suggest set() or np.unique() — the failure is a join refusal, not a multiplied join"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "eval_id": 91,
+  "eval_name": "usage-after-trodes-pos-selection",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'TrodesPosV1.populate'",
+      "passed": true,
+      "evidence": "found — 'TrodesPosV1.populate'"
+    },
+    {
+      "text": "required_substring: 'TrodesPosSelection'",
+      "passed": true,
+      "evidence": "found — 'TrodesPosSelection'"
+    },
+    {
+      "text": "forbidden_substring: 'TrodesPosSelection.populate'",
+      "passed": true,
+      "evidence": "absent — 'TrodesPosSelection.populate'"
+    },
+    {
+      "text": "behavioral_check: Names the next-step operation as `TrodesPosV1.populate(key)` — not just 'populate the position pipeline'",
+      "passed": true,
+      "evidence": "Code block uses `TrodesPosV1.populate(key, display_progress=True)` and prose names TrodesPosV1.make() as the compute step."
+    },
+    {
+      "text": "behavioral_check: Mentions that the populate step is what writes into `PositionOutput.TrodesPosV1` (merge auto-insert)",
+      "passed": true,
+      "evidence": "Notes 'Many newer Spyglass versions auto-insert into PositionOutput from TrodesPosV1.make()' and shows PositionOutput.TrodesPosV1 part-table check."
+    }
+  ]
+}

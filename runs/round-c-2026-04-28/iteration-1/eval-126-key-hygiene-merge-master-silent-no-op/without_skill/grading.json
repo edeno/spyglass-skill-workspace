@@ -1,0 +1,36 @@
+{
+  "eval_id": 126,
+  "eval_name": "key-hygiene-merge-master-silent-no-op",
+  "expectations": [
+    {
+      "text": "Response contains substring `merge_restrict`.",
+      "passed": true,
+      "evidence": "Substring 'merge_restrict' found in response.md"
+    },
+    {
+      "text": "Response contains substring `merge_methods.md`.",
+      "passed": false,
+      "evidence": "Substring 'merge_methods.md' NOT found in response.md"
+    },
+    {
+      "text": "Response contains substring `merge_id`.",
+      "passed": true,
+      "evidence": "Substring 'merge_id' found in response.md"
+    },
+    {
+      "text": "Identifies the silent no-op shape: merge master's heading is only `(merge_id, source)`, so unknown restriction keys are dropped without error",
+      "passed": true,
+      "evidence": "Shows the merge master heading is just `merge_id` (PK) + `source` and 'if the key does not match any attribute, it is silently ignored. It does not raise.'"
+    },
+    {
+      "text": "Recommends `merge_restrict` (or `merge_get_part`) as the fix; does NOT confirm the user's bare `& {nwb_file_name: ...}` count of 2735 as correct, and does NOT recommend rerunning the bare form",
+      "passed": true,
+      "evidence": "Recommends `DecodingOutput.merge_restrict(restr)` and `merge_get_part`, and explicitly says 'Re-run with DecodingOutput.merge_restrict(...)' rather than rerunning bare form. 2735 is called 'silently dropped, which is worse.'"
+    },
+    {
+      "text": "Verifies the merge-master heading with `code_graph.py describe DecodingOutput` (agent tool) or `DecodingOutput.heading.primary_key` in the user's Python session, not invented merge-master fields",
+      "passed": true,
+      "evidence": "Provides `DecodingOutput.heading.primary_key` and `list(DecodingOutput.heading.attributes)` for verification."
+    }
+  ]
+}

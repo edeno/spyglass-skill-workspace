@@ -1,0 +1,106 @@
+{
+  "eval_id": 6,
+  "eval_name": "run-lfp-v1-pipeline",
+  "expectations": [
+    {
+      "text": "Response contains substring `LFPSelection`.",
+      "passed": true,
+      "evidence": "Substring 'LFPSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPV1.populate`.",
+      "passed": true,
+      "evidence": "Substring 'LFPV1.populate' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPOutput`.",
+      "passed": true,
+      "evidence": "Substring 'LFPOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `merge_get_part`.",
+      "passed": true,
+      "evidence": "Substring 'merge_get_part' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPBandSelection`.",
+      "passed": true,
+      "evidence": "Substring 'LFPBandSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPBandV1`.",
+      "passed": true,
+      "evidence": "Substring 'LFPBandV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `set_lfp_band_electrodes`.",
+      "passed": true,
+      "evidence": "Substring 'set_lfp_band_electrodes' found in response.md"
+    },
+    {
+      "text": "Response contains substring `interval_list_name`.",
+      "passed": true,
+      "evidence": "Substring 'interval_list_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `reference_electrode_list`.",
+      "passed": true,
+      "evidence": "Substring 'reference_electrode_list' found in response.md"
+    },
+    {
+      "text": "Response contains substring `FirFilterParameters`.",
+      "passed": true,
+      "evidence": "Substring 'FirFilterParameters' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPElectrodeGroup`.",
+      "passed": true,
+      "evidence": "Substring 'LFPElectrodeGroup' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `compute theta power from LFPV1.fetch1_dataframe`.",
+      "passed": true,
+      "evidence": "Substring 'compute theta power from LFPV1.fetch1_dataframe' absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `lfp_merge_id=LFPOutput.merge_get_part(key).fetch1('KEY')`.",
+      "passed": true,
+      "evidence": "Substring \"lfp_merge_id=LFPOutput.merge_get_part(key).fetch1('KEY')\" absent in response.md"
+    },
+    {
+      "text": "Covers BOTH the wideband LFPV1 pipeline AND the LFPBandV1 pipeline \u2014 theta power requires the band pipeline, not LFPV1 alone",
+      "passed": true,
+      "evidence": "Opening states 'there are two pipelines you need, not one' and the response walks through LFPV1 (steps 3-4) and LFPBandV1 (steps 7-9)."
+    },
+    {
+      "text": "Passes the UUID scalar from `.fetch1('merge_id')` as `lfp_merge_id`, NOT the full dict from `.fetch1('KEY')` (which would be a DataJoint query error at runtime)",
+      "passed": true,
+      "evidence": "Step 5 uses `(LFPOutput.merge_get_part(lfp_sel_key)).fetch1('merge_id')` and warns 'Don't pass fetch1(\"KEY\") \u2014 that's a dict and won't be accepted'."
+    },
+    {
+      "text": "Includes `interval_list_name` in the set_lfp_band_electrodes call \u2014 it is required with no default",
+      "passed": true,
+      "evidence": "Step 7 passes `interval_list_name=interval_name` and notes 'interval_list_name has no default \u2014 you must pass it'."
+    },
+    {
+      "text": "Uses the exact kwarg name `reference_electrode_list` (with `_list`), not `reference_electrodes` or `reference_electrode`",
+      "passed": true,
+      "evidence": "Step 7 uses `reference_electrode_list=-1` and explicitly calls out 'The kwarg is reference_electrode_list with _list at the end, not reference_electrode or reference_electrodes'."
+    },
+    {
+      "text": "Either shows LFPBandV1.fetch1_dataframe() for the band-filtered signal, or compute_signal_power() for theta power directly",
+      "passed": true,
+      "evidence": "Step 9 shows `(LFPBandV1 & band_key).fetch1_dataframe()` and `compute_signal_power()`."
+    },
+    {
+      "text": "Notes that the theta filter must exist in FirFilterParameters first (or shows how to insert one)",
+      "passed": true,
+      "evidence": "Step 6 asserts the theta filter exists in FirFilterParameters and notes 'If it's missing, insert it via FirFilterParameters().add_filter(...) ... before continuing'."
+    },
+    {
+      "text": "Does not apply the Theta 5-11 Hz filter in the LFPSelection step \u2014 that step is for wideband LFP selection; band filtering happens in the LFPBandSelection / LFPBandV1 steps",
+      "passed": true,
+      "evidence": "Step 3 uses 'LFP 0-400 Hz' and explicitly warns 'this is the wideband filter. Don't put a theta filter here'."
+    }
+  ]
+}

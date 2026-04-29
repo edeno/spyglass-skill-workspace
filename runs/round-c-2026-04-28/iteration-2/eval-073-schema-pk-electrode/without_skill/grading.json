@@ -1,0 +1,41 @@
+{
+  "eval_id": 73,
+  "eval_name": "schema-pk-electrode",
+  "expectations": [
+    {
+      "text": "Response contains substring `nwb_file_name`.",
+      "passed": true,
+      "evidence": "Substring 'nwb_file_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `electrode_group_name`.",
+      "passed": true,
+      "evidence": "Substring 'electrode_group_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `electrode_id`.",
+      "passed": true,
+      "evidence": "Substring 'electrode_id' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Electrode.primary_key`.",
+      "passed": true,
+      "evidence": "Substring 'Electrode.primary_key' found in response.md"
+    },
+    {
+      "text": "Calls Table.primary_key in the response (with the correct receiver \u2014 `Electrode.primary_key`), not just a textual description of 'the primary key'.",
+      "passed": true,
+      "evidence": "One-liner: 'from spyglass.common import Electrode; print(Electrode.primary_key)'."
+    },
+    {
+      "text": "Lists exactly the three PK fields (nwb_file_name, electrode_group_name, electrode_id), with no extra fields",
+      "passed": true,
+      "evidence": "Lists exactly the three: nwb_file_name, electrode_group_name, electrode_id."
+    },
+    {
+      "text": "Does not list region_id as a PK field \u2014 region_id is a secondary FK to BrainRegion, not part of the Electrode primary key",
+      "passed": true,
+      "evidence": "States: 'region_id is a secondary (non-primary) foreign key \u2014 it is not part of the primary key.'"
+    }
+  ]
+}

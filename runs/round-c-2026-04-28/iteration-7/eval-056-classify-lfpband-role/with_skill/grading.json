@@ -1,0 +1,32 @@
+{
+  "eval_id": 56,
+  "eval_name": "classify-lfpband-role",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'LFPBandV1.populate'",
+      "passed": true,
+      "evidence": "found — 'LFPBandV1.populate'"
+    },
+    {
+      "text": "required_substring: 'LFPBandSelection'",
+      "passed": true,
+      "evidence": "found — 'LFPBandSelection'"
+    },
+    {
+      "text": "behavioral_check: Identifies LFPBandV1 as Computed; user populates it after inserting LFPBandSelection",
+      "passed": true,
+      "evidence": "'LFPBandV1 is a compute (Computed) table... populate it yourself for any new band you want'. Section 'What this means in practice' shows the LFPBandSelection().set_lfp_band_electrodes(...) → LFPBandV1.populate(key) sequence."
+    },
+    {
+      "text": "behavioral_check: Notes there is no merge wrapper — LFPBandV1 itself is the consumer-facing endpoint",
+      "passed": true,
+      "evidence": "Explicitly: 'LFPBandV1 is *not* a part of any merge table — band-filtered LFP has no merge layer above it; downstream consumers (e.g. RippleLFPSelection) FK directly to LFPBandV1.'"
+    },
+    {
+      "text": "behavioral_check: Does not invent an `LFPBandOutput` merge/output table, `lfp_band_merge` module, or merge_get_part workflow for LFPBandV1",
+      "passed": null,
+      "evidence": "pending behavioral grader"
+    }
+  ]
+}

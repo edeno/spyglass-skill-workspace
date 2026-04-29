@@ -1,0 +1,35 @@
+{
+  "eval_id": 101,
+  "eval_name": "recovery-populate-partial-electrodes",
+  "stage": "runtime-debugging",
+  "tier": "workflow-recovery",
+  "difficulty": "hard",
+  "prompt": "I ran `populate_all_common('j1620210710_.nwb')`. `Session`, `IntervalList`, `Raw`, and `Electrode` all populated. But `Electrode` rows for this session have null `probe_id`, and `Probe` overall is missing the `probe_type` referenced by this file's tetrodes (I confirmed the tetrode metadata exists in the NWB via HDFView). What's the safe next step?",
+  "assertions": {
+    "required_substrings": [
+      "InsertError",
+      "raise_err=True",
+      "ProbeType"
+    ],
+    "forbidden_substrings": [
+      "reinsert=True before",
+      "should super_delete"
+    ],
+    "behavioral_checks": [
+      "Inspects `common_usage.InsertError` first (with the session's nwb_file_name restriction) rather than re-running the ingest blindly",
+      "Mentions that missing `Probe` rows often indicate an upstream `DataAcquisitionDevice` / `ProbeType` dependency that skipped silently — not a Probe-table-level fault"
+    ],
+    "required_substrings_exempt": [
+      "raise_err=True"
+    ],
+    "expected_output_tables_exempt": [
+      "Session",
+      "IntervalList",
+      "Raw",
+      "Electrode",
+      "Probe",
+      "DataAcquisitionDevice"
+    ]
+  },
+  "expected_output": "Don't re-run the ingest blindly. Inspect first.\n\n**Step 1 — read what populate_all_common already told you.** `populate_all_common` swallows per-table exceptions by default (`raise_err=False`) and writes a short message per silently-skipped table to `common_usage.InsertError`. Query it before doing anything else:\n\n```python\nfrom spyglass.common.common_usage import InsertError\n(InsertError & {'nwb_file_name': 'j1620210710_.nwb'}).fetch(as_dict=True)\n```\n\nThat tells you which table actually raised and what the message was. Almost always with a missing `Probe` row, the failure isn't on `Probe` itself — it's upstream. `Probe` has a hard FK to `ProbeType`, so a missing `ProbeType` row blocks `Probe` insertion silently. Less commonly, `DataAcquisitionDevice` (a nullable FK on `Probe`) can be involved if the device-reading step skipped a row your config expected — but `ProbeType` is the primary cause to check first.\n\n**Step 2 — re-run only the affected tables with `raise_err=True`** so the real traceback surfaces:\n\n```python\nfrom spyglass.common import populate_all_common\npopulate_all_common('j1620210710_.nwb', raise_err=True)\n```\n\nOr call the affected table's `populate()` directly with the restriction, again with `raise_err=True`. Use a fresh kernel so any cached connection state is reset.\n\n**What NOT to do:**\n- Do not call `reinsert=True` on `insert_sessions` before you've read the InsertError message — you'll re-trigger the same silent skip and lose the diagnostic trail.\n- Do not bypass `cautious_delete` to wipe `Session` / `IntervalList` / `Raw` / `Electrode` rows that ingested correctly — they're fine, and deleting them cascades downstream.\n\nOnce the error is identified, the fix is usually small — add the missing `ProbeType` row (or, if needed, the upstream `DataAcquisitionDevice` row) — and then re-populate just the affected table.\n\nRoutes to populate_all_common_debugging.md and ingestion.md."
+}

@@ -1,0 +1,22 @@
+{
+  "eval_id": 111,
+  "eval_name": "custom-table-multiple-nwbs-blob-pushback",
+  "prompt": "For the cross-correlation table — if each correlation matrix is only ~5 MB, can I just store it inline as a blob? I really don't want to deal with AnalysisNwbfile for this.",
+  "stage": "pipeline-authoring",
+  "tier": "parameter-semantics",
+  "difficulty": "hard",
+  "required_substrings": [
+    "AnalysisNwbfile"
+  ],
+  "forbidden_substrings": [
+    "yes, inline blob is fine at that size",
+    "5 MB is fine as a blob",
+    "correlations: longblob is fine"
+  ],
+  "behavioral_checks": [
+    "Pushes back on the inline-blob plan — does NOT capitulate even though the user explicitly asks for a yes",
+    "Names at least two reasons the size-per-row framing is the wrong yardstick: (a) downstream-portability / export-flow opacity (DANDI / Kachery / paper-export / FigURL); (b) aggregate scaling (5 MB x N sessions x N params crosses the practical blob ceiling faster than expected); (c) the Spyglass design contract that exactly-one AnalysisNwbfile per table is what lets cross-cutting tooling enumerate result-bearing rows",
+    "Cites the relevant Non-Negotiable: heavy arrays go to AnalysisNwbfile; tables reference exactly one AnalysisNwbfile (Spyglass validates on declaration)",
+    "Shows the AnalysisNwbfile().build(...) context-manager shape as the recommended alternative — does not let 'I don't want to deal with AnalysisNwbfile' override the design contract"
+  ]
+}

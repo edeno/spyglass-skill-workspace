@@ -1,0 +1,47 @@
+{
+  "eval_id": 88,
+  "eval_name": "ambiguity-delete-decoding-results",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'DecodingOutput'",
+      "passed": true,
+      "evidence": "found — 'DecodingOutput'"
+    },
+    {
+      "text": "required_substring: 'merge_delete'",
+      "passed": false,
+      "evidence": "MISSING — 'merge_delete'"
+    },
+    {
+      "text": "required_substring: 'destructive_operations.md'",
+      "passed": false,
+      "evidence": "MISSING — 'destructive_operations.md'"
+    },
+    {
+      "text": "behavioral_check: Identifies that the prompt is under-specified and either asks a clarifying question or narrows scope explicitly",
+      "passed": true,
+      "evidence": "'Disambiguate first' section asks two questions: which pipeline (clusterless vs sorted) and what scope. Explicitly states 'I'll assume you mean...' rather than running blind."
+    },
+    {
+      "text": "behavioral_check: Enumerates at least two plausible delete layers (merge entry vs. V1 computed row vs. on-disk artifact)",
+      "passed": true,
+      "evidence": "Three scopes enumerated: 'Just the populated outputs' (V1 rows), 'Selection + outputs', and 'Everything downstream of the NWB' (full cascade). Mentions on-disk files separately under 'Things to check'."
+    },
+    {
+      "text": "behavioral_check: Names the selection-scope ambiguity (which decoding_param_name / interval / session)",
+      "passed": false,
+      "evidence": "Discusses pipeline (clusterless vs sorted) and table tier (V1 vs Selection vs Nwbfile) but doesn't name the per-run ambiguity (decoding_param_name, encoding_interval, decoding_interval) within a single decoding pipeline."
+    },
+    {
+      "text": "behavioral_check: Recommends merge_delete with an explicit key (classmethod form) if the merge layer is chosen, and routes to destructive_operations.md for the inspect-before-destroy pattern",
+      "passed": false,
+      "evidence": "Recommends `(ClusterlessDecodingV1 & restr).delete()` directly on the V1 table; doesn't mention merge_delete or DecodingOutput.merge_delete. Briefly notes 'if your decoding output ever flowed into a merge table, check merge_get_part/merge_restrict' but doesn't recommend the merge_delete classmethod."
+    },
+    {
+      "text": "behavioral_check: Does not produce an unscoped `.delete()` command without asking or narrowing",
+      "passed": true,
+      "evidence": "All `.delete()` calls in snippets are restricted by `& restr` where `restr = {nwb_file_name: ...}`. Disambiguates before producing the snippet."
+    }
+  ]
+}

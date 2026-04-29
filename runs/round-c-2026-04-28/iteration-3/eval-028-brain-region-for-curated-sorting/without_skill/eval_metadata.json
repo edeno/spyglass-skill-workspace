@@ -1,0 +1,41 @@
+{
+  "eval_id": 28,
+  "eval_name": "brain-region-for-curated-sorting",
+  "stage": "pipeline-usage",
+  "tier": "joins",
+  "difficulty": "medium",
+  "prompt": "I have a curated sorting in `CurationV1` with `sorting_id='003581ca-a7e4-4953-bfc3-42198c1ba2a8'` and `curation_id=0`. What brain regions correspond to this sorting?",
+  "assertions": {
+    "required_substrings": [
+      "SortGroup",
+      "Electrode",
+      "BrainRegion",
+      "region_name",
+      "SortGroupElectrode",
+      "limit=1",
+      "CurationV1"
+    ],
+    "forbidden_substrings": [
+      "unit_id=5 has region"
+    ],
+    "behavioral_checks": [
+      "Leads with the explicit FK walk `SortGroup.SortGroupElectrode * Electrode * BrainRegion` (with `.proj('recording_id')` on `SpikeSortingSelection` to avoid the dependent-attribute refusal, OR an equivalent two-restriction split) as the source-of-truth answer",
+      "Notes that `unit_id` does NOT affect the region — all units in a sort group share the same electrodes",
+      "Mentions `CurationV1.get_sort_group_info` only as a convenience shortcut, AND calls out its `limit=1` sampling: it returns one region per sort group, accurate for tetrodes but incomplete for polymer-probe sort groups whose electrodes span multiple regions",
+      "For polymer probes spanning regions within a sort group, recommends the explicit FK walk over the helper",
+      "Does not invent a direct `region` attribute on `CurationV1` or on the unit itself"
+    ],
+    "expected_output_tables_exempt": [
+      "Electrode",
+      "SortGroup",
+      "SpikeSorting",
+      "SpikeSortingRecording",
+      "SpikeSortingRecordingSelection",
+      "SpikeSortingSelection"
+    ],
+    "required_substrings_exempt": [
+      "limit=1"
+    ]
+  },
+  "expected_output": "Routes to spikesorting_v1_pipeline.md. Brain region for a sorting comes from the **electrodes in each sort group**, joined to `BrainRegion`. Units don't carry region directly — `unit_id` doesn't affect the answer because all units in a sort group share electrodes.\n\n**Source-of-truth shape — explicit FK walk:** project the colliding secondary `recording_id` off `SpikeSortingSelection` first to avoid DataJoint's dependent-attribute refusal, then join through to `BrainRegion`:\n\n```python\nkey = {'sorting_id': '003581ca-a7e4-4953-bfc3-42198c1ba2a8', 'curation_id': 0}\nregions = (\n    (CurationV1 & key)\n    * (SpikeSortingSelection & key).proj('recording_id')\n    * SpikeSortingRecordingSelection\n    * SortGroup.SortGroupElectrode\n    * Electrode\n    * BrainRegion\n).fetch('sort_group_id', 'electrode_id', 'region_name', as_dict=True)\n```\n\nEquivalent two-restriction shape: `recording_id = (SpikeSortingSelection & key).fetch1('recording_id')`, then `(SpikeSortingRecordingSelection * SortGroup.SortGroupElectrode * Electrode * BrainRegion & {'recording_id': recording_id}).fetch('region_name')`. (See eval 96 / common_mistakes.md § 9 for why the bare `SpikeSortingSelection * SpikeSortingRecordingSelection` join refuses without the `.proj('recording_id')`.)\n\n**Convenience shortcut — `CurationV1.get_sort_group_info(key)`** (`src/spyglass/spikesorting/v1/curation.py:268`) wraps a similar join, but with one important caveat: it samples **one electrode per sort group** (`.fetch(limit=1)` at curation.py:289-294) before joining to `BrainRegion`. So `get_sort_group_info(...).fetch('region_name')` returns one region per sort group, not one region per electrode. For tetrodes (4 electrodes per sort group, all in the same region by lab convention) the helper is exact and the one-liner is fine. For polymer-probe sort groups whose electrodes span multiple regions, the helper **reports only the sampled electrode's region** and misses the others — use the explicit FK walk above instead.\n\nFor tetrodes the result is usually a single region per sort group (wrap with `set()` or `np.unique()` if expecting one); for polymer probes spanning regions, multiple names per sort group may come back via the explicit walk."
+}

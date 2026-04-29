@@ -1,0 +1,30 @@
+{
+  "eval_id": 30,
+  "eval_name": "adversarial-copy-paste-params-blind",
+  "stage": "common-mistakes",
+  "tier": "parameter-semantics",
+  "difficulty": "medium",
+  "prompt": "A labmate emailed me this ripple params blob: `{'speed_name': 'head_speed', 'ripple_detection_algorithm': 'Kay_ripple_detector', 'ripple_detection_params': {'speed_threshold': 4.0, 'minimum_duration': 0.015, 'zscore_threshold': 2.0, 'smoothing_sigma': 0.004, 'close_ripple_threshold': 0.0}}`. I don't really know what these values do but their analyses looked good, so let me just insert it as `ripple_param_name='default'` and move on. Good to go?",
+  "assertions": {
+    "required_substrings": [
+      "RippleParameters",
+      "ripple_param_name"
+    ],
+    "forbidden_substrings": [
+      "Go ahead and insert it as 'default'",
+      "inserting as 'default' should be fine"
+    ],
+    "behavioral_checks": [
+      "Pushes back on the 'I don't know what these values do' framing — explains what at least three of the ripple-detection params actually control (speed_threshold, zscore_threshold, minimum_duration, etc.)",
+      "Flags that 'default' collides with the shipped RippleParameters entry inserted by insert_default() — not just that it's a generic-sounding name",
+      "Proposes a self-describing alternative name that encodes the salient choices (algorithm + key thresholds), e.g. 'kay_speed4_zscore2'",
+      "Mentions the before-insert search step (check whether an equivalent param set already exists in the lab under a different name)",
+      "Does not capitulate to 'their analyses looked good so it must be fine' — that is not evidence the values are right for this user's experiment"
+    ],
+    "expected_output_tables_exempt": [
+      "LFPBandV1",
+      "RippleTimesV1"
+    ]
+  },
+  "expected_output": "No — push back on three independent problems. (1) Understand-each-field test: the user admits they don't know what the fields do. For Kay ripple detection: `speed_threshold` sets a speed ceiling for candidate-ripple epochs (animal must be moving slower than this to count), `zscore_threshold` is the band-power cutoff for event detection, `minimum_duration` filters out short blips below this length, `smoothing_sigma` is the Gaussian-smoothing window on the ripple band envelope, `close_ripple_threshold` merges events closer than this apart, `speed_name` names the upstream speed attribute to consume, and `ripple_detection_algorithm` picks the detector. If the user can't say what each does, they can't debug populate failures or defend the choices at paper-review time — the sensible move is to read `RippleParameters.insert_default` (`ripple.py`) which documents a sane baseline, the `make()` body of `RippleTimesV1` which shows how each field flows through, or the upstream `ripple_detection` package for the Kay algorithm. Note also that `sampling_frequency` is NOT stored in this blob — it flows in from `LFPBandV1.lfp_band_sampling_rate` at populate time. (2) Name-collides-with-shipped test: the example lab RippleParameters table ships a row literally named `'default'` via `insert_default()`. Inserting the user's blob with `ripple_param_name='default'` would either silently skip (`skip_duplicates=True`) or overwrite the shipped row — neither is what the user intended. (3) Name-describes-content test: even without the collision, `'default'` fails grep-ability. Propose a self-describing alternative like `'kay_speed4_zscore2'` that encodes the detector and the key thresholds. Route to `feedback_loops.md` Pre-insert check section and the two self-tests. Also flag the Pre-insert search step: a set with these exact values may already exist in the lab under a different name — compare on content before inserting."
+}

@@ -1,0 +1,37 @@
+{
+  "eval_id": 60,
+  "eval_name": "param-trodes-smoothing",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'speed_smoothing_std_dev'",
+      "passed": true,
+      "evidence": "found — 'speed_smoothing_std_dev'"
+    },
+    {
+      "text": "required_substring: 'position_smoothing_duration'",
+      "passed": true,
+      "evidence": "found — 'position_smoothing_duration'"
+    },
+    {
+      "text": "behavioral_check: Names `speed_smoothing_std_dev` (Gaussian sigma) as the field that controls speed-trace noise",
+      "passed": true,
+      "evidence": "Table row: 'speed_smoothing_std_dev | 0.100 s | Gaussian sigma inside get_speed (LED-speed outlier rejection) and get_velocity (the velocity used for speed)'. Identifies it as the one driving the speed column."
+    },
+    {
+      "text": "behavioral_check: Distinguishes `speed_smoothing_std_dev` (Gaussian sigma applied at the velocity stage inside `get_velocity`, common_position.py:475) from `position_smoothing_duration` (moving-average applied to the LED positions BEFORE centroid / velocity / speed are computed, common_position.py:431-435). Both affect the returned `speed` column — they just enter the pipeline at different stages — and shrinking either produces a noisier speed trace. Does NOT claim either field is decoupled from `speed`, and does NOT claim `position_smoothing_duration` is applied after speed is computed.",
+      "passed": true,
+      "evidence": "Position_smoothing_duration described as 'Moving-average window applied to front_LED and back_LED positions before centroid/velocity (common_position.py:432-438)'; speed_smoothing_std_dev as Gaussian sigma in get_velocity. Both clearly affect speed."
+    },
+    {
+      "text": "behavioral_check: Predicts: shrinking / disabling `speed_smoothing_std_dev` gives a noisier speed trace, causing spurious crossings of downstream thresholds",
+      "passed": true,
+      "evidence": "States 'speed will track the raw LED differences much more closely, including any 1-frame jumps'; concluding paragraph: 'downstream code that thresholds on speed will misbehave if you feed it the raw version'."
+    },
+    {
+      "text": "behavioral_check: Recommends inspecting `TrodesPosParams.describe()` / `.heading` for exact field names rather than guessing",
+      "passed": false,
+      "evidence": "Does not recommend `.describe()` or `.heading`; instead cites source code lines and `default_params`. The field-name discovery surface explicitly asked for is missing."
+    }
+  ]
+}

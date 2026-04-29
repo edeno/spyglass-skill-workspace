@@ -1,0 +1,18 @@
+{
+  "eval_id": 56,
+  "eval_name": "classify-lfpband-role",
+  "prompt": "Is `LFPBandV1` a compute table or an output table? I'm trying to decide if I should populate it or just read from it.",
+  "stage": "table-understanding",
+  "tier": "table-classification",
+  "difficulty": "easy",
+  "required_substrings": [
+    "LFPBandV1.populate",
+    "LFPBandSelection"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Identifies LFPBandV1 as Computed; user populates it after inserting LFPBandSelection",
+    "Notes there is no merge wrapper — LFPBandV1 itself is the consumer-facing endpoint",
+    "Does not invent an `LFPBandOutput` merge/output table, `lfp_band_merge` module, or merge_get_part workflow for LFPBandV1"
+  ]
+}

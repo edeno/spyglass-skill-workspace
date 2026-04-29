@@ -1,0 +1,42 @@
+{
+  "eval_id": 46,
+  "eval_name": "env-editable-install-drift",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'spyglass.__file__'",
+      "passed": true,
+      "evidence": "found — 'spyglass.__file__'"
+    },
+    {
+      "text": "required_substring: 'pip install -e .'",
+      "passed": true,
+      "evidence": "found — 'pip install -e .'"
+    },
+    {
+      "text": "required_substring: 'Jupyter kernel'",
+      "passed": true,
+      "evidence": "found — 'Jupyter kernel'"
+    },
+    {
+      "text": "behavioral_check: Identifies site-packages shadowing as the root cause (not a spyglass code bug) — does NOT recommend filing a bug or waiting for the next release; the fix is user-side (`pip install -e .` from the checkout)",
+      "passed": true,
+      "evidence": "Opens: 'the Python interpreter you're importing from is **not actually loading code from `~/spyglass/`**... there's a *copy* of the old Spyglass sitting in `site-packages/`'. Fix is user-side `pip install -e .`."
+    },
+    {
+      "text": "behavioral_check: Shows `print(spyglass.__file__)` as the concrete diagnostic",
+      "passed": true,
+      "evidence": "Step 1 runs `python -c \"import spyglass, os; print(spyglass.__file__); print(os.path.realpath(spyglass.__file__))\"`."
+    },
+    {
+      "text": "behavioral_check: Includes the `pip install -e .` step AND the Jupyter kernel restart",
+      "passed": true,
+      "evidence": "Step 2 has `pip install -e .`. Step 3 item 2: 'You're inside an already-running interpreter / Jupyter kernel... restart the kernel.'"
+    },
+    {
+      "text": "behavioral_check: Mentions uninstalling `spyglass-neuro` if both installs coexist",
+      "passed": true,
+      "evidence": "Step 2: `pip uninstall spyglass-neurodata` — same intent, slight name drift (writes 'spyglass-neurodata' instead of canonical 'spyglass-neuro'); the substance of removing the PyPI install before the editable install is correct."
+    }
+  ]
+}

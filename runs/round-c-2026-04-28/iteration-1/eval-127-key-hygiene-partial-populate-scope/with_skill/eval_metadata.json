@@ -1,0 +1,28 @@
+{
+  "eval_id": 127,
+  "eval_name": "key-hygiene-partial-populate-scope",
+  "stage": "pipeline-usage",
+  "tier": "disambiguation",
+  "difficulty": "medium",
+  "prompt": "I want to recompute RippleTimesV1 for my new ripple_param_name='tighter_thresh'. Is `RippleTimesV1.populate({'ripple_param_name': 'tighter_thresh'})` enough?",
+  "assertions": {
+    "required_substrings": [
+      "RippleLFPSelection",
+      "pos_merge_id",
+      "ripple/v1/ripple.py"
+    ],
+    "expected_output_tables_exempt": [
+      "RippleTimesV1",
+      "RippleParameters",
+      "PositionOutput"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Identifies the populate restriction as partial-PK and explains it runs over every combination of the missing PK fields",
+      "Names the missing PK fields explicitly (`RippleLFPSelection`, `pos_merge_id`)",
+      "Recommends building a fully-scoped `populate_key` with the missing fields included",
+      "Verifies the full PK with `code_graph.py describe RippleTimesV1` (agent tool) or `RippleTimesV1.heading.primary_key` in the user's Python session, not memory"
+    ]
+  },
+  "expected_output": "No — that restriction is partial-PK and will populate every (RippleLFPSelection, pos_merge_id) combination under the new params name, not just one downstream analysis. `RippleTimesV1`'s PK includes `RippleLFPSelection`, `RippleParameters`, AND `PositionOutput.proj(pos_merge_id='merge_id')` (`ripple/v1/ripple.py:182`). Verify the full PK with `code_graph.py describe RippleTimesV1` or `RippleTimesV1.heading.primary_key`.\n\nBuild a fully-scoped key:\n\n```python\npopulate_key = {\n    **rip_sel_key,                  # RippleLFPSelection PK\n    'ripple_param_name': 'tighter_thresh',\n    'pos_merge_id': pos_merge_id,   # specific PositionOutput merge_id\n}\nRippleTimesV1.populate(populate_key)\n```\n\nRoutes to destructive_operations.md (post-update populate scope) and ripple_pipeline.md."
+}

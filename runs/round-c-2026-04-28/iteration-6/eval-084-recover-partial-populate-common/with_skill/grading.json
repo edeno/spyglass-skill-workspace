@@ -1,0 +1,32 @@
+{
+  "eval_id": 84,
+  "eval_name": "recover-partial-populate-common",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (InsertError, raise_err=True, populate_all_common_debugging.md).",
+      "passed": true,
+      "evidence": "All required substrings present (InsertError multiple times, raise_err=True multiple times, populate_all_common_debugging.md linked at top and bottom)."
+    },
+    {
+      "text": "Recommends inspecting common_usage.InsertError as the first diagnostic",
+      "passed": true,
+      "evidence": "Step 1 explicitly: 'Inspect common_usage.InsertError first (no DB writes, no deletes)' with the query."
+    },
+    {
+      "text": "Recommends re-running with raise_err=True scoped narrowly",
+      "passed": true,
+      "evidence": "Step 2: `populate_all_common('j1620210710_.nwb', raise_err=True)` on a fresh kernel; idempotent inserts short-circuit already-populated tables."
+    },
+    {
+      "text": "Explicitly warns against deleting already-ingested rows",
+      "passed": true,
+      "evidence": "What-NOT-to-do: 'Do not delete Session, IntervalList, or Raw. Those rows ingested correctly. Deleting them isn't recovery — Session is a top-level parent ... cascades far beyond what you can see'."
+    },
+    {
+      "text": "Explicitly warns against naively re-running full populate_all_common without inspecting InsertError first",
+      "passed": true,
+      "evidence": "'Do not re-run the full populate_all_common(...) blindly without first inspecting InsertError. Re-running with the same default raise_err=False will silently re-fail in exactly the same place'."
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "eval_id": 114,
+  "eval_name": "adversarial-cross-corr-blob-column",
+  "prompt": "I want a custom table that computes cross-correlation of all neuron pairs in a `SortedSpikesGroup`. Schema: `-> SortedSpikesGroup`, `group_name`, `correlations: longblob`. Look OK?",
+  "stage": "pipeline-authoring",
+  "tier": "adversarial",
+  "difficulty": "hard",
+  "required_substrings": [
+    "AnalysisNwbfile",
+    "_object_id",
+    "SpyglassMixin"
+  ],
+  "forbidden_substrings": [
+    "schema looks fine",
+    "schema looks ok",
+    "store correlations in longblob is fine",
+    "longblob is the right shape"
+  ],
+  "behavioral_checks": [
+    "Pushes back on `correlations: longblob` — recommends `AnalysisNwbfile` + `correlations_object_id : varchar(40)` instead. Does NOT capitulate even though the user explicitly asks 'looks OK?'",
+    "Identifies the redundant `group_name` field (`SortedSpikesGroup`'s PK already propagates `sorted_spikes_group_name` via the FK) and recommends dropping it",
+    "Names the missing `-> AnalysisNwbfile` line as the second concrete issue — Spyglass validates that result-bearing tables reference exactly one AnalysisNwbfile on declaration",
+    "Frames the non-negotiable as **reproducibility / shareability** (export flows, DANDI / Kachery / paper-export expect heavy arrays in AnalysisNwbfile), NOT as a row-size or performance argument"
+  ]
+}

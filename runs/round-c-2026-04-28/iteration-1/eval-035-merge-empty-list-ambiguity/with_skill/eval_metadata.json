@@ -1,0 +1,26 @@
+{
+  "eval_id": 35,
+  "eval_name": "merge-empty-list-ambiguity",
+  "stage": "runtime-debugging",
+  "tier": "merge-table-gotchas",
+  "difficulty": "medium",
+  "prompt": "I'm confused by this error: `PositionOutput.merge_get_part({'nwb_file_name': 'j1620210710_.nwb', 'interval_list_name': '02_r1'})` raises `ValueError: Found 0 potential parts: []`. My `IntervalPositionInfo` has rows for that session — why is `merge_get_part` saying zero?",
+  "assertions": {
+    "required_substrings": [
+      "PositionOutput.CommonPos",
+      "merge_get_part",
+      "_merge_insert",
+      "IntervalPositionInfo",
+      "TrodesPosV1",
+      "DLCPosV1"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Decodes the error correctly — 'Found 0 potential parts: []' means zero source-table rows mapped to a merge-part-table row, not 'multiple'",
+      "Gives the `len(part & restriction)` diagnostic to confirm zero-in-merge-part",
+      "Identifies the missing merge-insert step as the root cause",
+      "Correctly states that `IntervalPositionInfo`'s `make` method does NOT auto-insert into `PositionOutput.CommonPos` — so populating IntervalPositionInfo alone won't fix it; the user must also call `PositionOutput._merge_insert(rows, part_name='CommonPos')` explicitly. (Contrast: `TrodesPosV1`'s `make` and `DLCPosV1`'s `make` DO auto-insert into their respective PositionOutput parts.) Does NOT claim that `IntervalPositionInfo.populate(...)` alone fills the merge, and does NOT suggest `PositionOutput.insert(...)` on the master."
+    ]
+  },
+  "expected_output": "Routes to merge_methods.md `#merge_get_part` zero-parts note. The error literally means what it says — `merge_get_part` could not find any merge-part-table row matching the restriction. The usual cause is exactly the user's situation: an upstream source table has rows for the session, but they were never pushed into the corresponding **merge part** table. The merge master and the upstream source are different rows in different tables.\n\nFor the user's case: `IntervalPositionInfo` is the source for `PositionOutput.CommonPos` (`position_merge.py:5` aliases `IntervalPositionInfo as CommonPos`; the `source_class_dict` at `position_merge.py:14-20` maps the master to its part). `IntervalPositionInfo`'s `make` does NOT auto-insert into `PositionOutput.CommonPos` — the user has to call `PositionOutput._merge_insert(rows, part_name='CommonPos')` explicitly after populating `IntervalPositionInfo`. Contrast: `TrodesPosV1's `make()` hook` and `DLCPosV1's `make()` hook` DO auto-insert into their respective `PositionOutput` parts, which is why those flows feel seamless.\n\nDiagnostic: `len(PositionOutput.CommonPos & {'nwb_file_name': 'j1620210710_.nwb', 'interval_list_name': '02_r1'})` will return 0, confirming the merge insert is missing. Fix: run the explicit `PositionOutput._merge_insert(...)` call with the source rows."
+}

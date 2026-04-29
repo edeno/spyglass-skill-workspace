@@ -1,0 +1,27 @@
+{
+  "eval_id": 129,
+  "eval_name": "key-hygiene-custom-table-runtime-only",
+  "stage": "hallucination-resistance",
+  "tier": "schema-introspection",
+  "difficulty": "medium",
+  "prompt": "My lab has a custom `MyLabRipplePostprocess` table that wraps `RippleTimesV1`. It's defined in our internal package, not in the Spyglass repo. How do I find its primary key?",
+  "assertions": {
+    "required_substrings": [
+      "heading.primary_key"
+    ],
+    "expected_output_tables_exempt": [
+      "MyLabRipplePostprocess",
+      "RippleTimesV1"
+    ],
+    "forbidden_substrings": [
+      "Run code_graph.py describe MyLabRipplePostprocess"
+    ],
+    "behavioral_checks": [
+      "States that `code_graph.py` cannot see tables defined outside `$SPYGLASS_SRC`",
+      "Recommends runtime introspection through `db_graph.py` when available to the agent, or `MyLabRipplePostprocess.heading.primary_key` in the user's Python session; otherwise read the custom table's source definition directly",
+      "Does NOT guess the PK from the class name or assume it inherits `RippleTimesV1`'s shape",
+      "Treats this as a runtime-fact / custom-pipeline question, not a source-graph question"
+    ]
+  },
+  "expected_output": "`code_graph.py` only walks `$SPYGLASS_SRC/spyglass/`, so it can't see lab-internal tables. Three paths, depending on context:\n\n1. **Agent path (bundled tool, if available).** If the skill environment has `db_graph.py` plus a DB connection, run `python skills/spyglass/scripts/db_graph.py describe MyLabRipplePostprocess` to read the runtime heading. Note this is a bundled skill tool, NOT a universal Spyglass user command — only available where the skill is installed.\n2. **User path (always available in a Python session).** Import the custom table from the lab package and read `MyLabRipplePostprocess.heading.primary_key` directly. This is the portable answer for the user's own Python/DataJoint session.\n3. **Source fallback.** Open the lab's package source and read the `definition = \"\"\"...\"\"\"` block for `MyLabRipplePostprocess` directly. Useful when neither the DB nor an importable copy is available.\n\nDo NOT guess the PK from the class name or from `RippleTimesV1`'s shape — custom wrappers commonly add their own fields, project parent FKs, or override the heading. Routes to merge_methods.md (custom-table caveats) and the script docstrings in `skills/spyglass/scripts/`."
+}

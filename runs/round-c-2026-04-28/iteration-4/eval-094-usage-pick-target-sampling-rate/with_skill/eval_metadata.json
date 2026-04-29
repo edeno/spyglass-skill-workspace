@@ -1,0 +1,21 @@
+{
+  "eval_id": 94,
+  "eval_name": "usage-pick-target-sampling-rate",
+  "prompt": "I'm setting up an `LFPSelection` and I plan to do ripple-band analysis (150-250 Hz) downstream. What `target_sampling_rate` should I pick, and how do I confirm the value will work for the band I want?",
+  "stage": "pipeline-usage",
+  "tier": "table-usage",
+  "difficulty": "easy",
+  "required_substrings": [
+    "target_sampling_rate",
+    "Nyquist",
+    "1000 Hz",
+    "FirFilterParameters"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Recommends `target_sampling_rate=1000` (Hz) as the canonical choice for ripple-band downstream work, with at least 2x Nyquist headroom over the highest band frequency",
+    "Distinguishes the two sampling-rate constraints: (a) filter lookup is EXACT at the LFP input rate (`FirFilterParameters & {filter_sampling_rate: lfp_sampling_rate}`, lfp_band.py:110-128), NOT a `<=` match; (b) `lfp_band_sampling_rate <= lfp_sampling_rate` is automatic via decimation (lfp_band.py:220)",
+    "Names `FirFilterParameters` and shows the exact-match restriction (filter_name + filter_sampling_rate equal to the planned LFP input rate) as the verification step",
+    "Does NOT claim the filter lookup uses a `<=` semantic — that is the wrong rule applied to the wrong sampling-rate field"
+  ]
+}

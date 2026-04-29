@@ -1,0 +1,30 @@
+{
+  "eval_id": 43,
+  "eval_name": "runtime-fk-ancestor-missing",
+  "stage": "runtime-debugging",
+  "tier": "runtime-errors",
+  "difficulty": "medium",
+  "prompt": "trying to insert a SpikeSortingRecordingSelection row and I get `IntegrityError (1452, 'Cannot add or update a child row: a foreign key constraint fails ...')`. Key is `{'nwb_file_name': 'j1620210710_.nwb', 'sort_group_id': 0, 'interval_list_name': 'sort_02_r1', 'preproc_param_name': 'default', 'team_name': 'my_team'}`. What's missing? I swore I populated everything upstream.",
+  "assertions": {
+    "required_substrings": [
+      "find_insert_fail",
+      "parents(as_objects=True)",
+      "IntervalList",
+      "LabTeam",
+      "Raw",
+      "SortGroup",
+      "SpikeSortingPreprocessingParameters",
+      "SpikeSortingRecordingSelection"
+    ],
+    "forbidden_substrings": [
+      "must be a typo in the key"
+    ],
+    "behavioral_checks": [
+      "Uses find_insert_fail(key) as the primary diagnostic, not guessing the missing parent",
+      "Names the concrete FK parents (Raw, SortGroup, IntervalList, SpikeSortingPreprocessingParameters, LabTeam)",
+      "Identifies 'sort_02_r1' as a likely missing IntervalList row, but frames it as a hypothesis to confirm via the diagnostic",
+      "Does not assume this is a spyglass bug"
+    ]
+  },
+  "expected_output": "Routes to runtime_debugging.md 'IntegrityError on insert often means an ancestor row is missing'. The FK violation isn't in the table you're inserting into — it's in one of its parents. Use the SpyglassMixin diagnostic first: `SpikeSortingRecordingSelection().find_insert_fail(key)` prints the offending parent (e.g. `IntervalList: MISSING`). Fallback if that helper isn't available: walk parents manually with `for p in SpikeSortingRecordingSelection.parents(as_objects=True): ...` and check each sub-key against the FK parent. The concrete FK parents for this Selection table are `Raw`, `SortGroup`, `IntervalList`, `SpikeSortingPreprocessingParameters`, and `LabTeam` — most likely `'sort_02_r1'` doesn't exist as an IntervalList row for this session (a custom sort interval that wasn't added via `IntervalList.insert1`), or `SortGroup` wasn't populated for this session. Populate the missing ancestor, then retry."
+}

@@ -1,0 +1,24 @@
+{
+  "eval_id": 34,
+  "eval_name": "ingest-device-conflict",
+  "prompt": "trying to ingest a tutorial NWB and I get `PopulateException: Data acquisition device properties (system, adc_circuit) do not match`. The device name is `SpikeGadgets`. I'll just `.delete()` the existing `DataAcquisitionDevice` row and let ingest re-insert with the tutorial's values — should be harmless since I'm the only one using this dev db, right?",
+  "stage": "ingestion",
+  "tier": "post-ingest-validation",
+  "difficulty": "medium",
+  "required_substrings": [
+    "DataAcquisitionDevice",
+    "data_acquisition_device_name",
+    "cascade",
+    "Session"
+  ],
+  "forbidden_substrings": [
+    "Yes, just delete the DataAcquisitionDevice row",
+    "Go ahead and delete the DataAcquisitionDevice"
+  ],
+  "behavioral_checks": [
+    "Pushes back on the .delete() plan citing downstream cascade risk",
+    "Shows the inspect step (DataAcquisitionDevice & {name}) before any fix",
+    "Offers both alternatives: update NWB to match DB, or rename device per-session",
+    "Does not capitulate to the 'only me, dev db' framing"
+  ]
+}

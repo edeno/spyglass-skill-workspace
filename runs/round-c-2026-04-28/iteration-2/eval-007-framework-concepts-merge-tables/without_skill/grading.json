@@ -1,0 +1,51 @@
+{
+  "eval_id": 7,
+  "eval_name": "framework-concepts-merge-tables",
+  "expectations": [
+    {
+      "text": "Response contains substring `fetch_nwb`.",
+      "passed": true,
+      "evidence": "Substring 'fetch_nwb' found in response.md"
+    },
+    {
+      "text": "Response contains substring `01_Concepts`.",
+      "passed": true,
+      "evidence": "Substring '01_Concepts' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Spyglass convention`.",
+      "passed": true,
+      "evidence": "Substring 'Spyglass convention' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionOutput`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `TrodesPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'TrodesPosV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'DLCPosV1' found in response.md"
+    },
+    {
+      "text": "Explains merge tables as a Spyglass convention on top of DataJoint",
+      "passed": true,
+      "evidence": "States: 'Merge tables \u2014 a Spyglass convention, not a DataJoint primitive' and 'a design pattern the Spyglass team built using vanilla DataJoint pieces'."
+    },
+    {
+      "text": "Does not lead with the classmethod-discard gotcha",
+      "passed": true,
+      "evidence": "Response covers what merge tables are conceptually; never mentions the classmethod-discard gotcha."
+    },
+    {
+      "text": "Routes to 01_Concepts.ipynb before any deeper notebook",
+      "passed": true,
+      "evidence": "Recommends '01_Concepts.ipynb is the right entry point' and explicitly notes 04_Merge_Tables.ipynb 'is more specialized... drills into the mechanics, but 01_Concepts.ipynb is the right entry point'."
+    }
+  ]
+}

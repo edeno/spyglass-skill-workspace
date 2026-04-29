@@ -1,0 +1,41 @@
+{
+  "eval_id": 19,
+  "eval_name": "count-tetrodes-per-session",
+  "expectations": [
+    {
+      "text": "Response contains substring `electrode_group_name`.",
+      "passed": true,
+      "evidence": "Substring 'electrode_group_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `subject_id`.",
+      "passed": true,
+      "evidence": "Substring 'subject_id' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Session`.",
+      "passed": true,
+      "evidence": "Substring 'Session' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Electrode`.",
+      "passed": true,
+      "evidence": "Substring 'Electrode' found in response.md"
+    },
+    {
+      "text": "Restricts to subject aj80",
+      "passed": true,
+      "evidence": "Uses `Session & {'subject_id': 'aj80'}` for the restriction."
+    },
+    {
+      "text": "Counts distinct electrode_group_name values per session \u2014 does not count raw Electrode rows as tetrodes (each tetrode has 4 electrodes)",
+      "passed": true,
+      "evidence": "Uses `count(distinct electrode_group_name)` with note 'Counting raw Electrode rows would over-count by a factor of 4'."
+    },
+    {
+      "text": "Names .aggr() OR an equivalent (Session.proj * Electrode.proj | unique-on-electrode-group) approach; does not require .aggr() as the only valid answer.",
+      "passed": true,
+      "evidence": "Uses `.aggr()` as canonical and provides pandas-equivalent drop_duplicates+groupby form."
+    }
+  ]
+}

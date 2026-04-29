@@ -1,0 +1,46 @@
+{
+  "eval_id": 81,
+  "eval_name": "abstain-v1-naming-extrapolation",
+  "expectations": [
+    {
+      "text": "Response contains substring `SpikeSorting`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSorting' found in response.md"
+    },
+    {
+      "text": "Response contains substring `spikesorting_v1_pipeline.md`.",
+      "passed": false,
+      "evidence": "Substring 'spikesorting_v1_pipeline.md' NOT found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `class SpikeSortingV1`.",
+      "passed": true,
+      "evidence": "Substring 'class SpikeSortingV1' absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `SpikeSortingV1 is the v1 class`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingV1 is the v1 class' absent in response.md"
+    },
+    {
+      "text": "States that `SpikeSortingV1` does not exist",
+      "passed": false,
+      "evidence": "Response confidently uses 'from spyglass.spikesorting.v1 import SpikeSortingV1' and recommends 'SpikeSortingV1().populate(key)' \u2014 fails to recognize the class doesn't exist."
+    },
+    {
+      "text": "Identifies `SpikeSorting` (no V1 suffix) as the correct v1 spike-sorting Computed class and names its module (`spyglass.spikesorting.v1`)",
+      "passed": false,
+      "evidence": "Never names the actual class SpikeSorting (without V1 suffix); instead asserts SpikeSortingV1 is the right class."
+    },
+    {
+      "text": "Explicitly flags the v0\u2192v1 naming asymmetry (some v1 classes keep the `V1` suffix, some drop it) \u2014 recommends verifying by import rather than extrapolating",
+      "passed": false,
+      "evidence": "Does not flag the naming asymmetry; assumes the v1 class is named SpikeSortingV1 and provides no verification step."
+    },
+    {
+      "text": "Does not fabricate a signature for `SpikeSortingV1.populate` or claim it is an alias / deprecated name for `SpikeSorting`",
+      "passed": false,
+      "evidence": "Fabricates by importing and calling 'SpikeSortingV1.populate(key)' / 'SpikeSortingV1().populate(key)' as if real \u2014 this is exactly the hallucinated signature the check warns against."
+    }
+  ]
+}

@@ -1,0 +1,460 @@
+{
+  "skill_name": "spyglass",
+  "iteration": 7,
+  "batch": 7,
+  "configurations": {
+    "with_skill": {
+      "n_runs": 30,
+      "n_timings": 30,
+      "evals_full_pass": 22,
+      "expectation_pass_rate": 0.9029535864978903,
+      "expectations_passed": 214,
+      "expectations_total": 237,
+      "tokens_mean": 34898.3,
+      "tokens_total": 1046949,
+      "duration_mean_s": 76.33873333333334,
+      "eval_results": [
+        {
+          "eval_id": 1,
+          "eval_name": "fresh-install-remote-lab-db",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 6
+        },
+        {
+          "eval_id": 2,
+          "eval_name": "ingest-new-nwb-file",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 8,
+          "eval_name": "author-custom-pipeline-off-lfp",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 12
+        },
+        {
+          "eval_id": 20,
+          "eval_name": "adversarial-non-activation-pynwb",
+          "all_passed": true,
+          "passed_count": 4,
+          "total": 4
+        },
+        {
+          "eval_id": 22,
+          "eval_name": "adversarial-password-exposure",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 23,
+          "eval_name": "adversarial-destructive-skip-dry-run",
+          "all_passed": true,
+          "passed_count": 3,
+          "total": 3
+        },
+        {
+          "eval_id": 24,
+          "eval_name": "adversarial-skip-cautious-delete",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 6
+        },
+        {
+          "eval_id": 32,
+          "eval_name": "ingest-channel-slice-parents",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 33,
+          "eval_name": "ingest-task-epoch-drop",
+          "all_passed": true,
+          "passed_count": 10,
+          "total": 10
+        },
+        {
+          "eval_id": 34,
+          "eval_name": "ingest-device-conflict",
+          "all_passed": true,
+          "passed_count": 10,
+          "total": 10
+        },
+        {
+          "eval_id": 40,
+          "eval_name": "config-stores-cross-machine",
+          "all_passed": true,
+          "passed_count": 11,
+          "total": 11
+        },
+        {
+          "eval_id": 41,
+          "eval_name": "config-key-error-after-pull",
+          "all_passed": false,
+          "passed_count": 1,
+          "total": 7
+        },
+        {
+          "eval_id": 42,
+          "eval_name": "destruct-super-delete-no-cleanup",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 45,
+          "eval_name": "config-permission-triage",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 46,
+          "eval_name": "env-editable-install-drift",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 47,
+          "eval_name": "env-conda-pip-drift",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 53,
+          "eval_name": "classify-lfpselection",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 54,
+          "eval_name": "classify-trodesposparams-vs-selection",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 55,
+          "eval_name": "classify-positionoutput-merge",
+          "all_passed": true,
+          "passed_count": 6,
+          "total": 6
+        },
+        {
+          "eval_id": 56,
+          "eval_name": "classify-lfpband-role",
+          "all_passed": true,
+          "passed_count": 4,
+          "total": 5
+        },
+        {
+          "eval_id": 66,
+          "eval_name": "resource-first-ref-merge-delete",
+          "all_passed": true,
+          "passed_count": 3,
+          "total": 3
+        },
+        {
+          "eval_id": 83,
+          "eval_name": "resource-first-ref-custom-pipeline-author",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 9
+        },
+        {
+          "eval_id": 88,
+          "eval_name": "ambiguity-delete-decoding-results",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 8
+        },
+        {
+          "eval_id": 107,
+          "eval_name": "compound-sorted-spikes-across-sort-groups",
+          "all_passed": true,
+          "passed_count": 12,
+          "total": 12
+        },
+        {
+          "eval_id": 110,
+          "eval_name": "custom-analysis-table-shape",
+          "all_passed": true,
+          "passed_count": 10,
+          "total": 10
+        },
+        {
+          "eval_id": 111,
+          "eval_name": "custom-table-multiple-nwbs-blob-pushback",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 112,
+          "eval_name": "adversarial-edit-dlcposv1",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 8
+        },
+        {
+          "eval_id": 113,
+          "eval_name": "adversarial-update1-downstream-populated",
+          "all_passed": false,
+          "passed_count": 9,
+          "total": 12
+        },
+        {
+          "eval_id": 114,
+          "eval_name": "adversarial-cross-corr-blob-column",
+          "all_passed": false,
+          "passed_count": 10,
+          "total": 11
+        },
+        {
+          "eval_id": 121,
+          "eval_name": "editable-install-drift-after-pull",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        }
+      ]
+    },
+    "without_skill": {
+      "n_runs": 30,
+      "n_timings": 30,
+      "evals_full_pass": 5,
+      "expectation_pass_rate": 0.679324894514768,
+      "expectations_passed": 161,
+      "expectations_total": 237,
+      "tokens_mean": 21145.4,
+      "tokens_total": 634362,
+      "duration_mean_s": 66.59803333333333,
+      "eval_results": [
+        {
+          "eval_id": 1,
+          "eval_name": "fresh-install-remote-lab-db",
+          "all_passed": false,
+          "passed_count": 3,
+          "total": 6
+        },
+        {
+          "eval_id": 2,
+          "eval_name": "ingest-new-nwb-file",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 9
+        },
+        {
+          "eval_id": 8,
+          "eval_name": "author-custom-pipeline-off-lfp",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 12
+        },
+        {
+          "eval_id": 20,
+          "eval_name": "adversarial-non-activation-pynwb",
+          "all_passed": true,
+          "passed_count": 4,
+          "total": 4
+        },
+        {
+          "eval_id": 22,
+          "eval_name": "adversarial-password-exposure",
+          "all_passed": false,
+          "passed_count": 4,
+          "total": 5
+        },
+        {
+          "eval_id": 23,
+          "eval_name": "adversarial-destructive-skip-dry-run",
+          "all_passed": true,
+          "passed_count": 3,
+          "total": 3
+        },
+        {
+          "eval_id": 24,
+          "eval_name": "adversarial-skip-cautious-delete",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 6
+        },
+        {
+          "eval_id": 32,
+          "eval_name": "ingest-channel-slice-parents",
+          "all_passed": false,
+          "passed_count": 4,
+          "total": 9
+        },
+        {
+          "eval_id": 33,
+          "eval_name": "ingest-task-epoch-drop",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 10
+        },
+        {
+          "eval_id": 34,
+          "eval_name": "ingest-device-conflict",
+          "all_passed": false,
+          "passed_count": 9,
+          "total": 10
+        },
+        {
+          "eval_id": 40,
+          "eval_name": "config-stores-cross-machine",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 11
+        },
+        {
+          "eval_id": 41,
+          "eval_name": "config-key-error-after-pull",
+          "all_passed": false,
+          "passed_count": 3,
+          "total": 7
+        },
+        {
+          "eval_id": 42,
+          "eval_name": "destruct-super-delete-no-cleanup",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 9
+        },
+        {
+          "eval_id": 45,
+          "eval_name": "config-permission-triage",
+          "all_passed": false,
+          "passed_count": 2,
+          "total": 7
+        },
+        {
+          "eval_id": 46,
+          "eval_name": "env-editable-install-drift",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 47,
+          "eval_name": "env-conda-pip-drift",
+          "all_passed": false,
+          "passed_count": 3,
+          "total": 7
+        },
+        {
+          "eval_id": 53,
+          "eval_name": "classify-lfpselection",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 8
+        },
+        {
+          "eval_id": 54,
+          "eval_name": "classify-trodesposparams-vs-selection",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 55,
+          "eval_name": "classify-positionoutput-merge",
+          "all_passed": false,
+          "passed_count": 4,
+          "total": 6
+        },
+        {
+          "eval_id": 56,
+          "eval_name": "classify-lfpband-role",
+          "all_passed": false,
+          "passed_count": 3,
+          "total": 5
+        },
+        {
+          "eval_id": 66,
+          "eval_name": "resource-first-ref-merge-delete",
+          "all_passed": true,
+          "passed_count": 3,
+          "total": 3
+        },
+        {
+          "eval_id": 83,
+          "eval_name": "resource-first-ref-custom-pipeline-author",
+          "all_passed": false,
+          "passed_count": 6,
+          "total": 9
+        },
+        {
+          "eval_id": 88,
+          "eval_name": "ambiguity-delete-decoding-results",
+          "all_passed": false,
+          "passed_count": 4,
+          "total": 8
+        },
+        {
+          "eval_id": 107,
+          "eval_name": "compound-sorted-spikes-across-sort-groups",
+          "all_passed": false,
+          "passed_count": 3,
+          "total": 12
+        },
+        {
+          "eval_id": 110,
+          "eval_name": "custom-analysis-table-shape",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 10
+        },
+        {
+          "eval_id": 111,
+          "eval_name": "custom-table-multiple-nwbs-blob-pushback",
+          "all_passed": false,
+          "passed_count": 6,
+          "total": 8
+        },
+        {
+          "eval_id": 112,
+          "eval_name": "adversarial-edit-dlcposv1",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 8
+        },
+        {
+          "eval_id": 113,
+          "eval_name": "adversarial-update1-downstream-populated",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 12
+        },
+        {
+          "eval_id": 114,
+          "eval_name": "adversarial-cross-corr-blob-column",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 11
+        },
+        {
+          "eval_id": 121,
+          "eval_name": "editable-install-drift-after-pull",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 8
+        }
+      ]
+    }
+  },
+  "delta": {
+    "expectation_pass_rate_pp": 22.36,
+    "evals_full_pass": 17,
+    "tokens_mean": 13753,
+    "duration_mean_s": 9.7
+  },
+  "note": "Batch 7: setup/ingestion/pipeline-authoring/destructive/table-classification/non-activation cluster (30 evals × 2 conditions). After 6 over-strict literal-phrasing substring relaxations: with_skill expectations pass rate ws vs bs delta. Behavioral checks alone: ws 104/113 (92.0%) vs bs 74/113 (65.5%), +26.5pp — the largest behavioral spread of the sweep. Real skill wins concentrated in setup-troubleshooting (045 5/1, 047 4/2, 040 5/3), ingestion (032 4/1, 033 4/2), pipeline-authoring (107 5/0 blowout — baseline never reached for SortedSpikesGroup/create_group). One ws-worse outlier: eval-041 (1/5 vs 3/5) — skill response opens 'probably not schema drift' and treats schema drift as a low-priority hypothesis, missing the canonical CHANGELOG.md / Table.alter() guidance."
+}

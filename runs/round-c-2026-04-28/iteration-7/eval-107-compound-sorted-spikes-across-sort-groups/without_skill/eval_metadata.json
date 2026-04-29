@@ -1,0 +1,26 @@
+{
+  "eval_id": 107,
+  "eval_name": "compound-sorted-spikes-across-sort-groups",
+  "prompt": "I want to make a custom table that uses the spikes from all the tetrode sort groups in my data. How do I wire it up so I don't have to list every `sort_group_id` by hand?",
+  "stage": "pipeline-authoring",
+  "tier": "compound",
+  "difficulty": "hard",
+  "required_substrings": [
+    "SortedSpikesGroup",
+    "SpikeSortingOutput",
+    "UnitSelectionParams",
+    "create_group",
+    "spikesorting_merge_id"
+  ],
+  "forbidden_substrings": [
+    "store sort_group_ids as a list in a blob column",
+    "sort_group_ids = ["
+  ],
+  "behavioral_checks": [
+    "Routes to `SortedSpikesGroup` (group.py:63-74) as the existing aggregation abstraction; does NOT propose building a new aggregation table from scratch or stuffing a list of sort_group_ids into a single blob column",
+    "Recommends inserting one `SortedSpikesGroup` row via `create_group(...)`, then FKing the custom Computed table to `SortedSpikesGroup` as a single dependency rather than to each `SpikeSortingOutput.merge_id` individually",
+    "Names `UnitSelectionParams` (the parameter table that controls which unit labels are included) and at least one default value (`'all_units'` or `'exclude_noise'`)",
+    "Notes that `SortedSpikesGroup.Units` part FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73), so the keys passed into `create_group(...)` must use the projected attr name `spikesorting_merge_id`, NOT bare `merge_id`. Use `SpikeSortingOutput().get_restricted_merge_ids(...)` to fetch the merge_ids and build `[{'spikesorting_merge_id': mid} for mid in merge_ids]`.",
+    "Explains why this is reusable: once the group exists, multiple downstream tables (decoding / MUA / custom) can all FK to the same group key without re-listing the constituent merge_ids"
+  ]
+}

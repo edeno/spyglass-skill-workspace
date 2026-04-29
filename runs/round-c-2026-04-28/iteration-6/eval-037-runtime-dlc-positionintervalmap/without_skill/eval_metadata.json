@@ -1,0 +1,36 @@
+{
+  "eval_id": 37,
+  "eval_name": "runtime-dlc-positionintervalmap",
+  "stage": "runtime-debugging",
+  "tier": "runtime-errors",
+  "difficulty": "hard",
+  "prompt": "First time running DLC on a fresh session. `DLCPosV1.populate(key)` dies with `IndexError: index 0 is out of bounds for axis 0 with size 0` somewhere deep in the position pipeline — the traceback bottoms out in spyglass code I haven't touched. Am I missing an upstream populate step? I thought I set up `DLCPosSelection` correctly.",
+  "assertions": {
+    "required_substrings": [
+      "PositionIntervalMap",
+      "convert_epoch_interval_name_to_position_interval_name",
+      "interval_list_name",
+      "PositionSource",
+      "RawPosition",
+      "IntervalList"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Notes that DLCPoseEstimation's `make()` hook already calls `convert_epoch_interval_name_to_position_interval_name(..., populate_missing=True)` by default — so 'just run the converter manually' is no longer the typical fix",
+      "Restricts `PositionIntervalMap` by its actual PK shape (`nwb_file_name + interval_list_name`, inherited from IntervalList), NOT by `epoch` — the converter accepts `epoch` because it translates it to `interval_list_name` first via `get_interval_list_name_from_epoch`",
+      "Walks at least three diagnostic layers: (a) inspect `PositionIntervalMap` for empty/null position_interval_name; (b) confirm `PositionSource` / `RawPosition` and recognized position-interval rows on `IntervalList` exist for the session; (c) check `TaskEpoch` / `IntervalList` name alignment with overlapping valid_times",
+      "Frames `PositionSource` / `RawPosition` as *prerequisites* (anchoring the position-interval rows during ingest), NOT as tables `PositionIntervalMap` queries directly — the actual walk is `IntervalList` filtered by `PositionSource._is_valid_name()`",
+      "Treats the empty/null `PositionIntervalMap` row case as a data-shape problem (the task epoch can't be mapped) rather than a 'populate_missing wasn't run' problem",
+      "Does not tell the user to re-run `DLCPosV1.populate` without first confirming the upstream gap — the IndexError will reproduce until the upstream is fixed"
+    ],
+    "expected_output_tables_exempt": [
+      "DLCPosV1",
+      "DLCPoseEstimation",
+      "DLCCentroid",
+      "DLCOrientation",
+      "InsertError",
+      "TaskEpoch"
+    ]
+  },
+  "expected_output": "Routes to position_dlc_v1_pipeline.md (DLC gotchas). **Important context first:** DLCPoseEstimation's `make()` hook already calls `convert_epoch_interval_name_to_position_interval_name(..., populate_missing=True)` by default (`src/spyglass/position/v1/position_dlc_pose_estimation.py:255-263`), and that helper auto-creates missing `PositionIntervalMap` rows when invoked (`common_behav.py:985`). So 'just run the converter' is no longer the typical fix — Spyglass already runs it. An `IndexError: index 0 is out of bounds for axis 0 with size 0` here means the converter ran but couldn't resolve a position interval, OR an upstream prerequisite is empty. Walk the diagnostic surface:\n\n**1. No matching / null position-interval row for the task epoch.** Inspect via the *actual* `PositionIntervalMap` key shape — the table is keyed by `nwb_file_name + interval_list_name` (inherited from `IntervalList` per `common_behav.py:849`), NOT by `epoch`. The converter accepts `epoch` only because it translates it to `interval_list_name` first via `get_interval_list_name_from_epoch` (`common_behav.py:973`). Resolve the interval name first, then restrict:\n\n```python\nfrom spyglass.common.common_behav import (\n    PositionIntervalMap, get_interval_list_name_from_epoch,\n)\ninterval_list_name = get_interval_list_name_from_epoch(nwb_file, epoch_id)\n(PositionIntervalMap & {\n    'nwb_file_name': nwb_file,\n    'interval_list_name': interval_list_name,\n}).fetch(as_dict=True)\n```\n\nAn empty result OR a row with `position_interval_name == ''` (the null entry that the converter inserts when nothing matches, `common_behav.py:885`) means the task epoch has no resolvable position-interval mapping. Re-running the converter explicitly with `populate_missing=True` won't help — that's the same code path that already ran during `make()`. The fix is upstream: confirm the task epoch should map to a position interval at all, and that the source data carries the linking metadata.\n\n**2. Upstream prerequisite missing — `PositionSource` / `RawPosition` and the position-interval rows on `IntervalList`.** `PositionIntervalMap._no_transaction_make` doesn't walk `RawPosition` directly — it walks `IntervalList` rows whose names pass `PositionSource._is_valid_name()` (`common_behav.py:944, 951-960`). So if the session has no `IntervalList` rows that the position-source convention recognizes, the converter has nothing to map. `PositionSource` and `RawPosition` are still the right upstream tables to verify, but as **prerequisites** that anchor the position interval rows during ingest, not as tables `PositionIntervalMap` queries directly:\n\n```python\n(PositionSource & {'nwb_file_name': nwb_file}).fetch(as_dict=True)\n(RawPosition & {'nwb_file_name': nwb_file}).fetch(as_dict=True)\n(IntervalList & {'nwb_file_name': nwb_file}).fetch('interval_list_name')\n```\n\nIf `PositionSource` / `RawPosition` are empty for the session, that's a missing-prereq problem — re-run `populate_all_common(nwb_file, raise_err=True)` and read InsertError to find what blocked them. If they exist but no `IntervalList` row looks like a recognized position-interval name, the convention isn't being matched.\n\n**3. `TaskEpoch` / `IntervalList` name mismatch.** The mapping joins task-epoch names to position-interval names via the EPSILON time-bounds match in `_no_transaction_make`. If the user's data has a renamed interval (e.g. a custom epoch name), the time-bounds match may fail and the converter inserts the null entry for that key. Inspect `(TaskEpoch & {'nwb_file_name': nwb_file}).fetch('interval_list_name')` vs `(IntervalList & {'nwb_file_name': nwb_file}).fetch('interval_list_name')` to confirm the expected name pairs exist with overlapping `valid_times`.\n\n**Edge case — DLC-only session.** If the session has *only* DLC video and no Trodes-derived position, `DLCPoseEstimation().make(...)` falls back to the source video's timestamps when the converter returns no position-interval name (`position/v1/position_dlc_pose_estimation.py:264`); pose estimation itself doesn't require a `pos N valid times` row. The IndexError on a DLC-only session usually surfaces *downstream* — e.g. `DLCCentroid` / `DLCOrientation` selections that still expect a resolvable position interval. Either populate `PositionSource` / `RawPosition` so the mapper has something to match (so `PositionSource._is_valid_name()` accepts an `IntervalList` row), or stop the DLC pipeline at `DLCPoseEstimation` if no Trodes-side position exists for this session.\n\nDon't just retry `DLCPosV1.populate` — the upstream gap will reproduce the same IndexError on the next run."
+}

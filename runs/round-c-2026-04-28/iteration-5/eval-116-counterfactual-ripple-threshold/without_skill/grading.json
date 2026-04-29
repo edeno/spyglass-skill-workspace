@@ -1,0 +1,57 @@
+{
+  "eval_id": 116,
+  "eval_name": "counterfactual-ripple-threshold",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'RippleTimesV1'",
+      "passed": true,
+      "evidence": "found — 'RippleTimesV1'"
+    },
+    {
+      "text": "required_substring: 'RippleLFPSelection'",
+      "passed": true,
+      "evidence": "found — 'RippleLFPSelection'"
+    },
+    {
+      "text": "required_substring: 'ripple_param_dict'",
+      "passed": false,
+      "evidence": "MISSING — 'ripple_param_dict'"
+    },
+    {
+      "text": "required_substring: 'provenance'",
+      "passed": false,
+      "evidence": "MISSING — 'provenance'"
+    },
+    {
+      "text": "forbidden_substring: 'yes, just update1 the row'",
+      "passed": true,
+      "evidence": "absent — 'yes, just update1 the row'"
+    },
+    {
+      "text": "behavioral_check: Recommends inserting a NEW `RippleParameters` row (e.g. `ripple_param_name='zscore3'`) and populating `RippleTimesV1` against the new name — does NOT recommend mutating the existing `'default'` row via `update1()`",
+      "passed": true,
+      "evidence": "Step 1 of recommended workflow: 'Insert a new params row instead of mutating the old one' with `default_zscore_3`. The 'or delete' alternative is offered as option (b) but the primary recommendation is the new-row pattern."
+    },
+    {
+      "text": "behavioral_check: Frames the issue as **provenance**: existing `RippleTimesV1` rows still reference the old param name but the blob would have changed, breaking reproducibility",
+      "passed": true,
+      "evidence": "Says 'downstream rows become inconsistent with the params hash they were computed under' if you mutate. Also 'Old analyses keyed on the old merge_id remain valid as a comparison baseline'."
+    },
+    {
+      "text": "behavioral_check: Predicts the qualitative direction correctly: raising `zscore_threshold` from 2 to 3 yields FEWER detected ripple events (higher threshold = stricter trigger)",
+      "passed": true,
+      "evidence": "'Fewer detected events (events whose peak power never exceeds 3 SD are dropped entirely).'"
+    },
+    {
+      "text": "behavioral_check: Notes that no new `RippleLFPSelection` row is needed — selection rows already exist for the LFP band + electrode group; just populate `RippleTimesV1` for the new param name",
+      "passed": false,
+      "evidence": "Step 2 says 'Re-create the RippleLFPSelection (or equivalent) entry pointing at default_zscore_3 and populate() RippleTimesV1 for it.' This is incorrect — RippleLFPSelection does not contain ripple_param_name and does not need to be re-created."
+    },
+    {
+      "text": "behavioral_check: Notes that old rows under `'default'` are unchanged (intact provenance) and the two sets coexist queryable side-by-side — that's the value of the new-name shape",
+      "passed": true,
+      "evidence": "'Old analyses keyed on the old merge_id remain valid as a comparison baseline — this is one of the reasons the merge-table pattern exists.' Notes change is scoped to altered param-name."
+    }
+  ]
+}

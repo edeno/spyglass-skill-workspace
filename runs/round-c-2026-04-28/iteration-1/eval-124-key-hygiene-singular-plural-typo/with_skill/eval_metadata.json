@@ -1,0 +1,24 @@
+{
+  "eval_id": 124,
+  "eval_name": "key-hygiene-singular-plural-typo",
+  "stage": "hallucination-resistance",
+  "tier": "schema-introspection",
+  "difficulty": "easy",
+  "prompt": "I ran `(TrodesPosParams & {'trodes_pos_param_name': 'default'}).fetch1()` and instead of restricting to the default row, it raised `DataJointError: fetch1 expected one tuple, found N`. Why doesn't the restriction work?",
+  "assertions": {
+    "required_substrings": [
+      "trodes_pos_params_name",
+      "heading.primary_key"
+    ],
+    "expected_output_tables_exempt": [
+      "TrodesPosParams"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Identifies the singular/plural typo (`trodes_pos_param_name` vs `trodes_pos_params_name`) and does NOT recommend the singular form as the correct field name",
+      "Uses `code_graph.py describe` if acting as the skill agent, or `Table.heading.primary_key` in the user's Python session — does not assert the field name from memory",
+      "Names the silent-drop semantics — DataJoint ignores unknown restriction keys without error"
+    ]
+  },
+  "expected_output": "Singular/plural typo on the PK field. The actual field is `trodes_pos_params_name` (plural — verify with `python skills/spyglass/scripts/code_graph.py describe TrodesPosParams` or `TrodesPosParams.heading.primary_key` in a Python session). DataJoint silently drops restriction fields that aren't in the heading, so the `&` reduces to no restriction and `fetch1()` then sees every row in the table — raising `DataJointError: fetch1 expected one tuple, found N` rather than 'no match'. The fix is to correct the field name; `code_graph.py describe TrodesPosParams --json` gives the authoritative spelling. Routes to common_mistakes.md (silent-drop footgun) and datajoint_api.md."
+}

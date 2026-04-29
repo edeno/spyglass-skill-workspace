@@ -1,0 +1,42 @@
+{
+  "eval_id": 44,
+  "eval_name": "runtime-populate-all-common-silent",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (populate_all_common, raise_err=True, InsertError, DIOEvents, PositionSource, Raw, Session).",
+      "passed": true,
+      "evidence": "All required substrings present."
+    },
+    {
+      "text": "Response does not contain forbidden substring `edit populate_all_common.py`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent. Response actively warns: 'Do not edit populate_all_common.py'."
+    },
+    {
+      "text": "Leads with populate_all_common(nwb_file_name, raise_err=True) as the primary fix",
+      "passed": true,
+      "evidence": "Section 'Primary fix — pass raise_err=True' shows `populate_all_common('j1620210710_.nwb', raise_err=True)`."
+    },
+    {
+      "text": "Identifies default raise_err=False behavior as the silent-failure root cause",
+      "passed": true,
+      "evidence": "Opening: 'By default populate_all_common runs with raise_err=False, so it catches per-table exceptions, writes a short message to common_usage.InsertError, and returns'."
+    },
+    {
+      "text": "Names InsertError as the inspection table for failed inserts",
+      "passed": true,
+      "evidence": "'Inspect what the driver already logged' section: `InsertError & {'nwb_file_name': '...'}`."
+    },
+    {
+      "text": "Shows per-table populate loop as alternative, not primary fix",
+      "passed": true,
+      "evidence": "'Alternative — skip the driver and isolate the failing table' section explicitly framed as 'the alternative, not the primary fix'."
+    },
+    {
+      "text": "Does not recommend editing populate_all_common.py source or re-running insert_sessions",
+      "passed": true,
+      "evidence": "'You don't need to re-run insert_sessions' and 'Do not edit populate_all_common.py'."
+    }
+  ]
+}

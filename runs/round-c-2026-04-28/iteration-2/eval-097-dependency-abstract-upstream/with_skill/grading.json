@@ -1,0 +1,31 @@
+{
+  "eval_id": 97,
+  "eval_name": "dependency-abstract-upstream",
+  "expectations": [
+    {
+      "text": "Response contains substring `parents(`.",
+      "passed": true,
+      "evidence": "Substring 'parents(' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ancestors(`.",
+      "passed": true,
+      "evidence": "Substring 'ancestors(' found in response.md"
+    },
+    {
+      "text": "Response contains substring `.describe()`.",
+      "passed": true,
+      "evidence": "Substring '.describe()' found in response.md"
+    },
+    {
+      "text": "Distinguishes `parents()` (one hop) from `ancestors()` (transitive walk) and gives a use case for each",
+      "passed": true,
+      "evidence": "Provides a comparison table: 'parents() one hop up \u2014 what does this immediately depend on... ancestors() Every table reachable by walking foreign keys upward, transitively' with use cases."
+    },
+    {
+      "text": "Mentions `.describe()` as the schema-level companion that shows FK declarations inline in the table's definition string",
+      "passed": true,
+      "evidence": "States: 'describe() prints the table's definition string, which shows the FK declarations inline with the column list (the -> ParentTable arrows). It's a static, schema-level view.'"
+    }
+  ]
+}

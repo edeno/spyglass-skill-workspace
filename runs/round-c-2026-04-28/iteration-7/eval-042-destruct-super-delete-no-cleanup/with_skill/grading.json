@@ -1,0 +1,52 @@
+{
+  "eval_id": 42,
+  "eval_name": "destruct-super-delete-no-cleanup",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'AnalysisNwbfile()'",
+      "passed": true,
+      "evidence": "found — 'AnalysisNwbfile()'"
+    },
+    {
+      "text": "required_substring: 'dry_run'",
+      "passed": true,
+      "evidence": "found — 'dry_run'"
+    },
+    {
+      "text": "required_substring: 'LabMemberInfo'",
+      "passed": true,
+      "evidence": "found — 'LabMemberInfo'"
+    },
+    {
+      "text": "required_substring: 'cleanup('",
+      "passed": true,
+      "evidence": "found — 'cleanup('"
+    },
+    {
+      "text": "forbidden_substring: 'super_delete is fine here'",
+      "passed": true,
+      "evidence": "absent — 'super_delete is fine here'"
+    },
+    {
+      "text": "behavioral_check: Confirms super_delete bypasses Spyglass's file cleanup (aliases to datajoint.Table.delete)",
+      "passed": true,
+      "evidence": "Section 'What `super_delete()` actually did': '`super_delete(warn=True)` is a thin alias to `datajoint.Table.delete`' and 'Also skips `cautious_delete`'s post-delete loop that calls into the external filepath cleanup'. Includes a comparison table."
+    },
+    {
+      "text": "behavioral_check: Shows AnalysisNwbfile().cleanup(dry_run=True) first, then dry_run=False",
+      "passed": true,
+      "evidence": "Section 2 explicitly: `AnalysisNwbfile().cleanup(dry_run=True)` first ('safe-preview version'), 'Read the logs', then `AnalysisNwbfile().cleanup(dry_run=False)`."
+    },
+    {
+      "text": "behavioral_check: Pushes back on super_delete as the pattern for LabMember errors — root-cause fix is to add the user to LabMember.LabMemberInfo",
+      "passed": true,
+      "evidence": "'The original error message ... is documented in setup_troubleshooting.md as a setup gap, not a permission denial. The fix is to add yourself to LabMember' with concrete LabMember + LabMemberInfo insert1 calls."
+    },
+    {
+      "text": "behavioral_check: Does not treat 'the PermissionError is annoying' as sufficient justification for super_delete",
+      "passed": true,
+      "evidence": "'You bypassed the wrong check, and you also skipped the file-cleanup pass that the normal delete path runs for you' — frames the bypass as a mistake; the going-forward note explicitly: 'a `Could not find exactly 1 datajoint user` error means add yourself to LabMember, not bypass the check'."
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "eval_id": 72,
+  "eval_name": "dep-trace-lfpbandv1",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'Nwbfile'",
+      "passed": true,
+      "evidence": "found — 'Nwbfile'"
+    },
+    {
+      "text": "required_substring: 'IntervalList'",
+      "passed": true,
+      "evidence": "found — 'IntervalList'"
+    },
+    {
+      "text": "required_substring: 'LFPElectrodeGroup'",
+      "passed": true,
+      "evidence": "found — 'LFPElectrodeGroup'"
+    },
+    {
+      "text": "required_substring: 'LFPSelection'",
+      "passed": true,
+      "evidence": "found — 'LFPSelection'"
+    },
+    {
+      "text": "required_substring: 'LFPV1'",
+      "passed": true,
+      "evidence": "found — 'LFPV1'"
+    },
+    {
+      "text": "required_substring: 'LFPOutput'",
+      "passed": true,
+      "evidence": "found — 'LFPOutput'"
+    },
+    {
+      "text": "required_substring: 'FirFilterParameters'",
+      "passed": true,
+      "evidence": "found — 'FirFilterParameters'"
+    },
+    {
+      "text": "required_substring: 'LFPBandSelection'",
+      "passed": true,
+      "evidence": "found — 'LFPBandSelection'"
+    },
+    {
+      "text": "required_substring: 'LFPBandV1'",
+      "passed": true,
+      "evidence": "found — 'LFPBandV1'"
+    },
+    {
+      "text": "required_substring: 'Raw'",
+      "passed": false,
+      "evidence": "MISSING — 'Raw'"
+    },
+    {
+      "text": "required_substring: 'Session'",
+      "passed": true,
+      "evidence": "found — 'Session'"
+    },
+    {
+      "text": "behavioral_check: Names every upstream table including the parameter (FirFilterParameters) and selection tables (LFPSelection, LFPBandSelection)",
+      "passed": true,
+      "evidence": "Lists LFPBandSelection, LFPSelection, FirFilterParameters explicitly in the upstream set."
+    },
+    {
+      "text": "behavioral_check: Names the Raw table as the data source fetched inside LFPV1's `make()` body (Raw is not an FK of LFPSelection; it is pulled via `(Raw & key).fetch_nwb()` at make() time and must be present to regenerate LFPV1 from scratch)",
+      "passed": false,
+      "evidence": "Raw table is never named; the response only reports the static FK ancestry and acknowledges that scope."
+    },
+    {
+      "text": "behavioral_check: Does not skip the LFPOutput merge wrapper between LFPV1 and LFPBandSelection",
+      "passed": true,
+      "evidence": "Lists LFPOutput and its parts (LFPOutput.LFPV1, LFPOutput.ImportedLFP, LFPOutput.CommonLFP) between LFPBandSelection and LFPV1."
+    }
+  ]
+}

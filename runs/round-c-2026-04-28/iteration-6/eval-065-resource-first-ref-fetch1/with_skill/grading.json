@@ -1,0 +1,22 @@
+{
+  "eval_id": 65,
+  "eval_name": "resource-first-ref-fetch1",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substring `common_mistakes.md`.",
+      "passed": true,
+      "evidence": "Substring present multiple times."
+    },
+    {
+      "text": "Names a specific reference file by name — common_mistakes.md or datajoint_api.md",
+      "passed": true,
+      "evidence": "Names common_mistakes.md as primary and datajoint_api.md as follow-up."
+    },
+    {
+      "text": "Explains the choice in one line",
+      "passed": true,
+      "evidence": "'cardinality footgun ... 47 means your restriction matched 47 rows but fetch1() demands exactly one — so the diagnostic and fix are mechanical, not mysterious, and common_mistakes.md points straight at them'."
+    }
+  ]
+}

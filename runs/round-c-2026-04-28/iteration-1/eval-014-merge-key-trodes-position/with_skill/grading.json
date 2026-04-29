@@ -1,0 +1,31 @@
+{
+  "eval_id": 14,
+  "eval_name": "merge-key-trodes-position",
+  "expectations": [
+    {
+      "text": "Response contains substring `merge_get_part`.",
+      "passed": true,
+      "evidence": "Substring 'merge_get_part' found in response.md"
+    },
+    {
+      "text": "Response contains substring `fetch1(`.",
+      "passed": true,
+      "evidence": "Substring 'fetch1(' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionOutput`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput' found in response.md"
+    },
+    {
+      "text": "Calls `merge_get_part` as a classmethod (`PositionOutput.merge_get_part(...)`), not on a restricted relation",
+      "passed": true,
+      "evidence": "Calls `PositionOutput.merge_get_part(upstream_key)` on the class with comment 'classmethod — pass the restriction in'."
+    },
+    {
+      "text": "Retrieves the merge key via `fetch1('merge_id')` (the scalar the prompt asks for) OR `fetch1('KEY')` (the full PK dict, also acceptable) — not a `.fetch()` list of merge_ids",
+      "passed": true,
+      "evidence": "Uses `.fetch1(\"merge_id\")` to get the scalar UUID, also shows `fetch1(\"KEY\")` alternative."
+    }
+  ]
+}

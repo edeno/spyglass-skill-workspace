@@ -1,0 +1,38 @@
+{
+  "run_id": "round-c-2026-04-28",
+  "round_label": "round-C",
+  "started_at": "2026-04-28T08:14:00Z",
+  "completed_at": "2026-04-28T16:42:00Z",
+  "skill_commit_at_sweep_start": "874516a",
+  "skill_commit_at_sweep_end": "8b3fa1b",
+  "skill_commit_note": "SKILL.md and references/* were stable during the sweep. evals.json received in-flight substring relaxations (commits 178f678, 0cb131d, 8b3fa1b) — the relaxations are documented in SUMMARY.md ('Substring relaxations applied'). For 'what skill version was being measured' interpret as the 874516a state of skills/spyglass/SKILL.md and references/.",
+  "spyglass_src_commit": null,
+  "spyglass_src_path": "/Users/edeno/Documents/GitHub/spyglass/src/spyglass",
+  "spyglass_src_note": "Not recorded at dispatch time — see Round-D dispatch templates (skills/spyglass/evals/dispatch_prompts.md) which now require pinning. The sweep's eval agents had access to a local Spyglass checkout at the path above but the commit hash was not captured. Treat field-level claims grounded in this source as 'verified at sweep time, re-verify before pinning'.",
+  "n_evals_run": 130,
+  "n_dispatches": 260,
+  "n_transcripts_snapshotted": 267,
+  "n_transcripts_extra_due_to_retries": 7,
+  "model": "claude-opus-4-7[1m]",
+  "model_note": "Eval-runner used the parent-orchestrator's model. Subagent dispatches inherited the same model via the Task tool default.",
+  "harness": "claude-code (VSCode extension)",
+  "dispatch_prompt_template": "Inline (per-batch, typed by orchestrator). Templates extracted post-hoc to skills/spyglass/evals/dispatch_prompts.md.",
+  "dispatch_prompt_contamination_note": "Round-C without_skill prompts did not explicitly forbid reading skills/spyglass/. 5/133 baseline runs touched the skill bundle (eval-058 read ripple_pipeline.md; eval-034 grepped references; eval-042/066/082 listed dirs). Bias direction: against the skill (baselines got partial skill-content access). Round-D templates fix this.",
+  "headline_results": {
+    "ws_full_pass": "111 / 130 (85.4%)",
+    "bs_full_pass": "83 / 130 (63.8%)",
+    "delta_full_pass_pp": 21.5,
+    "ws_expectations": "989 / 1032 (95.8%)",
+    "bs_expectations": "895 / 1032 (86.7%)",
+    "delta_expectations_pp": 9.1,
+    "tokens_total": "8.35M",
+    "tokens_with_skill_total": "5.20M",
+    "tokens_baseline_total": "3.15M"
+  },
+  "artifacts": {
+    "narrative": "BATCHES.md, findings.md",
+    "per_batch": "iteration-1/ ... iteration-7/ (each contains benchmark.json + grader_summary.md)",
+    "analysis": "summary/ (12 plots, SUMMARY.md, category_breakdown.csv, ref_utilization.json, script_utilization.json)",
+    "transcripts_snapshot": "summary/transcripts_snapshot/ (267 .jsonl files, ~14 MB)"
+  }
+}

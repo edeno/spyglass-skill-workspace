@@ -1,0 +1,66 @@
+{
+  "eval_id": 50,
+  "eval_name": "merge-method-misattribution",
+  "expectations": [
+    {
+      "text": "Response contains substring `SpikeSortingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `AttributeError`.",
+      "passed": true,
+      "evidence": "Substring 'AttributeError' found in response.md"
+    },
+    {
+      "text": "Response contains substring `merge_restrict`.",
+      "passed": true,
+      "evidence": "Substring 'merge_restrict' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DecodingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'DecodingOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPOutput`.",
+      "passed": true,
+      "evidence": "Substring 'LFPOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LinearizedPositionOutput`.",
+      "passed": true,
+      "evidence": "Substring 'LinearizedPositionOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionOutput`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput' found in response.md"
+    },
+    {
+      "text": "States that get_restricted_merge_ids is SpikeSortingOutput-only (not on the _Merge base)",
+      "passed": true,
+      "evidence": "Says 'It is defined only on SpikeSortingOutput, not on the shared _Merge base class'."
+    },
+    {
+      "text": "Names the correct replacement methods for PositionOutput: merge_restrict and/or merge_get_part",
+      "passed": true,
+      "evidence": "Recommends `merge_restrict` and `merge_get_part` with example patterns."
+    },
+    {
+      "text": "Explains that calling it on the wrong master raises AttributeError (not silent wrong data)",
+      "passed": true,
+      "evidence": "States 'Python raises AttributeError at attribute-lookup time. That's good news for you: it fails loudly instead of silently returning the wrong thing.'"
+    },
+    {
+      "text": "Does not recommend subclassing or monkeypatching PositionOutput",
+      "passed": true,
+      "evidence": "Says 'Don't try to fix this by subclassing or monkey-patching PositionOutput'."
+    },
+    {
+      "text": "Does NOT recommend calling `get_restricted_merge_ids` on `PositionOutput` (or any non-`SpikeSortingOutput` master). Quoting the user's failed call to explain why it raises is fine; recommending it as the path forward is not.",
+      "passed": true,
+      "evidence": "Final TL;DR concludes 'not PositionOutput().get_restricted_merge_ids(...), which will AttributeError'."
+    }
+  ]
+}

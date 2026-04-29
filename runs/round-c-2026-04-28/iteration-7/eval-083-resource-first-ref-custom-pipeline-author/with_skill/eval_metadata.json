@@ -1,0 +1,23 @@
+{
+  "eval_id": 83,
+  "eval_name": "resource-first-ref-custom-pipeline-author",
+  "prompt": "I'm writing a new Computed table in my own schema that produces a waveform-feature array, writes it into an AnalysisNwbfile, and registers the artifact with an `_object_id`. Which single reference in the skill is the right starting point, and which similar-sounding one is a distractor?",
+  "stage": "pipeline-authoring",
+  "tier": "resource-selection",
+  "difficulty": "easy",
+  "required_substrings": [
+    "custom_pipeline_authoring.md",
+    "spyglassmixin_methods.md",
+    "AnalysisNwbfile"
+  ],
+  "forbidden_substrings": [
+    "spyglassmixin_methods.md is the first",
+    "merge_methods.md is where you start"
+  ],
+  "behavioral_checks": [
+    "Names `custom_pipeline_authoring.md` as the first reference",
+    "Explicitly identifies `spyglassmixin_methods.md` as a distractor and explains the author-vs-consumer split",
+    "Mentions the `_object_id` + AnalysisNwbfile FK convention as a signal that this is an authoring task",
+    "Does not recommend merge_methods.md or ingestion.md as the first stop"
+  ]
+}

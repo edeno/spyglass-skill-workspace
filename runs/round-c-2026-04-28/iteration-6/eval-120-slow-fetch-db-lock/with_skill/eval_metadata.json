@@ -1,0 +1,29 @@
+{
+  "eval_id": 120,
+  "eval_name": "slow-fetch-db-lock",
+  "stage": "runtime-debugging",
+  "tier": "runtime-errors",
+  "difficulty": "medium",
+  "prompt": "it's taking a really long time to fetch my ripple parameters. like 2 minutes and still hasn't returned. what's happening?",
+  "assertions": {
+    "required_substrings": [
+      "check_threads",
+      "lock",
+      "performance_schema",
+      "RippleParameters"
+    ],
+    "forbidden_substrings": [
+      "the fix is to restart the kernel"
+    ],
+    "behavioral_checks": [
+      "Routes to `check_threads(detailed=True)` (helpers.py:206) BEFORE suggesting a kernel restart or reconnect — it's the diagnostic primitive that distinguishes lock contention from slow compute",
+      "Distinguishes *idle* hang (no CPU, no progress -> lock contention) from slow-compute (fetch pulling a large blob -> CPU activity in the kernel); picks lock contention as the likely cause for a small params table",
+      "Names `performance_schema.metadata_locks` (joined with `threads`) as the underlying source `check_threads` queries; the returned DataFrame surfaces lock rows + thread state + running query, NOT an explicit blocker->waiter graph — the user reads `LOCK_STATUS` and `PROCESSLIST_STATE` to identify the holder vs waiter",
+      "Recommends coordinating with the lab before killing another transaction — does not unilaterally KILL another worker's transaction"
+    ],
+    "required_substrings_exempt": [
+      "lock"
+    ]
+  },
+  "expected_output": "Almost certainly **DB lock contention**, not slow compute. `RippleParameters` is a `dj.Lookup` keyed on `ripple_param_name` with a small `ripple_param_dict` blob — there's nothing to fetch slowly. A 2-minute idle hang on a params table looks identical to lock contention from another worker / abandoned transaction holding a row-level lock the user's `&` / `.fetch()` is waiting on.\n\n**Diagnose with `check_threads(detailed=True)`** (`src/spyglass/utils/mixins/helpers.py:206`) — every `SpyglassMixin` table carries this method; it queries MySQL's `performance_schema` (joining `metadata_locks` with `threads`) and returns the live lock rows, the owning thread's process state, and the running query — what the user needs to identify which session is holding the lock the fetch is waiting on:\n\n```python\nfrom spyglass.ripple.v1.ripple import RippleParameters\nRippleParameters().check_threads(detailed=True)\n```\n\nThe DataFrame surfaces the threads currently holding locks (`OBJECT_NAME`, `LOCK_TYPE`, `LOCK_STATUS`, `PROCESSLIST_STATE`, and the running query when `detailed=True`). The output is **lock rows + thread state**, not an explicit blocker→waiter graph; the user reads the `LOCK_STATUS` and `PROCESSLIST_STATE` columns to identify which session holds the lock and what it's doing. If the user's own thread shows a `WAITING` lock_status while another thread holds a `GRANTED` lock on the same object, that's the proof — inspect both rows and the holding thread's running query to decide next steps.\n\n**Distinguish from slow-compute.** A `.fetch()` that pulls a large blob spends time on disk + network and shows CPU activity in the kernel; an *idle* hang (no CPU, no progress) is the lock-contention signature. Params tables are never the slow-compute case — the row is small. So for a 2-minute hang on `RippleParameters`, jump straight to `check_threads(detailed=True)`; don't restart the kernel without a diagnostic first.\n\n**Resolution.** The blocker is usually an abandoned transaction from another worker (an interrupted populate that didn't commit, an open transaction in another notebook). Coordinate with the lab — kill the blocker only with awareness, don't unilaterally `KILL` someone else's transaction.\n\nRoutes to runtime_debugging.md (lock contention section) and spyglassmixin_methods.md."
+}

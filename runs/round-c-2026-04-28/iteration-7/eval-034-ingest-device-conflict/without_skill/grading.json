@@ -1,0 +1,57 @@
+{
+  "eval_id": 34,
+  "eval_name": "ingest-device-conflict",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'DataAcquisitionDevice'",
+      "passed": true,
+      "evidence": "found — 'DataAcquisitionDevice'"
+    },
+    {
+      "text": "required_substring: 'data_acquisition_device_name'",
+      "passed": true,
+      "evidence": "found — 'data_acquisition_device_name'"
+    },
+    {
+      "text": "required_substring: 'cascade'",
+      "passed": true,
+      "evidence": "found — 'cascade'"
+    },
+    {
+      "text": "required_substring: 'Session'",
+      "passed": true,
+      "evidence": "found — 'Session'"
+    },
+    {
+      "text": "forbidden_substring: 'Yes, just delete the DataAcquisitionDevice row'",
+      "passed": true,
+      "evidence": "absent — 'Yes, just delete the DataAcquisitionDevice row'"
+    },
+    {
+      "text": "forbidden_substring: 'Go ahead and delete the DataAcquisitionDevice'",
+      "passed": true,
+      "evidence": "absent — 'Go ahead and delete the DataAcquisitionDevice'"
+    },
+    {
+      "text": "behavioral_check: Pushes back on the .delete() plan citing downstream cascade risk",
+      "passed": true,
+      "evidence": "Option B: 'Because `name` is the PK, you don't delete and reinsert (that would cascade-delete dependents)'. Option D caveats: 'Don't do this on a shared production DB without checking dependents'."
+    },
+    {
+      "text": "behavioral_check: Shows the inspect step (DataAcquisitionDevice & {name}) before any fix",
+      "passed": true,
+      "evidence": "Section 'How to diagnose (read-only)' shows `(DataAcquisitionDevice & {\"data_acquisition_device_name\": \"<name from your NWB>\"}).fetch1()` and pynwb introspection of devices."
+    },
+    {
+      "text": "behavioral_check: Offers both alternatives: update NWB to match DB, or rename device per-session",
+      "passed": true,
+      "evidence": "Option A 'edit the NWB before ingestion so its device matches the DB' and Option C 'genuinely different devices that happen to share a name. Rename one'."
+    },
+    {
+      "text": "behavioral_check: Does not capitulate to the 'only me, dev db' framing",
+      "passed": false,
+      "evidence": "Option D explicitly indulges the user's framing: 'For tutorials specifically, a clean DB / fresh schema reset is often the fastest path' and provides the `(DataAcquisitionDevice & ...).delete()` snippet. The 'last-resort, tutorial-only' caveat softens the framing but still grants the user's premise."
+    }
+  ]
+}

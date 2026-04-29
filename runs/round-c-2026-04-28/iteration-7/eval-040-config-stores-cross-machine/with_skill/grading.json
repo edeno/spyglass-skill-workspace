@@ -1,0 +1,62 @@
+{
+  "eval_id": 40,
+  "eval_name": "config-stores-cross-machine",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: \"dj.config['stores']\"",
+      "passed": true,
+      "evidence": "found — \"dj.config['stores']\""
+    },
+    {
+      "text": "required_substring: 'SPYGLASS_BASE_DIR'",
+      "passed": true,
+      "evidence": "found — 'SPYGLASS_BASE_DIR'"
+    },
+    {
+      "text": "required_substring: 'SpyglassConfig'",
+      "passed": true,
+      "evidence": "found — 'SpyglassConfig'"
+    },
+    {
+      "text": "required_substring: \"['stores']['raw']\"",
+      "passed": true,
+      "evidence": "found — \"['stores']['raw']\""
+    },
+    {
+      "text": "required_substring: 'save_dj_config'",
+      "passed": true,
+      "evidence": "found — 'save_dj_config'"
+    },
+    {
+      "text": "forbidden_substring: 'SPYGLASS_BASE_DIR is all you need'",
+      "passed": true,
+      "evidence": "absent — 'SPYGLASS_BASE_DIR is all you need'"
+    },
+    {
+      "text": "behavioral_check: Confirms what the resolved `dj.config['stores']['raw']['location']` actually is on the failing (HPC) machine — does NOT assume the env var alone fixed it; runs the assertion that compares stores.raw.location's prefix against `SPYGLASS_BASE_DIR`",
+      "passed": true,
+      "evidence": "Diagnose block on HPC prints `raw_loc = dj.config['stores']['raw']['location']` plus SPYGLASS_BASE_DIR plus os.path.isdir, then says 'If raw_loc doesn't start with the HPC's mount path (or doesn't exist), you've confirmed it.'"
+    },
+    {
+      "text": "behavioral_check: Notes the resolution precedence: explicit base_dir > `dj.config['custom']['spyglass_dirs']` > env vars > resolved <base>/<X>; `SpyglassConfig`'s `load_config()` method refreshes `dj.config['stores']` in memory but the persisted config file does not auto-regenerate from env-var changes alone",
+      "passed": true,
+      "evidence": "Section 'What's actually happening' enumerates the four-level precedence (settings.py:133) and explicitly says 'the persisted config file (~/.datajoint_config.json or dj_local_conf.json) does NOT auto-regenerate when env vars change'."
+    },
+    {
+      "text": "behavioral_check: Recommends saving the corrected per-machine config — `SpyglassConfig().save_dj_config(...)` (defaults to global `~/.datajoint_config.json`; `save_method='local'` for project-scoped `dj_local_conf.json`) OR `dj.config.save_global()` / `dj.config.save_local()` after editing `dj.config['stores']` in place",
+      "passed": true,
+      "evidence": "Fix section gives `SpyglassConfig(base_dir=...).save_dj_config(save_method=\"global\", ...)` and notes 'Use `save_method=\"local\"` instead if you want a project-scoped `dj_local_conf.json`'."
+    },
+    {
+      "text": "behavioral_check: Does NOT claim that `SPYGLASS_BASE_DIR` can never refresh stores, and does NOT claim that stores persistence is exclusively `dj_local_conf.json` — both global and local config files are valid persistence targets",
+      "passed": true,
+      "evidence": "Says SPYGLASS_BASE_DIR refreshes via load_config in memory; surfaces both the global ~/.datajoint_config.json and dj_local_conf.json as valid persistence targets via save_method='global'|'local'."
+    },
+    {
+      "text": "behavioral_check: Does not recommend remounting the share at the same path on both machines as the primary fix",
+      "passed": true,
+      "evidence": "Recommends per-machine config edit + save as the primary fix; does not propose remounting/symlinking to match paths."
+    }
+  ]
+}

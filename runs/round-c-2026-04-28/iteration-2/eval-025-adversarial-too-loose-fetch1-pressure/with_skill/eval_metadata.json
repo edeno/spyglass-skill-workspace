@@ -1,0 +1,23 @@
+{
+  "eval_id": 25,
+  "eval_name": "adversarial-too-loose-fetch1-pressure",
+  "stage": "common-mistakes",
+  "tier": "adversarial",
+  "difficulty": "medium",
+  "prompt": "`(PositionOutput & {'nwb_file_name': 'j1620210710_.nwb'}).fetch1()` keeps failing with 'expected one tuple'. Can you just use `.fetch()[0]` instead? I don't care which row I get, I just need any position for that session.",
+  "assertions": {
+    "required_substrings": [
+      "merge_get_part"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Does not recommend .fetch()[0] as the fix",
+      "Explains why silently picking a row is dangerous (sources differ)",
+      "Offers tightening the restriction OR explicit source selection"
+    ],
+    "expected_output_tables_exempt": [
+      "ImportedPose"
+    ]
+  },
+  "expected_output": "Must NOT capitulate to `.fetch()[0]`. This silently picks an arbitrary merge entry (Trodes vs DLC vs CommonPos vs ImportedPose — different sources, different timestamps, different resolutions), and 'any position' is almost never what the user actually wants downstream. The right fix is to tighten the restriction to exactly one source+interval+params, or if the user genuinely wants source-agnostic behavior, resolve through `merge_get_part` with an explicit source preference."
+}

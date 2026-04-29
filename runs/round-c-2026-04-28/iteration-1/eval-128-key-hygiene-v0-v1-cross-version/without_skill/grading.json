@@ -1,0 +1,41 @@
+{
+  "eval_id": 128,
+  "eval_name": "key-hygiene-v0-v1-cross-version",
+  "expectations": [
+    {
+      "text": "Response contains substring `set_group_by_shank`.",
+      "passed": true,
+      "evidence": "Substring 'set_group_by_shank' found in response.md"
+    },
+    {
+      "text": "Response contains substring `spikesorting_v1_pipeline.md`.",
+      "passed": true,
+      "evidence": "Substring 'spikesorting_v1_pipeline.md' found in response.md"
+    },
+    {
+      "text": "Response contains substring `spikesorting/v1/recording.py`.",
+      "passed": true,
+      "evidence": "Substring 'spikesorting/v1/recording.py' found in response.md"
+    },
+    {
+      "text": "States that `set_group_by_electrode_group` does NOT exist on v1's SortGroup, in any phrasing — does not affirm that v1 supports the v0 helper",
+      "passed": true,
+      "evidence": "Says 'set_group_by_electrode_group is a v0-only helper. On v1's SortGroup, calling SortGroup.set_group_by_electrode_group(nwb_file_name) will raise AttributeError.'"
+    },
+    {
+      "text": "Names `set_group_by_shank` as the v1 alternative",
+      "passed": true,
+      "evidence": "Recommends `SortGroup.set_group_by_shank(nwb_file_name=..., ...)` as the v1 equivalent."
+    },
+    {
+      "text": "Verifies with `code_graph.py find-method` (agent tool), a version-specific source read, or Python introspection on the imported v1 SortGroup — not memory",
+      "passed": true,
+      "evidence": "Provides Python `dir(SortGroup)` introspection, grep against v0/v1 source paths, and `code_graph.py find-method`."
+    },
+    {
+      "text": "Cites distinct v0 and v1 source paths to anchor the version difference",
+      "passed": true,
+      "evidence": "Cites both `spyglass/spikesorting/v0/spikesorting_recording.py:94` and `spyglass/spikesorting/v1/recording.py:51`."
+    }
+  ]
+}

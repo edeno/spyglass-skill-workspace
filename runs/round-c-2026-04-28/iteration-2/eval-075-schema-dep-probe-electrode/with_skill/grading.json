@@ -1,0 +1,46 @@
+{
+  "eval_id": 75,
+  "eval_name": "schema-dep-probe-electrode",
+  "expectations": [
+    {
+      "text": "Response contains substring `Electrode`.",
+      "passed": true,
+      "evidence": "Substring 'Electrode' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Probe`.",
+      "passed": true,
+      "evidence": "Substring 'Probe' found in response.md"
+    },
+    {
+      "text": "Response contains substring `.heading`.",
+      "passed": true,
+      "evidence": "Substring '.heading' found in response.md"
+    },
+    {
+      "text": "Response contains substring `.parents`.",
+      "passed": true,
+      "evidence": "Substring '.parents' found in response.md"
+    },
+    {
+      "text": "Names BOTH `Electrode().heading.attributes` (or `.heading`) AND `Electrode.parents()` as the inspection path \u2014 heading shows the carried columns, parents shows the FK declarations that contributed them",
+      "passed": true,
+      "evidence": "Names both: 'heading.attributes shows the flattened schema... parents() shows the declarations that contributed those columns.'"
+    },
+    {
+      "text": "Identifies the link as a `-> [nullable] Probe.Electrode` declaration (secondary FK to a part table, nullable) \u2014 does not claim Probe is a primary parent of Electrode",
+      "passed": true,
+      "evidence": "States: 'the link to probes is -> [nullable] Probe.Electrode (file src/spyglass/common/common_ephys.py:78), and it sits below the --- divider' and 'there is no -> Probe declaration on Electrode'."
+    },
+    {
+      "text": "Explains nullable secondary FK semantics: the probe_* columns appear in Electrode's heading via FK inheritance, but Electrode rows are allowed to have NULL there (so a session without probe metadata still ingests)",
+      "passed": true,
+      "evidence": "Explains: 'Nullable. The [nullable] modifier means a row in Electrode is allowed to have NULL for those probe_* fields. That's deliberate: it lets a session whose NWB file lacks probe metadata still ingest into Electrode.'"
+    },
+    {
+      "text": "Does not invent a primary `-> Probe` declaration on Electrode \u2014 the actual link is to the part table Probe.Electrode and is below the `---` divider",
+      "passed": true,
+      "evidence": "Explicit: 'A common confusion: there is no -> Probe declaration on Electrode. The link is to the part table Probe.Electrode.'"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "eval_id": 78,
+  "eval_name": "abstain-session-samplingrate",
+  "expectations": [
+    {
+      "text": "Response contains substring `Session`.",
+      "passed": true,
+      "evidence": "Substring 'Session' found in response.md"
+    },
+    {
+      "text": "Response contains substring `heading`.",
+      "passed": true,
+      "evidence": "Substring 'heading' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Raw`.",
+      "passed": true,
+      "evidence": "Substring 'Raw' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `sampling_rate is stored on Session`.",
+      "passed": true,
+      "evidence": "Substring 'sampling_rate is stored on Session' absent in response.md"
+    },
+    {
+      "text": "States that `sampling_rate` does not exist as a column on Session",
+      "passed": true,
+      "evidence": "States: 'Session in Spyglass is a session-metadata table... not the place where per-acquisition signal properties like the raw-ephys sampling rate live' and 'the column simply isn't on that table'."
+    },
+    {
+      "text": "Names `Session.heading` (or `.heading.names` / `.describe()`) as the verification primitive",
+      "passed": true,
+      "evidence": "Names Session.heading, Session.heading.names, Session.describe()."
+    },
+    {
+      "text": "Redirects to `Raw` (direct column `sampling_rate`) as the correct source \u2014 accepts either `Raw.fetch1('sampling_rate')` or a fetch_nwb-based path",
+      "passed": true,
+      "evidence": "Provides: '(Raw & {nwb_file_name: ...}).fetch1(\"sampling_rate\")' and the fetch_nwb fallback (Raw & key).fetch_nwb()[0]['raw'].rate."
+    },
+    {
+      "text": "Does not invent a numeric default sampling rate or a fake fetch1 return shape on Session",
+      "passed": true,
+      "evidence": "Says: 'I don't want to invent a number or a return shape for you' and notes returning 'a Python float, in Hz' for Raw \u2014 no fabricated number."
+    }
+  ]
+}

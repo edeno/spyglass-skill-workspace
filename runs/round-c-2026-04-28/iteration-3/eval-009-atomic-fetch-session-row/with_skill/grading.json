@@ -1,0 +1,41 @@
+{
+  "eval_id": 9,
+  "eval_name": "atomic-fetch-session-row",
+  "expectations": [
+    {
+      "text": "Response contains substring `Session`.",
+      "passed": true,
+      "evidence": "Substring 'Session' found in response.md"
+    },
+    {
+      "text": "Response contains substring `.fetch1`.",
+      "passed": true,
+      "evidence": "Substring '.fetch1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `j1620210710_.nwb`.",
+      "passed": true,
+      "evidence": "Substring 'j1620210710_.nwb' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `fetch(as_dict=True)`.",
+      "passed": true,
+      "evidence": "Substring 'fetch(as_dict=True)' absent in response.md"
+    },
+    {
+      "text": "Response is one-liner or near-minimal (no cardinality check)",
+      "passed": true,
+      "evidence": "Response is essentially the one-liner `(Session & {...}).fetch1()` plus a brief justification."
+    },
+    {
+      "text": "Does not route to runtime_debugging.md or common_mistakes.md",
+      "passed": true,
+      "evidence": "No mention of runtime_debugging.md or common_mistakes.md."
+    },
+    {
+      "text": "Does not over-explain with a cardinality-verification dance (len/print) when the PK is unique \u2014 the one-liner fetch1() suffices for a known-unique PK lookup",
+      "passed": true,
+      "evidence": "No len/print/cardinality check; explicitly notes 'unique by construction \u2014 fetch1() is safe with no cardinality check'."
+    }
+  ]
+}

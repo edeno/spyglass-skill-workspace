@@ -1,0 +1,47 @@
+{
+  "eval_id": 27,
+  "eval_name": "compound-decoding-populate-fail-triage",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (merge_restrict, interval mismatch, PositionGroup, pos_merge_id, ClusterlessDecodingSelection, PositionOutput, foreign key, position_group_name, estimate_decoding_params).",
+      "passed": true,
+      "evidence": "All required substrings present (merge_restrict, 'interval mismatch' inside 'Signature F (interval mismatch)', PositionGroup, pos_merge_id, ClusterlessDecodingSelection, PositionOutput, 'foreign key', position_group_name, estimate_decoding_params)."
+    },
+    {
+      "text": "Begins by verifying the failing decoding key is fully specified (PK including estimate_decoding_params)",
+      "passed": true,
+      "evidence": "Step 1 explicitly walks the PK list, calls out 'There is no `---` boundary in this definition, so every line — including the default-valued bool — is part of the primary key', and includes estimate_decoding_params with `= 1` default note."
+    },
+    {
+      "text": "Sanity check that PositionOutput is populated for the session",
+      "passed": true,
+      "evidence": "Step 2: `len(PositionOutput.merge_restrict({'nwb_file_name': key['nwb_file_name']})) > 0` with 'If 0, populate position first ... not a triage path'."
+    },
+    {
+      "text": "Inspects (PositionGroup.Position & position_group_key).fetch('pos_merge_id', ...) vs live PositionOutput merge_restrict",
+      "passed": true,
+      "evidence": "Step 3 fetches `reaching_for = (PositionGroup.Position & position_group_key).fetch('pos_merge_id', as_dict=True)` and compares to `live_for_session = PositionOutput.merge_restrict(...).fetch('merge_id')`."
+    },
+    {
+      "text": "Distinguishes three diagnostic outcomes (different nwb_file_name; mis-pointed group; FK violation)",
+      "passed": true,
+      "evidence": "Step 3 explicitly enumerates outcomes 1, 2, 3 with the FK-invariant case flagged as 'lab admin' work, not user-fixable."
+    },
+    {
+      "text": "Checks interval-list compatibility, names Signature F (interval mismatch) from runtime_debugging.md",
+      "passed": true,
+      "evidence": "Step 4 titled 'Check interval compatibility (Signature F)' and explicitly references 'Signature F (interval mismatch) from runtime_debugging.md'."
+    },
+    {
+      "text": "Does not reward stale pos_merge_id story as the lead diagnosis",
+      "passed": true,
+      "evidence": "Opening: 'A `fetch1`-cardinality error... is almost never a stale `pos_merge_id` story. DataJoint enforces the foreign key on `PositionGroup.Position`...' and What-not-to-do reiterates this."
+    },
+    {
+      "text": "Does not suggest PositionOutput.delete() / merge_delete as a fix",
+      "passed": true,
+      "evidence": "What-not-to-do section: 'Don't call PositionOutput.delete() or PositionOutput.merge_delete(...) as a fix'."
+    }
+  ]
+}

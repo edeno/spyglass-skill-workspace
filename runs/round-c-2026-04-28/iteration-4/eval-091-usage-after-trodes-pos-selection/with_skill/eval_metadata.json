@@ -1,0 +1,19 @@
+{
+  "eval_id": 91,
+  "eval_name": "usage-after-trodes-pos-selection",
+  "prompt": "I just inserted a `TrodesPosSelection` row. What's the next thing I'd do with it?",
+  "stage": "pipeline-usage",
+  "tier": "table-usage",
+  "difficulty": "easy",
+  "required_substrings": [
+    "TrodesPosV1.populate",
+    "TrodesPosSelection"
+  ],
+  "forbidden_substrings": [
+    "TrodesPosSelection.populate"
+  ],
+  "behavioral_checks": [
+    "Names the next-step operation as `TrodesPosV1.populate(key)` — not just 'populate the position pipeline'",
+    "Mentions that the populate step is what writes into `PositionOutput.TrodesPosV1` (merge auto-insert)"
+  ]
+}

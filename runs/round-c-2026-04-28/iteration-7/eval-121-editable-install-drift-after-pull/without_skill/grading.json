@@ -1,0 +1,47 @@
+{
+  "eval_id": 121,
+  "eval_name": "editable-install-drift-after-pull",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'pip install -e'",
+      "passed": true,
+      "evidence": "found — 'pip install -e'"
+    },
+    {
+      "text": "required_substring: 'editable'",
+      "passed": true,
+      "evidence": "found — 'editable'"
+    },
+    {
+      "text": "required_substring: 'spyglass.__file__'",
+      "passed": true,
+      "evidence": "found — 'spyglass.__file__'"
+    },
+    {
+      "text": "forbidden_substring: 'pip install spyglass-neuro from PyPI'",
+      "passed": true,
+      "evidence": "absent — 'pip install spyglass-neuro from PyPI'"
+    },
+    {
+      "text": "behavioral_check: Checks `spyglass.__file__` (or `pip show spyglass-neuro` editable status) BEFORE recommending anything destructive — distinguishes Shape A (site-packages shadowing) from Shape B (editable desync after pyproject.toml / setup.cfg bump)",
+      "passed": true,
+      "evidence": "'How to confirm in 30 seconds' block runs `print(spyglass.__file__)`, `m.__file__`, `pip show spyglass`, and `pip list | grep -i spyglass` to distinguish site-packages-shadowing from editable-checkout-pointing-elsewhere."
+    },
+    {
+      "text": "behavioral_check: Notes that a `git pull` that bumps `setup.cfg` / `pyproject.toml` can desync a previously editable install; re-running `pip install -e .` from the checkout refreshes the editable wrapper",
+      "passed": true,
+      "evidence": "Fix #1: 'After git pull, you generally don't need to reinstall unless pyproject.toml / setup.cfg / entry points changed — but doing it once now will make future pulls just work.'"
+    },
+    {
+      "text": "behavioral_check: Does NOT recommend `pip install spyglass-neuro` from PyPI as the fix — that creates the site-packages-shadowing problem if the user already had an editable checkout",
+      "passed": true,
+      "evidence": "Doesn't recommend pip install from PyPI. Recommends `pip install -e .` against the checkout."
+    },
+    {
+      "text": "behavioral_check: Mentions kernel restart for Jupyter when reinstalling — Python caches imports across `pip install` so the running kernel won't pick up the new module otherwise",
+      "passed": false,
+      "evidence": "Doesn't mention Jupyter kernel restart. Mentions clearing __pycache__ as a separate fix but doesn't surface that an already-running kernel won't pick up the new module after pip install -e ."
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "eval_id": 92,
+  "eval_name": "usage-after-positionoutput-row",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'merge_get_part'",
+      "passed": true,
+      "evidence": "found — 'merge_get_part'"
+    },
+    {
+      "text": "required_substring: 'fetch1_dataframe'",
+      "passed": true,
+      "evidence": "found — 'fetch1_dataframe'"
+    },
+    {
+      "text": "required_substring: 'PositionOutput'",
+      "passed": true,
+      "evidence": "found — 'PositionOutput'"
+    },
+    {
+      "text": "forbidden_substring: 'PositionOutput.populate'",
+      "passed": true,
+      "evidence": "absent — 'PositionOutput.populate'"
+    },
+    {
+      "text": "forbidden_substring: \"PositionOutput.fetch1('position'\"",
+      "passed": true,
+      "evidence": "absent — \"PositionOutput.fetch1('position'\""
+    },
+    {
+      "text": "behavioral_check: Names `merge_get_part` as the operation to find the source part table",
+      "passed": true,
+      "evidence": "Section 3 mentions `PositionOutput.merge_get_part(key)` and `merge_get_parent(key)` as ways to identify the upstream source."
+    },
+    {
+      "text": "behavioral_check: Names `fetch1_dataframe()` on the restricted merge master as the way to materialize position data — does NOT suggest fetching a 'position' column directly off PositionOutput",
+      "passed": true,
+      "evidence": "Recommends `(PositionOutput & key).fetch1_dataframe()` as the workhorse; never proposes a direct .fetch1('position') column."
+    }
+  ]
+}

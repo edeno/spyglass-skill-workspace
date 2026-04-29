@@ -1,0 +1,32 @@
+{
+  "eval_id": 58,
+  "eval_name": "param-speed-threshold-ripple",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'immobility'",
+      "passed": true,
+      "evidence": "found — 'immobility'"
+    },
+    {
+      "text": "behavioral_check: Identifies speed_threshold as a movement-exclusion cutoff (events kept when speed <= threshold)",
+      "passed": true,
+      "evidence": "States 'A candidate is kept only when the immobility condition holds at both endpoints, i.e. speed <= speed_threshold at the start AND at the end of the event.'"
+    },
+    {
+      "text": "behavioral_check: Predicts the direction correctly: raising 4 -> 10 keeps MORE candidate events, not fewer",
+      "passed": true,
+      "evidence": "Explicit: 'Bumping speed_threshold from 4.0 to 10.0 cm/s loosens the immobility filter, so you keep more candidate events.'"
+    },
+    {
+      "text": "behavioral_check: Identifies the tradeoff: looser immobility conditioning admits peri-movement events that may not be true SWRs",
+      "passed": true,
+      "evidence": "Lists movement/running artifact, theta-associated high-gamma, type-2 movement ripples; says 'a non-trivial fraction that are peri-movement and that many in the field would not classify as SWRs' and 'higher false-positive rate'."
+    },
+    {
+      "text": "behavioral_check: Does NOT predict that raising speed_threshold yields fewer ripples — that is the opposite of how the filter works",
+      "passed": true,
+      "evidence": "Direction is unambiguous and correct throughout."
+    }
+  ]
+}

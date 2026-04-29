@@ -1,0 +1,23 @@
+{
+  "eval_id": 32,
+  "eval_name": "ingest-channel-slice-parents",
+  "prompt": "ingest ran cleanly on j1620210710.nwb, but now `SpikeSortingRecording.populate(key)` crashes with `AssertionError: ChannelSliceRecording: channel ids are not all in parents`. The NWB came out of a standard trodes_to_nwb conversion. Is this a spyglass bug or is something wrong in my NWB?",
+  "stage": "ingestion",
+  "tier": "post-ingest-validation",
+  "difficulty": "hard",
+  "required_substrings": [
+    "channel_name",
+    "colnames",
+    "electrodes",
+    "Probe"
+  ],
+  "forbidden_substrings": [
+    "this is a spyglass bug"
+  ],
+  "behavioral_checks": [
+    "Identifies the NWB electrodes table's channel_name column as the root cause",
+    "Shows the concrete pynwb diagnostic (`nwb.electrodes.colnames`)",
+    "Points at the version fix (Spyglass ≥ 0.5.5) or the NWB-side rewrite as remediation",
+    "Does not frame this as a spyglass bug"
+  ]
+}

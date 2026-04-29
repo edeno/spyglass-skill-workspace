@@ -1,0 +1,17 @@
+{
+  "eval_id": 20,
+  "eval_name": "adversarial-non-activation-pynwb",
+  "prompt": "I have an NWB file at /data/test.nwb with a behavioral events as a TimeSeries. How do I read the timestamps using pynwb?",
+  "stage": "non-activation",
+  "tier": "adversarial",
+  "difficulty": "easy",
+  "required_substrings": [
+    "pynwb",
+    "NWBHDF5IO"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Does NOT recommend any Spyglass machinery as the solution — no `insert_sessions(...)` call, no `SpyglassMixin` inheritance, no `dj.Computed` table, no `Session.insert(...)`, no `fetch_nwb()`. Mentioning these terms in passing to *clarify why they don't apply* is fine; recommending them as the path forward is not.",
+    "Answers the pynwb question directly with plain pynwb (e.g., `with NWBHDF5IO(path, 'r') as io: nwbfile = io.read()` then accessing `nwbfile.acquisition[name].timestamps`) OR defers to the nwb skill — does not introduce Spyglass concepts as the path forward"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "eval_id": 11,
+  "eval_name": "atomic-list-intervals-for-session",
+  "expectations": [
+    {
+      "text": "Response contains substring `IntervalList`.",
+      "passed": true,
+      "evidence": "Substring 'IntervalList' found in response.md"
+    },
+    {
+      "text": "Response contains substring `.fetch`.",
+      "passed": true,
+      "evidence": "Substring '.fetch' found in response.md"
+    },
+    {
+      "text": "Response contains substring `interval_list_name`.",
+      "passed": true,
+      "evidence": "Substring 'interval_list_name' found in response.md"
+    },
+    {
+      "text": "Uses .fetch() (multiple rows) not .fetch1() (one row)",
+      "passed": true,
+      "evidence": "Uses `.fetch('interval_list_name')` and explains 'fetch1 would raise because a session has many intervals'."
+    },
+    {
+      "text": "Restricts to nwb_file_name first, then projects interval_list_name",
+      "passed": true,
+      "evidence": "Code: `(IntervalList & {\"nwb_file_name\": \"j1620210710_.nwb\"}).fetch(\"interval_list_name\")` \u2014 restriction first, then fetch."
+    }
+  ]
+}

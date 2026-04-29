@@ -1,0 +1,136 @@
+{
+  "eval_id": 71,
+  "eval_name": "dep-trace-decoding-output",
+  "expectations": [
+    {
+      "text": "Response contains substring `Nwbfile`.",
+      "passed": true,
+      "evidence": "Substring 'Nwbfile' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Session`.",
+      "passed": true,
+      "evidence": "Substring 'Session' found in response.md"
+    },
+    {
+      "text": "Response contains substring `IntervalList`.",
+      "passed": true,
+      "evidence": "Substring 'IntervalList' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Electrode`.",
+      "passed": true,
+      "evidence": "Substring 'Electrode' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SortGroup`.",
+      "passed": true,
+      "evidence": "Substring 'SortGroup' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SpikeSortingRecording`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingRecording' found in response.md"
+    },
+    {
+      "text": "Response contains substring `CurationV1`.",
+      "passed": true,
+      "evidence": "Substring 'CurationV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SpikeSortingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `UnitWaveformFeaturesGroup`.",
+      "passed": true,
+      "evidence": "Substring 'UnitWaveformFeaturesGroup' found in response.md"
+    },
+    {
+      "text": "Response contains substring `WaveformFeaturesParams`.",
+      "passed": true,
+      "evidence": "Substring 'WaveformFeaturesParams' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionGroup`.",
+      "passed": true,
+      "evidence": "Substring 'PositionGroup' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DecodingParameters`.",
+      "passed": true,
+      "evidence": "Substring 'DecodingParameters' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ClusterlessDecodingSelection`.",
+      "passed": true,
+      "evidence": "Substring 'ClusterlessDecodingSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ClusterlessDecodingV1`.",
+      "passed": true,
+      "evidence": "Substring 'ClusterlessDecodingV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SpikeSortingRecordingSelection`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingRecordingSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SpikeSortingSelection`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `UnitWaveformFeaturesSelection`.",
+      "passed": true,
+      "evidence": "Substring 'UnitWaveformFeaturesSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `UnitWaveformFeatures`.",
+      "passed": true,
+      "evidence": "Substring 'UnitWaveformFeatures' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Raw`.",
+      "passed": true,
+      "evidence": "Substring 'Raw' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SpikeSortingPreprocessingParameters`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingPreprocessingParameters' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SpikeSorterParameters`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSorterParameters' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LabTeam`.",
+      "passed": true,
+      "evidence": "Substring 'LabTeam' found in response.md"
+    },
+    {
+      "text": "Produces an ordered or grouped list covering raw-data tables, recording / sorting branch, position branch, parameter table, selection table",
+      "passed": true,
+      "evidence": "Sections 1 (Common ingestion), 2 (Spike-sorting/waveform-features), 3 (Position), 4 (Decoding-specific) plus a 12-step regeneration order."
+    },
+    {
+      "text": "Names every direct FK parent on `SpikeSortingRecordingSelection` (`Raw`, `SortGroup`, `IntervalList`, `SpikeSortingPreprocessingParameters`, `LabTeam`) and on `SpikeSortingSelection` (`SpikeSortingRecording`, `SpikeSorterParameters`, `IntervalList`) \u2014 does NOT collapse the recording / sorting branch to just the Selection / Computed pair",
+      "passed": true,
+      "evidence": "Section 2a names all five FK parents on SpikeSortingRecordingSelection ('All five must be present'); 2b names all three on SpikeSortingSelection."
+    },
+    {
+      "text": "Does not invent table names that don't exist in Spyglass source",
+      "passed": true,
+      "evidence": "All listed table names match actual Spyglass classes (Nwbfile, Session, IntervalList, etc.); no invented tables."
+    },
+    {
+      "text": "Names the clusterless waveform-features chain explicitly: `WaveformFeaturesParams` + `UnitWaveformFeaturesSelection` -> `UnitWaveformFeatures` -> `UnitWaveformFeaturesGroup`. Does NOT list `MetricCuration` as a must-have upstream \u2014 it is optional / downstream of its own selection, not on the must-have chain that produces a `ClusterlessDecodingV1` row.",
+      "passed": true,
+      "evidence": "Section 2d lists the explicit chain; explicit note 'MetricCuration / MetricCurationSelection are an optional side-loop ... not part of the must-have chain'."
+    }
+  ]
+}

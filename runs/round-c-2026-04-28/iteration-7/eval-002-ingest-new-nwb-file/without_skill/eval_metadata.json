@@ -1,0 +1,22 @@
+{
+  "eval_id": 2,
+  "eval_name": "ingest-new-nwb-file",
+  "prompt": "I just finished converting a rat recording to NWB using trodes_to_nwb and the output is at /data/testuser/j1620210710.nwb. How do I get this into spyglass so I can eventually run spike sorting and position tracking on it? It's my first time ingesting anything.",
+  "stage": "ingestion",
+  "tier": "baseline",
+  "difficulty": "medium",
+  "required_substrings": [
+    "insert_sessions",
+    "Nwbfile",
+    "Session",
+    "Subject",
+    "Electrode"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Uses the raw filename (no trailing underscore) in insert_sessions()",
+    "Explains the copy-filename convention (Spyglass appends _ to .nwb)",
+    "Mentions reinsert=True as the correct flag for re-ingestion",
+    "Does not recommend skip_duplicates=True on insert_sessions (recommends reinsert=True instead — skip_duplicates=True raises TypeError on insert_sessions per common_mistakes.md #3)"
+  ]
+}

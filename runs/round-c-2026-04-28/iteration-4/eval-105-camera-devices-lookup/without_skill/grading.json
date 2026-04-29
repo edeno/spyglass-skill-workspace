@@ -1,0 +1,52 @@
+{
+  "eval_id": 105,
+  "eval_name": "camera-devices-lookup",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'VideoFile'",
+      "passed": true,
+      "evidence": "found — 'VideoFile'"
+    },
+    {
+      "text": "required_substring: 'CameraDevice'",
+      "passed": true,
+      "evidence": "found — 'CameraDevice'"
+    },
+    {
+      "text": "required_substring: 'camera_name'",
+      "passed": true,
+      "evidence": "found — 'camera_name'"
+    },
+    {
+      "text": "required_substring: 'nwb_file_name'",
+      "passed": true,
+      "evidence": "found — 'nwb_file_name'"
+    },
+    {
+      "text": "forbidden_substring: \"CameraDevice & {'nwb_file_name'\"",
+      "passed": true,
+      "evidence": "absent — \"CameraDevice & {'nwb_file_name'\""
+    },
+    {
+      "text": "forbidden_substring: 'CameraDevice & {\"nwb_file_name\"'",
+      "passed": true,
+      "evidence": "absent — 'CameraDevice & {\"nwb_file_name\"'"
+    },
+    {
+      "text": "behavioral_check: Routes through `VideoFile` (the per-session mapping) restricted by `nwb_file_name`, NOT through `CameraDevice` alone (which is a global name-keyed lookup with no session attr in its heading)",
+      "passed": true,
+      "evidence": "Option 1 query is `(VideoFile & {\"nwb_file_name\": nwb_file_name}) * CameraDevice` — VideoFile is the per-session entry point."
+    },
+    {
+      "text": "behavioral_check: Recognizes that `camera_name` on `VideoFile` is a secondary column — NOT a declared `-> CameraDevice` FK — and the link is by name match (validated at ingest in `_prepare_video_entry`)",
+      "passed": false,
+      "evidence": "Treats VideoFile-CameraDevice as a normal join via camera_name; never notes camera_name is a secondary (not FK) and explicitly invents a non-existent `camera_id` PK."
+    },
+    {
+      "text": "behavioral_check: Restricts `VideoFile` by `nwb_file_name` (a PK field via `-> TaskEpoch`); does NOT attempt `CameraDevice & {nwb_file_name: ...}` (silent no-op, no such attr in CameraDevice's heading)",
+      "passed": true,
+      "evidence": "VideoFile is restricted by nwb_file_name; CameraDevice is never restricted by nwb_file_name."
+    }
+  ]
+}

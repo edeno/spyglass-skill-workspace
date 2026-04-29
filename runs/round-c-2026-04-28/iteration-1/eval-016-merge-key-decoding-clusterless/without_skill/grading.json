@@ -1,0 +1,41 @@
+{
+  "eval_id": 16,
+  "eval_name": "merge-key-decoding-clusterless",
+  "expectations": [
+    {
+      "text": "Response contains substring `DecodingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'DecodingOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `merge_get_part`.",
+      "passed": true,
+      "evidence": "Substring 'merge_get_part' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DecodingParameters`.",
+      "passed": true,
+      "evidence": "Substring 'DecodingParameters' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ClusterlessDecodingV1`.",
+      "passed": true,
+      "evidence": "Substring 'ClusterlessDecodingV1' found in response.md"
+    },
+    {
+      "text": "Includes a discovery step (fetch existing param names from DecodingParameters and select the clusterless variant by its naming suffix) before naming one",
+      "passed": true,
+      "evidence": "Step 1 calls `DecodingParameters().fetch('decoding_param_name')` and filters with `decoding_param_name LIKE '%clusterless%'`."
+    },
+    {
+      "text": "Does not invent a specific params name without checking",
+      "passed": true,
+      "evidence": "Says 'don't take my word for it' and 'Assigning a value like default_clusterless without checking will fail silently' — uses placeholder for the name."
+    },
+    {
+      "text": "Does not imply that clusterless and sorted-spikes params live in separate tables — DecodingParameters is a single dj.Lookup; the distinction is by naming convention",
+      "passed": true,
+      "evidence": "States 'DecodingParameters ... is a single dj.Lookup table that holds both clusterless and sorted-spikes parameter sets. There is no separate clusterless decoding parameters table'."
+    }
+  ]
+}

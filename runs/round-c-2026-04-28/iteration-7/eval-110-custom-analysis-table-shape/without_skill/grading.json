@@ -1,0 +1,57 @@
+{
+  "eval_id": 110,
+  "eval_name": "custom-analysis-table-shape",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'AnalysisNwbfile'",
+      "passed": true,
+      "evidence": "found — 'AnalysisNwbfile'"
+    },
+    {
+      "text": "required_substring: 'SpyglassMixin'",
+      "passed": true,
+      "evidence": "found — 'SpyglassMixin'"
+    },
+    {
+      "text": "required_substring: '_object_id'",
+      "passed": true,
+      "evidence": "found — '_object_id'"
+    },
+    {
+      "text": "required_substring: 'dj.Computed'",
+      "passed": true,
+      "evidence": "found — 'dj.Computed'"
+    },
+    {
+      "text": "forbidden_substring: 'correlations: longblob'",
+      "passed": true,
+      "evidence": "absent — 'correlations: longblob'"
+    },
+    {
+      "text": "forbidden_substring: 'correlations : longblob'",
+      "passed": true,
+      "evidence": "absent — 'correlations : longblob'"
+    },
+    {
+      "text": "behavioral_check: Recommends writing the correlation matrix to an `AnalysisNwbfile` and storing only an `*_object_id` (varchar(40)) plus `analysis_file_name` reference in the DJ row — does NOT store the matrix as a `longblob` / `blob` column",
+      "passed": true,
+      "evidence": "Computed definition: `-> AnalysisNwbfile`, `xcorr_object_id : varchar(40)`. Section #4: 'Heavy arrays in AnalysisNwbfile, pointers in DJ.'"
+    },
+    {
+      "text": "behavioral_check: Names the SpyglassMixin-first MRO requirement (`class X(SpyglassMixin, dj.Computed)`) as a non-negotiable — the validator pins this with a regression fixture",
+      "passed": true,
+      "evidence": "All schema classes use SpyglassMixin first (`class X(SpyglassMixin, dj.Computed)`). Section #5: 'SpyglassMixin... Always inherit it on user tables.' Doesn't use the word 'non-negotiable' but treats it as required."
+    },
+    {
+      "text": "behavioral_check: Cites the non-negotiable that tables reference exactly ONE AnalysisNwbfile table (Spyglass validates on declaration); the row carries the file name + object IDs, not the heavy array itself",
+      "passed": false,
+      "evidence": "References AnalysisNwbfile and stores object_id, but doesn't surface the 'exactly one AnalysisNwbfile per table' constraint or that Spyglass validates this on declaration."
+    },
+    {
+      "text": "behavioral_check: Uses the `AnalysisNwbfile().build(nwb_file_name)` context manager for the create -> add -> register lifecycle, OR an equivalent atomic shape — does not interleave separate `create()` / `add_nwb_object()` / `add()` calls",
+      "passed": false,
+      "evidence": "Interleaves separate calls: `AnalysisNwbfile().create(...)`, then `pynwb.NWBHDF5IO(... 'a' ...) as io: ...add_scratch...`, then `AnalysisNwbfile().add(nwb_file_name, analysis_file)`. Doesn't use the build() context manager and risks the REGISTERED-state pitfall."
+    }
+  ]
+}

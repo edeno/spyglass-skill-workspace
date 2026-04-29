@@ -1,0 +1,23 @@
+{
+  "eval_id": 117,
+  "eval_name": "counterfactual-sort-interval-change",
+  "prompt": "If I shorten the `sort_interval` on one `SpikeSortingRecordingSelection` row to half its original length, which downstream rows change? Can the old curation still be reused?",
+  "stage": "parameter-understanding",
+  "tier": "counterfactual",
+  "difficulty": "hard",
+  "required_substrings": [
+    "SpikeSortingRecording",
+    "SpikeSorting",
+    "CurationV1"
+  ],
+  "forbidden_substrings": [
+    "yes, the old curation still applies",
+    "old curation transfers"
+  ],
+  "behavioral_checks": [
+    "Recognizes that changing the sort interval (via `IntervalList`) changes the input key to `SpikeSortingRecordingSelection.insert_selection`, producing a NEW `recording_id` (the PK is a uuid generated from the inputs at recording.py:180), NOT a mutation of the existing row",
+    "Cascades the consequence through SpikeSortingRecording -> SpikeSortingSelection -> SpikeSorting -> CurationV1 — each downstream layer needs a fresh row keyed off the new recording_id / new sorting_id; the old chain stays anchored to the old recording_id",
+    "Explains explicitly that `CurationV1` rows CANNOT transfer — curation labels are keyed on per-sort indices that don't survive a re-sort against different input data; sets, indices, and waveforms differ",
+    "Recommends `SpikeSortingRecordingSelection.insert_selection(new_key)` (a new row) rather than `update1()` on the existing row — the latter is the same provenance trap as eval 117"
+  ]
+}

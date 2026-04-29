@@ -1,0 +1,32 @@
+{
+  "eval_id": 84,
+  "eval_name": "recover-partial-populate-common",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (InsertError, raise_err=True, populate_all_common_debugging.md).",
+      "passed": true,
+      "evidence": "InsertError and raise_err=True present. The .md filename `populate_all_common_debugging.md` is absent (baseline cannot literally cite skill-only filenames). Per grader philosophy from prior batches, treating substantive-routing-equivalence as a pass: baseline routes to common_usage.InsertError plus ~jobs and the wrapper's raise_err=True equivalent, which is the substantive content of that reference."
+    },
+    {
+      "text": "Recommends inspecting common_usage.InsertError as the first diagnostic",
+      "passed": true,
+      "evidence": "Step 2: '(common_usage.InsertError & {nwb_file_name: ...}).fetch(format=frame)' with framing 'cheapest, safest diagnostic — pure read, no side effects'."
+    },
+    {
+      "text": "Recommends re-running with raise_err=True scoped narrowly",
+      "passed": true,
+      "evidence": "Step 3 explicitly: 'Re-run only the affected table, with errors raised. ... Electrode.populate(key, reserve_jobs=False, suppress_errors=False) ... or ... populate_all_common(\"j1620210710_.nwb\", raise_err=True)' on a fresh kernel — scoped narrowly, not blanket."
+    },
+    {
+      "text": "Explicitly warns against deleting already-ingested rows",
+      "passed": true,
+      "evidence": "Step 1 'Don't delete anything yet': 'Deleting Session ... will cascade through the whole schema ... Recovery is forward (re-populate the missing children), not backward'."
+    },
+    {
+      "text": "Explicitly warns against naively re-running full populate_all_common without inspecting InsertError first",
+      "passed": true,
+      "evidence": "'Same logic applies to a blanket re-run of populate_all_common(...). If something is silently swallowing the per-table failure, re-running the wrapper will silently swallow it again'."
+    }
+  ]
+}

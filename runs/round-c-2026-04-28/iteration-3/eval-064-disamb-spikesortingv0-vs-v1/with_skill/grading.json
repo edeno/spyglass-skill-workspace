@@ -1,0 +1,36 @@
+{
+  "eval_id": 64,
+  "eval_name": "disamb-spikesortingv0-vs-v1",
+  "expectations": [
+    {
+      "text": "Response contains substring `SpikeSortingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SpikeSortingOutput.CurationV1`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingOutput.CurationV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `CuratedSpikeSorting`.",
+      "passed": true,
+      "evidence": "Substring 'CuratedSpikeSorting' found in response.md"
+    },
+    {
+      "text": "Recommends v1 for new work; identifies v0 as legacy and directs the user not to populate v0 tables for new sessions",
+      "passed": true,
+      "evidence": "'use v1 for all new work. v0 is legacy \u2014 read-only for querying existing sortings, do not populate v0 tables for new sessions'."
+    },
+    {
+      "text": "Routes to spikesorting_v0_legacy.md only for querying pre-v1 sortings, not for new work",
+      "passed": true,
+      "evidence": "'Open that reference only for reading legacy v0 code or pulling pre-existing v0 sortings'."
+    },
+    {
+      "text": "Does not recommend v0 for new sessions or as the default \u2014 v0 is for reading legacy data only",
+      "passed": true,
+      "evidence": "'Producing a new sort for today's session. Use v1 end-to-end. Do not populate v0 tables for new sessions'."
+    }
+  ]
+}

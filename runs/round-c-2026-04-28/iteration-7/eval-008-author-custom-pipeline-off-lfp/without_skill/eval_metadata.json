@@ -1,0 +1,26 @@
+{
+  "eval_id": 8,
+  "eval_name": "author-custom-pipeline-off-lfp",
+  "prompt": "I want to build a custom analysis pipeline that computes per-interval theta/gamma power ratios from reusable theta and gamma band-filtered LFP results. Each interval + LFP entry should produce one row with mean power in theta (6-10 Hz), mean power in gamma (30-50 Hz), and their ratio. Give me a schema sketch — what's the right upstream table to FK on (LFPOutput? LFPBandV1?), which DataJoint tiers for the parameters vs selection vs computed tables, and what goes in `make()`. I want this in a new schema called `testuser_theta_gamma`. Also: should the computed table inherit SpyglassMixin? I do not want to re-filter raw/wideband LFP inside this custom `make()` if Spyglass already has a band-output step.",
+  "stage": "pipeline-authoring",
+  "tier": "baseline",
+  "difficulty": "hard",
+  "required_substrings": [
+    "SpyglassMixin",
+    "dj.Lookup",
+    "dj.Manual",
+    "dj.Computed",
+    "LFPBandV1",
+    "LFPBandSelection"
+  ],
+  "forbidden_substrings": [
+    "spyglass_testuser_theta_gamma"
+  ],
+  "behavioral_checks": [
+    "Routes the custom pipeline to LFPBandV1 (or LFPBandSelection) as the upstream FK — does NOT take LFPOutput (wideband/raw LFP) as the primary upstream and re-filter inside the custom make()",
+    "Places SpyglassMixin as the FIRST base class in the Computed table (MRO order: `class X(SpyglassMixin, dj.Computed):`)",
+    "Foreign-keys on LFPBandV1 master, projecting `filter_name` (or equivalent) to disambiguate when both theta and gamma rows are referenced. NEVER foreign-keys a part-table column directly.",
+    "Separates Params / Selection / Computed into three tiers",
+    "Does NOT prefix the schema name with `spyglass_` — personal/team schemas use `<database_user>_<suffix>`, so `testuser_theta_gamma` as the user proposed is correct, not `spyglass_testuser_theta_gamma`"
+  ]
+}

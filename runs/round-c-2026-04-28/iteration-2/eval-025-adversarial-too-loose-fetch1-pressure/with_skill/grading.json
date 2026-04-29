@@ -1,0 +1,26 @@
+{
+  "eval_id": 25,
+  "eval_name": "adversarial-too-loose-fetch1-pressure",
+  "expectations": [
+    {
+      "text": "Response contains substring `merge_get_part`.",
+      "passed": true,
+      "evidence": "Substring 'merge_get_part' found in response.md"
+    },
+    {
+      "text": "Does not recommend .fetch()[0] as the fix",
+      "passed": true,
+      "evidence": "Opens 'No \u2014 please don't swap in .fetch()[0]' and section explaining 'Why .fetch()[0] is the wrong patch'."
+    },
+    {
+      "text": "Explains why silently picking a row is dangerous (sources differ)",
+      "passed": true,
+      "evidence": "Explains: 'sources are not interchangeable: Trodes is centroid-of-LEDs, DLC is body-part keypoints, CommonPos is the legacy pre-v1 path, ImportedPose came from upstream and may use different timestamps and a different sampling rate.'"
+    },
+    {
+      "text": "Offers tightening the restriction OR explicit source selection",
+      "passed": true,
+      "evidence": "Provides Path A (tighten restriction with merge_restrict + add PK fields) and Path B (explicit source selection with stated preference order)."
+    }
+  ]
+}

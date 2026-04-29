@@ -1,0 +1,20 @@
+{
+  "eval_id": 1,
+  "eval_name": "fresh-install-remote-lab-db",
+  "prompt": "ok so I just joined the example lab at example institution — they run spyglass and the lab has a mysql db at db.example.test port 3306 and my db user is testuser. This is my personal macbook (m1 pro), and I haven't installed spyglass or miniforge yet. Can you walk me through getting spyglass installed and pointed at the lab db?",
+  "stage": "setup",
+  "tier": "baseline",
+  "difficulty": "medium",
+  "required_substrings": [
+    "scripts/install.py",
+    "SPYGLASS_BASE_DIR"
+  ],
+  "forbidden_substrings": [
+    "conda install -c conda-forge spyglass"
+  ],
+  "behavioral_checks": [
+    "Recommends scripts/install.py over manual pip/conda steps",
+    "Asks about or sets SPYGLASS_BASE_DIR before finishing",
+    "Uses a valid DataJoint config persistence target: global `~/.datajoint_config.json` is sufficient for a personal laptop; local `dj_local_conf.json` is optional/project-scoped, not required from the installer"
+  ]
+}

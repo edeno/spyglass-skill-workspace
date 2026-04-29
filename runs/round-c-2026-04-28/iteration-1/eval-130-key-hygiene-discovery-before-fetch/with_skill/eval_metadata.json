@@ -1,0 +1,28 @@
+{
+  "eval_id": 130,
+  "eval_name": "key-hygiene-discovery-before-fetch",
+  "stage": "pipeline-usage",
+  "tier": "disambiguation",
+  "difficulty": "easy",
+  "prompt": "Give me code to fetch the LFP for my session.",
+  "assertions": {
+    "required_substrings": [
+      "lfp_electrode_group_name",
+      "lfp_pipeline.md"
+    ],
+    "expected_output_tables_exempt": [
+      "LFP",
+      "LFPSelection",
+      "LFPOutput",
+      "LFPV1"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Treats the prompt as under-specified — either asks the user for the missing keys OR shows discovery code that enumerates candidates first",
+      "Names the LFP-specific keys the user needs to choose (`lfp_electrode_group_name`, `target_interval_list_name`, `filter_name`, `filter_sampling_rate`)",
+      "Resolves the merge_id through a merge-aware helper (`LFPOutput.merge_get_part(...).fetch1('KEY')` OR `LFPOutput.merge_restrict(...)`), NOT through a bare `LFPOutput & {nwb_file_name: ...}` restriction",
+      "Does NOT hand back a single-line bare-restriction `fetch1_dataframe()` without first verifying cardinality or scoping"
+    ]
+  },
+  "expected_output": "Under-specified prompt — multiple keys are needed to uniquely identify an LFP row. Either ask the user OR show discovery code first. The model should NOT hand back a bare `(LFPV1 & {'nwb_file_name': ...}).fetch1_dataframe()` without verifying cardinality, because `LFPV1`'s PK inherits LFPSelection's full PK: `nwb_file_name`, `lfp_electrode_group_name`, `target_interval_list_name`, `filter_name`, `filter_sampling_rate`. Restricting only by `nwb_file_name` will multiply across electrode groups and filter presets and `fetch1` will raise.\n\nDiscovery-first shape:\n\n```python\nfrom spyglass.lfp.v1 import LFPSelection\nfrom spyglass.lfp import LFPOutput\n\n# 1. Enumerate populated LFP rows for this session\ncandidates = (LFPSelection & {'nwb_file_name': nwb_file}\n              ).fetch('KEY', as_dict=True)\nfor c in candidates:\n    print(c)  # inspect (electrode group, interval, filter)\n\n# 2. Pick one and resolve through the merge\nmerge_key = LFPOutput.merge_get_part(candidates[0]).fetch1('KEY')\nlfp_df = (LFPOutput & merge_key).fetch1_dataframe()\n```\n\nOr ask: which electrode group, interval, and filter did you populate? Routes to lfp_pipeline.md and feedback_loops.md (Inspect-before-act)."
+}

@@ -1,0 +1,37 @@
+{
+  "eval_id": 86,
+  "eval_name": "counterfactual-decoding-noise-divergence",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (ClusterlessDecodingSelection, decoding_param_name, decoding_pipeline.md).",
+      "passed": true,
+      "evidence": "All required substrings present."
+    },
+    {
+      "text": "Enumerates at least four distinct direct-FK divergence surfaces",
+      "passed": true,
+      "evidence": "Five direct-FK surfaces enumerated (waveform_features_group_name, position_group_name, decoding_param_name, encoding_interval, decoding_interval) plus the bool estimate_decoding_params."
+    },
+    {
+      "text": "Recommends fetching and diffing ClusterlessDecodingSelection & key as the minimal isolating diagnostic",
+      "passed": true,
+      "evidence": "'Minimal isolating diagnostic — run this first' section: `mine = (ClusterlessDecodingSelection & key).fetch(as_dict=True)` and field-by-field diff."
+    },
+    {
+      "text": "Does not commit to one cause before the diagnostic is run",
+      "passed": true,
+      "evidence": "'Don't speculate on a cause. Fetch and diff the actual selection rows' and 'Don't commit to a cause until you've seen which of the six fields differs'."
+    },
+    {
+      "text": "Distinguishes direct-FK surfaces from upstream-chain differences (second-order check)",
+      "passed": true,
+      "evidence": "'If the six fields are identical across both users, then it's a second-order check' with explicit list of upstream chain mismatches as the second step."
+    },
+    {
+      "text": "Does not misattribute divergence purely to environment / package drift",
+      "passed": true,
+      "evidence": "'What is NOT (yet) the likely cause' section explicitly addresses environment/package drift: 'drift is downstream of, not a substitute for, the diff above'."
+    }
+  ]
+}

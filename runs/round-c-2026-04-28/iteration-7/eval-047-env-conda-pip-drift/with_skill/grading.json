@@ -1,0 +1,42 @@
+{
+  "eval_id": 47,
+  "eval_name": "env-conda-pip-drift",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'environments/environment_min.yml'",
+      "passed": true,
+      "evidence": "found — 'environments/environment_min.yml'"
+    },
+    {
+      "text": "required_substring: '--dry-run'",
+      "passed": true,
+      "evidence": "found — '--dry-run'"
+    },
+    {
+      "text": "forbidden_substring: 'pin cv2 to'",
+      "passed": true,
+      "evidence": "absent — 'pin cv2 to'"
+    },
+    {
+      "text": "behavioral_check: Identifies the pip-install-broke-conda-env pattern (not a spyglass code issue)",
+      "passed": true,
+      "evidence": "Opens with 'Yes — your `pip install opencv-python` is the cause' and labels it 'a known Spyglass env-drift failure mode'. Lists adjacent symptoms in the same family."
+    },
+    {
+      "text": "behavioral_check: Recommends recreating the env from `environments/environment_min.yml` (the default minimal file per setup_install.md) or `environments/environment.yml` (full install) using either `mamba env update --prune` or `conda env update --prune` (either tool is acceptable — labs use both)",
+      "passed": true,
+      "evidence": "Fix: `mamba env update --file environments/environment_min.yml --prune` or full rebuild via `mamba env remove` + `mamba env create -f environments/environment_min.yml`. Substitutes conda for mamba is noted."
+    },
+    {
+      "text": "behavioral_check: Mentions `pip install --dry-run` as a future safeguard",
+      "passed": true,
+      "evidence": "Going forward step 1: `pip install --dry-run opencv-python` to see what pip plans to change."
+    },
+    {
+      "text": "behavioral_check: Does not recommend pinning a specific cv2 version or installing another package on top",
+      "passed": true,
+      "evidence": "'Don't do this' section explicitly: 'Don't `pip install opencv-python==<some-older-version>`...Don't `pip install opencv-contrib-python` or `opencv-python-headless` on top'."
+    }
+  ]
+}

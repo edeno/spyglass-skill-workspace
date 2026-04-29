@@ -1,0 +1,47 @@
+{
+  "eval_id": 85,
+  "eval_name": "recover-parameter-edit-in-place",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'ripple_param_name'",
+      "passed": true,
+      "evidence": "found — 'ripple_param_name'"
+    },
+    {
+      "text": "required_substring: 'cautious_delete'",
+      "passed": false,
+      "evidence": "MISSING — 'cautious_delete'"
+    },
+    {
+      "text": "required_substring: 'destructive_operations.md'",
+      "passed": false,
+      "evidence": "MISSING — 'destructive_operations.md'"
+    },
+    {
+      "text": "behavioral_check: Uses the correct field name `ripple_param_name` (singular), not `ripple_params_name`",
+      "passed": true,
+      "evidence": "Uses `ripple_param_name` consistently throughout."
+    },
+    {
+      "text": "behavioral_check: Scopes the cleanup to RippleTimesV1 rows with the affected `ripple_param_name`, not all RippleTimesV1 rows",
+      "passed": true,
+      "evidence": "Restriction `RippleTimesV1 & {\"ripple_param_name\": \"Kay_ripple_detection_v2\"}` is scoped to the corrupted name."
+    },
+    {
+      "text": "behavioral_check: Explicitly lists what is unaffected — LFP, LFPBand, RippleLFPSelection, position, decoding branches not downstream of the affected ripple times",
+      "passed": false,
+      "evidence": "Discusses cascade downstream of RippleTimesV1 only; does not enumerate parallel/upstream branches that remain unaffected."
+    },
+    {
+      "text": "behavioral_check: Recommends cautious_delete (not super_delete or a manual drop) and routes to destructive_operations.md",
+      "passed": false,
+      "evidence": "Recommends plain `.delete()` and Path B uses `update1`; never names cautious_delete or links destructive_operations.md."
+    },
+    {
+      "text": "behavioral_check: Flags editing a params row in place as an anti-pattern and recommends inserting a new `ripple_param_name` entry for future runs",
+      "passed": true,
+      "evidence": "Calls params 'immutable, content-addressed by name', advises new `*_param_name` (`..._z3`) for new values."
+    }
+  ]
+}

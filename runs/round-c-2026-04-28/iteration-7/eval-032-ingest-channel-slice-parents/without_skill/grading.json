@@ -1,0 +1,52 @@
+{
+  "eval_id": 32,
+  "eval_name": "ingest-channel-slice-parents",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'channel_name'",
+      "passed": false,
+      "evidence": "MISSING — 'channel_name'"
+    },
+    {
+      "text": "required_substring: 'colnames'",
+      "passed": false,
+      "evidence": "MISSING — 'colnames'"
+    },
+    {
+      "text": "required_substring: 'electrodes'",
+      "passed": true,
+      "evidence": "found — 'electrodes'"
+    },
+    {
+      "text": "required_substring: 'Probe'",
+      "passed": true,
+      "evidence": "found — 'Probe'"
+    },
+    {
+      "text": "forbidden_substring: 'this is a spyglass bug'",
+      "passed": true,
+      "evidence": "absent — 'this is a spyglass bug'"
+    },
+    {
+      "text": "behavioral_check: Identifies the NWB electrodes table's channel_name column as the root cause",
+      "passed": false,
+      "evidence": "Doesn't mention channel_name at all. Identifies several other plausible causes (electrode subset, ElectricalSeries mismatch, dtype mismatch) but not the canonical SpikeInterface-0.99-channel_name-precedence root cause."
+    },
+    {
+      "text": "behavioral_check: Shows the concrete pynwb diagnostic (`nwb.electrodes.colnames`)",
+      "passed": false,
+      "evidence": "Uses pynwb but iterates over `nwb.acquisition.items()` and inspects ElectricalSeries; never shows `nwb.electrodes.colnames`."
+    },
+    {
+      "text": "behavioral_check: Points at the version fix (Spyglass ≥ 0.5.5) or the NWB-side rewrite as remediation",
+      "passed": false,
+      "evidence": "Recommends manual SortGroup row deletion / dtype conversion / checking ElectricalSeries; doesn't mention upgrading Spyglass or rewriting the NWB without channel_name."
+    },
+    {
+      "text": "behavioral_check: Does not frame this as a spyglass bug",
+      "passed": true,
+      "evidence": "Frames as a SortGroup-vs-NWB-extractor mismatch rather than a Spyglass bug; says 'A clean ingest only guarantees... not that every Electrode row corresponds to a channel in the broadband ElectricalSeries — the ingest doesn't cross-check that.'"
+    }
+  ]
+}

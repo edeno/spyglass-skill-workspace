@@ -1,0 +1,18 @@
+{
+  "eval_id": 58,
+  "eval_name": "param-speed-threshold-ripple",
+  "prompt": "In ripple params, what does `speed_threshold: 4.0` actually do? If I bump it to 10 cm/s, more ripples or fewer, and what quality tradeoff am I making?",
+  "stage": "parameter-understanding",
+  "tier": "parameter-semantics",
+  "difficulty": "medium",
+  "required_substrings": [
+    "immobility"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Identifies speed_threshold as a movement-exclusion cutoff (events kept when speed <= threshold)",
+    "Predicts the direction correctly: raising 4 -> 10 keeps MORE candidate events, not fewer",
+    "Identifies the tradeoff: looser immobility conditioning admits peri-movement events that may not be true SWRs",
+    "Does NOT predict that raising speed_threshold yields fewer ripples — that is the opposite of how the filter works"
+  ]
+}

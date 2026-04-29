@@ -1,0 +1,46 @@
+{
+  "eval_id": 69,
+  "eval_name": "workflow-next-after-spikesortingselection",
+  "expectations": [
+    {
+      "text": "Response contains substring `SpikeSorting.populate`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSorting.populate' found in response.md"
+    },
+    {
+      "text": "Response contains substring `CurationV1`.",
+      "passed": true,
+      "evidence": "Substring 'CurationV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `MetricCuration`.",
+      "passed": true,
+      "evidence": "Substring 'MetricCuration' found in response.md"
+    },
+    {
+      "text": "Response contains substring `MetricCurationSelection`.",
+      "passed": true,
+      "evidence": "Substring 'MetricCurationSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SpikeSortingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingOutput' found in response.md"
+    },
+    {
+      "text": "Names SpikeSorting.populate as the immediate next step (not SpikeSortingV1.populate \u2014 the actual v1 class is named SpikeSorting)",
+      "passed": true,
+      "evidence": "'in the v1 module the populated table is just called SpikeSorting (not SpikeSortingV1)'; uses `SpikeSorting.populate(key)`."
+    },
+    {
+      "text": "Gives an ordered next-N list: SpikeSorting.populate \u2192 CurationV1 insert \u2192 MetricCuration \u2192 SpikeSortingOutput merge insert",
+      "passed": true,
+      "evidence": "Summary table: 1) SpikeSorting populate, 2) CurationV1.insert_curation, 3) MetricCurationSelection+MetricCuration, 4) SpikeSortingOutput insert."
+    },
+    {
+      "text": "Notes that CurationV1 comes before MetricCuration in the v1 flow",
+      "passed": true,
+      "evidence": "'CurationV1 must exist before metric curation, because metric curation operates on top of an existing curation'."
+    }
+  ]
+}

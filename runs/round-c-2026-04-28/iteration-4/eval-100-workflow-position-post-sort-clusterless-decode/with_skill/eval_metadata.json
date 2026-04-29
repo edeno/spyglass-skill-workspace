@@ -1,0 +1,20 @@
+{
+  "eval_id": 100,
+  "eval_name": "workflow-position-post-sort-clusterless-decode",
+  "prompt": "I just finished running the v1 spike sorting pipeline (`SpikeSorting.populate()` worked, no errors). What's next in the chain if I want clusterless decoding?",
+  "stage": "pipeline-usage",
+  "tier": "workflow-position",
+  "difficulty": "medium",
+  "required_substrings": [
+    "CurationV1",
+    "SpikeSortingOutput",
+    "UnitWaveformFeaturesGroup",
+    "ClusterlessDecodingSelection",
+    "PositionGroup"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Identifies `CurationV1` as the mandatory next step (initial curation, not optional) before anything downstream of spike sorting can be reached",
+    "Calls out the merge insert into `SpikeSortingOutput` (e.g. `insert([curation_key], part_name='CurationV1')`) as a separate explicit step that does not happen automatically"
+  ]
+}

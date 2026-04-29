@@ -1,0 +1,42 @@
+{
+  "eval_id": 45,
+  "eval_name": "config-permission-triage",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'SHOW GRANTS'",
+      "passed": true,
+      "evidence": "found — 'SHOW GRANTS'"
+    },
+    {
+      "text": "required_substring: 'LabMemberInfo'",
+      "passed": true,
+      "evidence": "found — 'LabMemberInfo'"
+    },
+    {
+      "text": "behavioral_check: Splits the diagnosis into three layers (MySQL grants, filesystem, LabMember) rather than guessing one",
+      "passed": true,
+      "evidence": "Section structure: Step 1 'confirm it's a MySQL grant problem', Step 2 'rule out filesystem permissions', Step 3 'rule out the LabMember precondition' — exactly three layers."
+    },
+    {
+      "text": "behavioral_check: Gives concrete diagnostic commands for each layer (SHOW GRANTS, filesystem writability check, LabMember check)",
+      "passed": true,
+      "evidence": "Step 1: `SHOW GRANTS FOR CURRENT_USER()`. Step 2: `ls -ld` + `os.access(path, os.W_OK)`. Step 3: lists the LabMember error pattern (and notes it's distinct from this one's wording)."
+    },
+    {
+      "text": "behavioral_check: For the filesystem layer, either verify_spyglass_env.py --check base_dir_exists_writable/subdirs_exist_writable OR ls -ld + os.access is acceptable",
+      "passed": true,
+      "evidence": "Step 2 uses `ls -ld` + `os.access(<path>, os.W_OK)`. Section 'What I'd actually do' also mentions verify_spyglass_env.py as a top-of-the-tree check."
+    },
+    {
+      "text": "behavioral_check: Runs SHOW GRANTS and LabMember check before assuming filesystem",
+      "passed": true,
+      "evidence": "Quick read at the top frames it as a grant problem first; the response runs SHOW GRANTS in step 1 and notes the LabMember message wording is distinct so the user can rule it out without going to filesystem first. Filesystem is step 2 (after the grant check) with the explicit note that 'the error wording is different... but it's worth a 10-second check.'"
+    },
+    {
+      "text": "behavioral_check: Does not recommend chmod -R 777, super_delete(), or force_permission=True as the fix — these are bypasses for legitimate edge cases, not first-line responses to a permission-denied error",
+      "passed": true,
+      "evidence": "Step 5 explicitly: 'Don't try to fix this by editing the installed Spyglass package, by running `super_delete()`, by adding `force_permission=True` anywhere, or by switching to a different DataJoint user'."
+    }
+  ]
+}

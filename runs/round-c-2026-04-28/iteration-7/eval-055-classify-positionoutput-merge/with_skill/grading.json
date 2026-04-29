@@ -1,0 +1,37 @@
+{
+  "eval_id": 55,
+  "eval_name": "classify-positionoutput-merge",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'merge table'",
+      "passed": true,
+      "evidence": "found — 'merge table'"
+    },
+    {
+      "text": "required_substring: 'PositionOutput.TrodesPosV1'",
+      "passed": true,
+      "evidence": "found — 'PositionOutput.TrodesPosV1'"
+    },
+    {
+      "text": "required_substring: 'PositionOutput.DLCPosV1'",
+      "passed": true,
+      "evidence": "found — 'PositionOutput.DLCPosV1'"
+    },
+    {
+      "text": "behavioral_check: Explains that rows enter PositionOutput via insert into a part table (PositionOutput.TrodesPosV1 or PositionOutput.DLCPosV1), not via populate()",
+      "passed": true,
+      "evidence": "Section 'How rows actually get in': 'You populate the upstream Computed table normally — e.g. TrodesPosV1.populate(key) or DLCPosV1.populate(key)... The upstream pipeline... inserts a corresponding row into PositionOutput and the matching part table — typically through PositionOutput.insert1(...) or the helper PositionOutput().merge_populate(\"TrodesPosV1\")'."
+    },
+    {
+      "text": "behavioral_check: Names at least one valid downstream consumer pattern (e.g., merge_get_part(key).fetch1('KEY'))",
+      "passed": true,
+      "evidence": "Canonical fetch pattern shown: `merge_key = PositionOutput.merge_get_part(key).fetch1(\"KEY\"); df = (PositionOutput & merge_key).fetch1_dataframe()`."
+    },
+    {
+      "text": "behavioral_check: Does not recommend PositionOutput.populate() or populate(PositionOutput, ...) as the entry point — explicitly contrasts with how rows actually arrive (insert into a part table)",
+      "passed": true,
+      "evidence": "Opens with 'merge masters don't have one in the usual sense. Rows arrive via a different mechanism.' Explicitly contrasts populate (upstream sources) with insert (master + part)."
+    }
+  ]
+}

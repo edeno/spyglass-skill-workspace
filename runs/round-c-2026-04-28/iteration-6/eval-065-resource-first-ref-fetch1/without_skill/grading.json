@@ -1,0 +1,22 @@
+{
+  "eval_id": 65,
+  "eval_name": "resource-first-ref-fetch1",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substring `common_mistakes.md`.",
+      "passed": true,
+      "evidence": "Substring present (named explicitly in 'First stop: common_mistakes.md')."
+    },
+    {
+      "text": "Names a specific reference file by name — common_mistakes.md or datajoint_api.md",
+      "passed": true,
+      "evidence": "Names common_mistakes.md as primary and datajoint_api.md as follow-up despite explicitly noting 'I don't have the Spyglass skill loaded right now'."
+    },
+    {
+      "text": "Explains the choice in one line",
+      "passed": true,
+      "evidence": "'Cardinality errors are the page-one footgun, so the recurring-mistakes file is the highest-yield first read'."
+    }
+  ]
+}

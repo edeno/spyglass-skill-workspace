@@ -1,0 +1,306 @@
+{
+  "skill_name": "spyglass",
+  "iteration": 4,
+  "batch": 4,
+  "configurations": {
+    "with_skill": {
+      "n_runs": 19,
+      "n_timings": 19,
+      "evals_full_pass": 10,
+      "expectation_pass_rate": 0.9028571428571428,
+      "expectations_passed": 158,
+      "expectations_total": 175,
+      "tokens_mean": 43101.52631578947,
+      "tokens_total": 818929,
+      "duration_mean_s": 74.2041052631579,
+      "eval_results": [
+        {
+          "eval_id": 72,
+          "eval_name": "dep-trace-lfpbandv1",
+          "all_passed": false,
+          "passed_count": 12,
+          "total": 14
+        },
+        {
+          "eval_id": 85,
+          "eval_name": "recover-parameter-edit-in-place",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 8
+        },
+        {
+          "eval_id": 87,
+          "eval_name": "counterfactual-trodes-pos-params-swap",
+          "all_passed": false,
+          "passed_count": 12,
+          "total": 14
+        },
+        {
+          "eval_id": 89,
+          "eval_name": "restrict-by-interval-name-no-star",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 10
+        },
+        {
+          "eval_id": 90,
+          "eval_name": "usage-after-lfpselection",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 91,
+          "eval_name": "usage-after-trodes-pos-selection",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 92,
+          "eval_name": "usage-after-positionoutput-row",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 93,
+          "eval_name": "usage-after-lfpbandv1-row",
+          "all_passed": true,
+          "passed_count": 6,
+          "total": 6
+        },
+        {
+          "eval_id": 94,
+          "eval_name": "usage-pick-target-sampling-rate",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 95,
+          "eval_name": "join-dependent-attr-refusal",
+          "all_passed": true,
+          "passed_count": 12,
+          "total": 12
+        },
+        {
+          "eval_id": 98,
+          "eval_name": "hidden-prereq-ripple-populate",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 99,
+          "eval_name": "hidden-prereq-decoding-populate",
+          "all_passed": false,
+          "passed_count": 9,
+          "total": 10
+        },
+        {
+          "eval_id": 100,
+          "eval_name": "workflow-position-post-sort-clusterless-decode",
+          "all_passed": false,
+          "passed_count": 6,
+          "total": 7
+        },
+        {
+          "eval_id": 102,
+          "eval_name": "session-recording-devices",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 103,
+          "eval_name": "session-subject-owner",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 104,
+          "eval_name": "probe-per-electrode-group",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 105,
+          "eval_name": "camera-devices-lookup",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 9
+        },
+        {
+          "eval_id": 106,
+          "eval_name": "compound-pfc-wtrack",
+          "all_passed": false,
+          "passed_count": 14,
+          "total": 15
+        },
+        {
+          "eval_id": 108,
+          "eval_name": "sorted-spikes-group-hippocampal",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 12
+        }
+      ]
+    },
+    "without_skill": {
+      "n_runs": 19,
+      "n_timings": 19,
+      "evals_full_pass": 7,
+      "expectation_pass_rate": 0.8057142857142857,
+      "expectations_passed": 141,
+      "expectations_total": 175,
+      "tokens_mean": 25724.57894736842,
+      "tokens_total": 488767,
+      "duration_mean_s": 62.722421052631574,
+      "eval_results": [
+        {
+          "eval_id": 72,
+          "eval_name": "dep-trace-lfpbandv1",
+          "all_passed": false,
+          "passed_count": 12,
+          "total": 14
+        },
+        {
+          "eval_id": 85,
+          "eval_name": "recover-parameter-edit-in-place",
+          "all_passed": false,
+          "passed_count": 4,
+          "total": 8
+        },
+        {
+          "eval_id": 87,
+          "eval_name": "counterfactual-trodes-pos-params-swap",
+          "all_passed": false,
+          "passed_count": 11,
+          "total": 14
+        },
+        {
+          "eval_id": 89,
+          "eval_name": "restrict-by-interval-name-no-star",
+          "all_passed": false,
+          "passed_count": 6,
+          "total": 10
+        },
+        {
+          "eval_id": 90,
+          "eval_name": "usage-after-lfpselection",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 91,
+          "eval_name": "usage-after-trodes-pos-selection",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 92,
+          "eval_name": "usage-after-positionoutput-row",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 93,
+          "eval_name": "usage-after-lfpbandv1-row",
+          "all_passed": true,
+          "passed_count": 6,
+          "total": 6
+        },
+        {
+          "eval_id": 94,
+          "eval_name": "usage-pick-target-sampling-rate",
+          "all_passed": false,
+          "passed_count": 6,
+          "total": 8
+        },
+        {
+          "eval_id": 95,
+          "eval_name": "join-dependent-attr-refusal",
+          "all_passed": false,
+          "passed_count": 9,
+          "total": 12
+        },
+        {
+          "eval_id": 98,
+          "eval_name": "hidden-prereq-ripple-populate",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 99,
+          "eval_name": "hidden-prereq-decoding-populate",
+          "all_passed": false,
+          "passed_count": 9,
+          "total": 10
+        },
+        {
+          "eval_id": 100,
+          "eval_name": "workflow-position-post-sort-clusterless-decode",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 7
+        },
+        {
+          "eval_id": 102,
+          "eval_name": "session-recording-devices",
+          "all_passed": false,
+          "passed_count": 2,
+          "total": 7
+        },
+        {
+          "eval_id": 103,
+          "eval_name": "session-subject-owner",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 104,
+          "eval_name": "probe-per-electrode-group",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 9
+        },
+        {
+          "eval_id": 105,
+          "eval_name": "camera-devices-lookup",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 9
+        },
+        {
+          "eval_id": 106,
+          "eval_name": "compound-pfc-wtrack",
+          "all_passed": true,
+          "passed_count": 15,
+          "total": 15
+        },
+        {
+          "eval_id": 108,
+          "eval_name": "sorted-spikes-group-hippocampal",
+          "all_passed": false,
+          "passed_count": 6,
+          "total": 12
+        }
+      ]
+    }
+  },
+  "delta": {
+    "expectation_pass_rate_pp": 9.71,
+    "evals_full_pass": 3,
+    "tokens_mean": 17377,
+    "duration_mean_s": 11.5
+  },
+  "note": "Batch 4: pipeline-usage round 2 (19 evals × 2 conditions). Final batch in 130-eval sweep. Behavioral checks ws 54/63 (85.7%) vs bs 44/63 (69.8%), +15.9pp. Skill wins concentrated in joins/atomic-read (eval-095 join-dependent-attr-refusal +2, eval-102 session-recording-devices +2, eval-094 target-sampling-rate +2). Both conditions tied on table-usage easies (090-093). 1 forbidden-substring relaxation applied (eval-102 — guardrail-mention false positive on `Session.fetch1`). No ws-worse-than-bs outliers in this batch."
+}

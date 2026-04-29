@@ -1,0 +1,31 @@
+{
+  "eval_id": 77,
+  "eval_name": "schema-part-tables-probe",
+  "expectations": [
+    {
+      "text": "Response contains substring `Probe.Shank`.",
+      "passed": true,
+      "evidence": "Substring 'Probe.Shank' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Probe.Electrode`.",
+      "passed": true,
+      "evidence": "Substring 'Probe.Electrode' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Probe.parts`.",
+      "passed": true,
+      "evidence": "Substring 'Probe.parts' found in response.md"
+    },
+    {
+      "text": "Calls Probe.parts() in the response to enumerate part tables.",
+      "passed": true,
+      "evidence": "Code block: 'Probe.parts()' as the one-liner."
+    },
+    {
+      "text": "Lists both part tables in Master.Part notation; does not invent additional Probe.* parts that don't exist",
+      "passed": true,
+      "evidence": "Lists exactly Probe.Shank and Probe.Electrode; notes 'Those are the only two part tables defined on Probe \u2014 there aren't any other Probe.* parts to list.'"
+    }
+  ]
+}

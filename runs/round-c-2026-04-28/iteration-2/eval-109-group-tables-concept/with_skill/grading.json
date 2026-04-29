@@ -1,0 +1,46 @@
+{
+  "eval_id": 109,
+  "eval_name": "group-tables-concept",
+  "expectations": [
+    {
+      "text": "Response contains substring `SortedSpikesGroup`.",
+      "passed": true,
+      "evidence": "Substring 'SortedSpikesGroup' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionGroup`.",
+      "passed": true,
+      "evidence": "Substring 'PositionGroup' found in response.md"
+    },
+    {
+      "text": "Response contains substring `many-to-one`.",
+      "passed": true,
+      "evidence": "Substring 'many-to-one' found in response.md"
+    },
+    {
+      "text": "Response contains substring `dj.Part`.",
+      "passed": true,
+      "evidence": "Substring 'dj.Part' found in response.md"
+    },
+    {
+      "text": "Distinguishes group tables (many-to-one aggregation: many rows of one analysis bundled into one downstream-facing key) from merge tables (interchangeable versions of one analysis behind a single `merge_id`) \u2014 these are different patterns, not synonyms",
+      "passed": true,
+      "evidence": "Section 'Group tables are not merge tables' with explicit comparison table: 'Merge = I don't care which version... Group = I want this specific named bundle.'"
+    },
+    {
+      "text": "Lists the shared shape: master with group-name PK + a `dj.Part` table keyed on the upstream rows the group includes (typically merge IDs via `.proj()` to rename)",
+      "passed": true,
+      "evidence": "States: 'master = -> Session + a user-named varchar in the PK, part = -> master + -> SomeUpstream.proj(<name>=merge_id)' and explains the .proj rename rationale."
+    },
+    {
+      "text": "Explains that `UnitSelectionParams` is a parameter table, NOT a group table itself \u2014 it FK-feeds into `SortedSpikesGroup`'s PK as the parameter axis but isn't the same kind of object",
+      "passed": true,
+      "evidence": "Section 'UnitSelectionParams is not a group table': 'It just stores label-filter rows... its role is parameters, not many-to-one aggregation. Different kind of object.'"
+    },
+    {
+      "text": "Names at least `SortedSpikesGroup` and `PositionGroup` as the two concrete examples in source",
+      "passed": true,
+      "evidence": "Names both with file references: 'SortedSpikesGroup \u2014 src/spyglass/spikesorting/analysis/v1/group.py:63-74' and 'PositionGroup \u2014 src/spyglass/decoding/v1/core.py:130-143'."
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "eval_id": 47,
+  "eval_name": "env-conda-pip-drift",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'environments/environment_min.yml'",
+      "passed": false,
+      "evidence": "MISSING — 'environments/environment_min.yml'"
+    },
+    {
+      "text": "required_substring: '--dry-run'",
+      "passed": false,
+      "evidence": "MISSING — '--dry-run'"
+    },
+    {
+      "text": "forbidden_substring: 'pin cv2 to'",
+      "passed": true,
+      "evidence": "absent — 'pin cv2 to'"
+    },
+    {
+      "text": "behavioral_check: Identifies the pip-install-broke-conda-env pattern (not a spyglass code issue)",
+      "passed": true,
+      "evidence": "'pip installed opencv-python on top of the conda build, the two packages dropped files into the same cv2/ directory'. Frames it as a stacked-install conda/pip collision, not a spyglass code issue."
+    },
+    {
+      "text": "behavioral_check: Recommends recreating the env from `environments/environment_min.yml` (the default minimal file per setup_install.md) or `environments/environment.yml` (full install) using either `mamba env update --prune` or `conda env update --prune` (either tool is acceptable — labs use both)",
+      "passed": false,
+      "evidence": "Recommends manually removing every opencv variant and reinstalling exactly one (via conda or pip) rather than recreating the env from environments/environment_min.yml. Doesn't reference the canonical env-file recipe."
+    },
+    {
+      "text": "behavioral_check: Mentions `pip install --dry-run` as a future safeguard",
+      "passed": false,
+      "evidence": "Doesn't mention pip install --dry-run as a safeguard. The 'prevent this from recurring' tips talk about channel order and not double-installing, not --dry-run."
+    },
+    {
+      "text": "behavioral_check: Does not recommend pinning a specific cv2 version or installing another package on top",
+      "passed": true,
+      "evidence": "Recommends 'one OpenCV per env' after first removing all variants; the `'opencv>=4.5'` recommendation is a minimum-version constraint and only applies if the conda channel installed an old (<4.2) build, not a top-of-broken-state install."
+    }
+  ]
+}

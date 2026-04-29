@@ -1,0 +1,321 @@
+{
+  "skill_name": "spyglass",
+  "iteration": 2,
+  "batch": 2,
+  "configurations": {
+    "with_skill": {
+      "n_runs": 20,
+      "evals_full_pass": 20,
+      "expectation_pass_rate": 1.0,
+      "expectations_passed": 142,
+      "expectations_total": 142,
+      "tokens_mean": 42158.65,
+      "tokens_stdev": 7640.853047409383,
+      "duration_mean_s": 73.2128,
+      "duration_stdev_s": 24.246477967998395,
+      "tokens_total": 843173,
+      "eval_results": [
+        {
+          "eval_id": 5,
+          "eval_name": "merge-delete-classmethod-discard",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 7,
+          "eval_name": "framework-concepts-merge-tables",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 21,
+          "eval_name": "adversarial-hallucination-resistance",
+          "all_passed": true,
+          "passed_count": 6,
+          "total": 6
+        },
+        {
+          "eval_id": 25,
+          "eval_name": "adversarial-too-loose-fetch1-pressure",
+          "all_passed": true,
+          "passed_count": 4,
+          "total": 4
+        },
+        {
+          "eval_id": 30,
+          "eval_name": "adversarial-copy-paste-params-blind",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 73,
+          "eval_name": "schema-pk-electrode",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 74,
+          "eval_name": "schema-pk-firfilterparameters",
+          "all_passed": true,
+          "passed_count": 4,
+          "total": 4
+        },
+        {
+          "eval_id": 75,
+          "eval_name": "schema-dep-probe-electrode",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 76,
+          "eval_name": "schema-dep-lfp-filter",
+          "all_passed": true,
+          "passed_count": 3,
+          "total": 3
+        },
+        {
+          "eval_id": 77,
+          "eval_name": "schema-part-tables-probe",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 78,
+          "eval_name": "abstain-session-samplingrate",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 79,
+          "eval_name": "abstain-spyglassmixin-get-pk",
+          "all_passed": true,
+          "passed_count": 6,
+          "total": 6
+        },
+        {
+          "eval_id": 80,
+          "eval_name": "abstain-ripple-direct-dependency",
+          "all_passed": true,
+          "passed_count": 11,
+          "total": 11
+        },
+        {
+          "eval_id": 81,
+          "eval_name": "abstain-v1-naming-extrapolation",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 96,
+          "eval_name": "dependency-downstream-decoding-output",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 97,
+          "eval_name": "dependency-abstract-upstream",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 109,
+          "eval_name": "group-tables-concept",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 115,
+          "eval_name": "adversarial-monkeypatch-make",
+          "all_passed": true,
+          "passed_count": 11,
+          "total": 11
+        },
+        {
+          "eval_id": 122,
+          "eval_name": "hallucination-fetch-nwb-single",
+          "all_passed": true,
+          "passed_count": 10,
+          "total": 10
+        },
+        {
+          "eval_id": 123,
+          "eval_name": "hallucination-spyglass-compact",
+          "all_passed": true,
+          "passed_count": 10,
+          "total": 10
+        }
+      ]
+    },
+    "without_skill": {
+      "n_runs": 20,
+      "evals_full_pass": 17,
+      "expectation_pass_rate": 0.9436619718309859,
+      "expectations_passed": 134,
+      "expectations_total": 142,
+      "tokens_mean": 26428.8,
+      "tokens_stdev": 2368.055689245593,
+      "duration_mean_s": 56.43055,
+      "duration_stdev_s": 20.79371224160905,
+      "tokens_total": 528576,
+      "eval_results": [
+        {
+          "eval_id": 5,
+          "eval_name": "merge-delete-classmethod-discard",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 7,
+          "eval_name": "framework-concepts-merge-tables",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 21,
+          "eval_name": "adversarial-hallucination-resistance",
+          "all_passed": true,
+          "passed_count": 6,
+          "total": 6
+        },
+        {
+          "eval_id": 25,
+          "eval_name": "adversarial-too-loose-fetch1-pressure",
+          "all_passed": true,
+          "passed_count": 4,
+          "total": 4
+        },
+        {
+          "eval_id": 30,
+          "eval_name": "adversarial-copy-paste-params-blind",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 73,
+          "eval_name": "schema-pk-electrode",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 74,
+          "eval_name": "schema-pk-firfilterparameters",
+          "all_passed": true,
+          "passed_count": 4,
+          "total": 4
+        },
+        {
+          "eval_id": 75,
+          "eval_name": "schema-dep-probe-electrode",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 76,
+          "eval_name": "schema-dep-lfp-filter",
+          "all_passed": true,
+          "passed_count": 3,
+          "total": 3
+        },
+        {
+          "eval_id": 77,
+          "eval_name": "schema-part-tables-probe",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 78,
+          "eval_name": "abstain-session-samplingrate",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 79,
+          "eval_name": "abstain-spyglassmixin-get-pk",
+          "all_passed": false,
+          "passed_count": 4,
+          "total": 6
+        },
+        {
+          "eval_id": 80,
+          "eval_name": "abstain-ripple-direct-dependency",
+          "all_passed": false,
+          "passed_count": 10,
+          "total": 11
+        },
+        {
+          "eval_id": 81,
+          "eval_name": "abstain-v1-naming-extrapolation",
+          "all_passed": false,
+          "passed_count": 3,
+          "total": 8
+        },
+        {
+          "eval_id": 96,
+          "eval_name": "dependency-downstream-decoding-output",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 97,
+          "eval_name": "dependency-abstract-upstream",
+          "all_passed": true,
+          "passed_count": 5,
+          "total": 5
+        },
+        {
+          "eval_id": 109,
+          "eval_name": "group-tables-concept",
+          "all_passed": true,
+          "passed_count": 8,
+          "total": 8
+        },
+        {
+          "eval_id": 115,
+          "eval_name": "adversarial-monkeypatch-make",
+          "all_passed": true,
+          "passed_count": 11,
+          "total": 11
+        },
+        {
+          "eval_id": 122,
+          "eval_name": "hallucination-fetch-nwb-single",
+          "all_passed": true,
+          "passed_count": 10,
+          "total": 10
+        },
+        {
+          "eval_id": 123,
+          "eval_name": "hallucination-spyglass-compact",
+          "all_passed": true,
+          "passed_count": 10,
+          "total": 10
+        }
+      ]
+    }
+  },
+  "delta": {
+    "expectation_pass_rate": 0.05633802816901412,
+    "evals_full_pass": 3,
+    "tokens_mean": 15729.850000000002,
+    "duration_mean_s": 16.782250000000005
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "eval_id": 31,
+  "eval_name": "env-spikeinterface-drift",
+  "stage": "runtime-debugging",
+  "tier": "environment-triage",
+  "difficulty": "medium",
+  "prompt": "spike sorting was working last week and now `SpikeSorting.populate(key)` blows up on import with `AttributeError: module 'spikeinterface' has no attribute 'WaveformExtractor'`. What's wrong?",
+  "assertions": {
+    "required_substrings": [
+      "spikeinterface",
+      "WaveformExtractor",
+      "pyproject.toml"
+    ],
+    "forbidden_substrings": [
+      "pip install -U spyglass"
+    ],
+    "behavioral_checks": [
+      "Asks whether the user upgraded any package (especially spikeinterface, or a sibling lib that may have pulled it) before naming a fix — does not assume env drift without checking",
+      "Identifies the version-coupling issue (Spyglass pins a specific SpikeInterface range; WaveformExtractor was removed after 0.99.x in favor of SortingAnalyzer)",
+      "Points at pyproject.toml as the source of truth for the pin rather than guessing a specific version",
+      "Recommends downgrading SpikeInterface to the pinned range, NOT patching Spyglass's parameter dicts to work around the new API",
+      "If v0 vs v1 spike-sorting code paths are mentioned, does not recommend downgrading to v0"
+    ],
+    "required_substrings_exempt": [
+      "spikeinterface"
+    ]
+  },
+  "expected_output": "Routes to dependencies.md 'SpikeInterface / Spyglass version coupling'. Before naming a fix, the agent should first ask whether the user upgraded any package recently (especially spikeinterface, but also a sibling lib that may have pulled it as a dep) — `WaveformExtractor` was removed after SpikeInterface 0.99.x and replaced by `SortingAnalyzer`, so the only realistic way to land on this error in a previously-working env is a SpikeInterface bump out of Spyglass's pinned range. Once an upgrade is confirmed (or the user's env state otherwise establishes drift), point at the source of truth for the pin: `pyproject.toml` (`spikeinterface>=0.99.1,<0.100`). Fix: `pip install 'spikeinterface>=0.99.1,<0.100'` to land back in the supported range, not patch Spyglass's parameter dicts to accommodate the new SortingAnalyzer API. Notes that v0 pipeline code paths are not kept in sync with modern SpikeInterface — migrating to v1 is the answer if staying on newer SI is important, NOT downgrading to v0."
+}

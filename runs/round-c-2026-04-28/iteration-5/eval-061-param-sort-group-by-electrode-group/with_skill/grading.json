@@ -1,0 +1,57 @@
+{
+  "eval_id": 61,
+  "eval_name": "param-sort-group-by-electrode-group",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'electrode_group_name'",
+      "passed": true,
+      "evidence": "found — 'electrode_group_name'"
+    },
+    {
+      "text": "required_substring: 'set_group_by_shank'",
+      "passed": true,
+      "evidence": "found — 'set_group_by_shank'"
+    },
+    {
+      "text": "required_substring: 'contact positions'",
+      "passed": true,
+      "evidence": "found — 'contact positions'"
+    },
+    {
+      "text": "required_substring: 'SortGroup'",
+      "passed": true,
+      "evidence": "found — 'SortGroup'"
+    },
+    {
+      "text": "required_substring: 'SpikeSortingRecording'",
+      "passed": true,
+      "evidence": "found — 'SpikeSortingRecording'"
+    },
+    {
+      "text": "behavioral_check: Identifies that set_group_by_electrode_group groups by electrode_group_name (one sort group per electrode_group)",
+      "passed": true,
+      "evidence": "States: 'walks np.unique(electrodes[\"electrode_group_name\"]) and inserts one sort group per electrode group'."
+    },
+    {
+      "text": "behavioral_check: Explains the clusterless failure: multi-shank electrode_groups produce duplicate (x, y) contact positions; SpikeInterface rejects at SpikeSortingRecording.populate()",
+      "passed": true,
+      "evidence": "Section 2 quotes exact mechanism: 'Sort groups spanning multiple shanks produce duplicate (x, y) contact positions, which SpikeInterface rejects at SpikeSortingRecording.populate with ValueError: contact positions are not unique.'"
+    },
+    {
+      "text": "behavioral_check: Recommends set_group_by_shank for clusterless / waveform-based pipelines",
+      "passed": true,
+      "evidence": "Final recommendation: `SortGroup().set_group_by_shank(nwb_file_name=nwb_file)` for v1 clusterless/sorted-spikes workflow."
+    },
+    {
+      "text": "behavioral_check: Notes that set_group_by_electrode_group is only available in the v0 API (spyglass.spikesorting.v0), not in v1",
+      "passed": true,
+      "evidence": "Opens with 'set_group_by_electrode_group is a v0-only method. It does not exist on the v1 SortGroup class' with src/spyglass/spikesorting/v1/recording.py:50-95 citation."
+    },
+    {
+      "text": "behavioral_check: Does not claim set_group_by_electrode_group produces one electrode per sort group (it groups by electrode_group_name, which can include multiple electrodes per group — that is precisely the source of the multi-shank conflict)",
+      "passed": true,
+      "evidence": "Correctly states one electrode group becomes one sort group containing all that group's channels (potentially multiple shanks)."
+    }
+  ]
+}

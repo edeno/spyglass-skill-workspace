@@ -1,0 +1,19 @@
+{
+  "eval_id": 60,
+  "eval_name": "param-trodes-smoothing",
+  "prompt": "In `TrodesPosParams.insert_default()`'s params dict I see smoothing / filter fields. What happens to my resulting `speed` column if I turn smoothing off?",
+  "stage": "parameter-understanding",
+  "tier": "parameter-semantics",
+  "difficulty": "hard",
+  "required_substrings": [
+    "speed_smoothing_std_dev",
+    "position_smoothing_duration"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Names `speed_smoothing_std_dev` (Gaussian sigma) as the field that controls speed-trace noise",
+    "Distinguishes `speed_smoothing_std_dev` (Gaussian sigma applied at the velocity stage inside `get_velocity`, common_position.py:475) from `position_smoothing_duration` (moving-average applied to the LED positions BEFORE centroid / velocity / speed are computed, common_position.py:431-435). Both affect the returned `speed` column — they just enter the pipeline at different stages — and shrinking either produces a noisier speed trace. Does NOT claim either field is decoupled from `speed`, and does NOT claim `position_smoothing_duration` is applied after speed is computed.",
+    "Predicts: shrinking / disabling `speed_smoothing_std_dev` gives a noisier speed trace, causing spurious crossings of downstream thresholds",
+    "Recommends inspecting `TrodesPosParams.describe()` / `.heading` for exact field names rather than guessing"
+  ]
+}

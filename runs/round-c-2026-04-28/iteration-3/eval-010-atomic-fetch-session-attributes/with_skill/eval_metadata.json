@@ -1,0 +1,24 @@
+{
+  "eval_id": 10,
+  "eval_name": "atomic-fetch-session-attributes",
+  "stage": "pipeline-usage",
+  "tier": "atomic-read",
+  "difficulty": "easy",
+  "prompt": "Get `session_description` and `session_start_time` for session j1620210710_.",
+  "assertions": {
+    "required_substrings": [
+      "Session",
+      "fetch1",
+      "session_description",
+      "session_start_time"
+    ],
+    "forbidden_substrings": [
+      "for row in"
+    ],
+    "behavioral_checks": [
+      "Uses fetch1 with the two attribute names as positional args",
+      "Does not loop or use fetch() (which returns a list)"
+    ]
+  },
+  "expected_output": "`(Session & {'nwb_file_name': 'j1620210710_.nwb'}).fetch1('session_description', 'session_start_time')`."
+}

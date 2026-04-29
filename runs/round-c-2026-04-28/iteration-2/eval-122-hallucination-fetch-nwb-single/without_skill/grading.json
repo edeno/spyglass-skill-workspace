@@ -1,0 +1,56 @@
+{
+  "eval_id": 122,
+  "eval_name": "hallucination-fetch-nwb-single",
+  "expectations": [
+    {
+      "text": "Response contains substring `no such method`.",
+      "passed": true,
+      "evidence": "Substring 'no such method' found in response.md"
+    },
+    {
+      "text": "Response contains substring `fetch1`.",
+      "passed": true,
+      "evidence": "Substring 'fetch1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `fetch_nwb`.",
+      "passed": true,
+      "evidence": "Substring 'fetch_nwb' found in response.md"
+    },
+    {
+      "text": "Response contains substring `list of NWB`.",
+      "passed": true,
+      "evidence": "Substring 'list of NWB' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `yes, fetch_nwb1() returns`.",
+      "passed": true,
+      "evidence": "Substring 'yes, fetch_nwb1() returns' absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `fetch_nwb1 is shorthand`.",
+      "passed": true,
+      "evidence": "Substring 'fetch_nwb1 is shorthand' absent in response.md"
+    },
+    {
+      "text": "States that `fetch_nwb1()` does NOT exist on Spyglass tables; the real method is `fetch_nwb` which returns a list regardless of row count",
+      "passed": true,
+      "evidence": "Opens with: 'No \u2014 there's no such method on Spyglass tables. The only fetch helper for NWB objects is fetch_nwb, and it always returns a list of NWB objects.'"
+    },
+    {
+      "text": "Names `dir()` or `inspect.getsource` (or equivalent introspection) as the verification primitive \u2014 does not invent a signature",
+      "passed": true,
+      "evidence": "Names both: '[m for m in dir(LFPV1) if \"fetch\" in m]' and 'inspect.getsource(LFPV1.fetch_nwb)'."
+    },
+    {
+      "text": "Explains the single-row idiom: restrict to ensure uniqueness via `& + fetch1('KEY')` first (or assert `len() == 1`), then `fetch_nwb()[0]` \u2014 the `[0]` is correct, the issue is when the restriction isn't actually unique",
+      "passed": true,
+      "evidence": "Section 'The single-row idiom' shows '(LFPV1 & restr).fetch1(\"KEY\")' followed by '(LFPV1 & key).fetch_nwb()[0]', and notes 'The [0] after fetch_nwb() is correct and idiomatic.'"
+    },
+    {
+      "text": "Notes that wishing for `fetch_nwb1()` often signals a too-loose restriction (multiple rows survive `&`); fix the restriction, not the fetch helper",
+      "passed": true,
+      "evidence": "States: 'When people reach for an imagined fetch_nwb1(), the underlying problem is almost always a too-loose restriction... If you're tempted to write fetch_nwb1(), the real fix is upstream \u2014 tighten the restriction.'"
+    }
+  ]
+}

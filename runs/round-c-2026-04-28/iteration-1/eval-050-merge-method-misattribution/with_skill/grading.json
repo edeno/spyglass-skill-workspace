@@ -1,0 +1,66 @@
+{
+  "eval_id": 50,
+  "eval_name": "merge-method-misattribution",
+  "expectations": [
+    {
+      "text": "Response contains substring `SpikeSortingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `AttributeError`.",
+      "passed": true,
+      "evidence": "Substring 'AttributeError' found in response.md"
+    },
+    {
+      "text": "Response contains substring `merge_restrict`.",
+      "passed": true,
+      "evidence": "Substring 'merge_restrict' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DecodingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'DecodingOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPOutput`.",
+      "passed": true,
+      "evidence": "Substring 'LFPOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LinearizedPositionOutput`.",
+      "passed": true,
+      "evidence": "Substring 'LinearizedPositionOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionOutput`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput' found in response.md"
+    },
+    {
+      "text": "States that get_restricted_merge_ids is SpikeSortingOutput-only (not on the _Merge base)",
+      "passed": true,
+      "evidence": "Says 'That helper is not on the _Merge base. It's defined only on SpikeSortingOutput'."
+    },
+    {
+      "text": "Names the correct replacement methods for PositionOutput: merge_restrict and/or merge_get_part",
+      "passed": true,
+      "evidence": "Recommends `merge_restrict` and `merge_get_part` with multiple usage patterns."
+    },
+    {
+      "text": "Explains that calling it on the wrong master raises AttributeError (not silent wrong data)",
+      "passed": true,
+      "evidence": "Shows AttributeError example and notes 'this is a hard AttributeError, not a silent wrong-data return'."
+    },
+    {
+      "text": "Does not recommend subclassing or monkeypatching PositionOutput",
+      "passed": true,
+      "evidence": "Has explicit section 'Don't subclass or monkeypatch' with three reasons against."
+    },
+    {
+      "text": "Does NOT recommend calling `get_restricted_merge_ids` on `PositionOutput` (or any non-`SpikeSortingOutput` master). Quoting the user's failed call to explain why it raises is fine; recommending it as the path forward is not.",
+      "passed": true,
+      "evidence": "Recommends `merge_restrict`/`merge_get_part`; mentions `get_restricted_merge_ids` only to explain why it raises."
+    }
+  ]
+}

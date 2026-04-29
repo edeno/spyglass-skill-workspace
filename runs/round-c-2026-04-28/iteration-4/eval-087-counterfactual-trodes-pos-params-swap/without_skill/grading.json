@@ -1,0 +1,77 @@
+{
+  "eval_id": 87,
+  "eval_name": "counterfactual-trodes-pos-params-swap",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'PositionOutput'",
+      "passed": true,
+      "evidence": "found — 'PositionOutput'"
+    },
+    {
+      "text": "required_substring: 'TrodesPosV1'",
+      "passed": true,
+      "evidence": "found — 'TrodesPosV1'"
+    },
+    {
+      "text": "required_substring: 'position_trodes_v1_pipeline.md'",
+      "passed": false,
+      "evidence": "MISSING — 'position_trodes_v1_pipeline.md'"
+    },
+    {
+      "text": "required_substring: '.descendants'",
+      "passed": false,
+      "evidence": "MISSING — '.descendants'"
+    },
+    {
+      "text": "forbidden_substring: 'LFPV1 would need to be re-populated'",
+      "passed": true,
+      "evidence": "absent — 'LFPV1 would need to be re-populated'"
+    },
+    {
+      "text": "forbidden_substring: 'SpikeSorting depends on position'",
+      "passed": true,
+      "evidence": "absent — 'SpikeSorting depends on position'"
+    },
+    {
+      "text": "forbidden_substring: 'CurationV1 would change'",
+      "passed": true,
+      "evidence": "absent — 'CurationV1 would change'"
+    },
+    {
+      "text": "forbidden_substring: 'SpikeSortingV1'",
+      "passed": true,
+      "evidence": "absent — 'SpikeSortingV1'"
+    },
+    {
+      "text": "behavioral_check: Calls Table.descendants() (or .ancestors() if upstream-direction) — names the actual DataJoint method, not 'walk the graph'.",
+      "passed": false,
+      "evidence": "Response never invokes .descendants()/.ancestors() and shows no DataJoint enumeration one-liner; it walks the graph by hand."
+    },
+    {
+      "text": "behavioral_check: Identifies that a new `TrodesPosV1` row (new params_name) is produced, not an in-place update",
+      "passed": true,
+      "evidence": "Explains the params_name is part of PK so a new row is inserted, not modified; old default row remains."
+    },
+    {
+      "text": "behavioral_check: Identifies that inserting into `PositionOutput.TrodesPosV1` issues a new merge_id on `PositionOutput`",
+      "passed": true,
+      "evidence": "States 'a new merge_id in PositionOutput' under PositionOutput.TrodesPosV1 part-row."
+    },
+    {
+      "text": "behavioral_check: Lists at least two downstream tables that would diverge (linearization, decoding via PositionGroup, ripple via pos_merge_id)",
+      "passed": true,
+      "evidence": "Lists LinearizedPositionV1, ClusterlessDecodingV1, SortedSpikesDecodingV1, ripple-times consumers and place-field tables as divergent."
+    },
+    {
+      "text": "behavioral_check: Explicitly names LFP, spike-sorting, and curation as unaffected — they do not consume position",
+      "passed": true,
+      "evidence": "'What does NOT change' section names spike sorting, LFP, and ripple detection as unaffected upstream/unrelated."
+    },
+    {
+      "text": "behavioral_check: Does not use the v0 field name `position_info_param_name` or the nonexistent class `SpikeSortingV1`",
+      "passed": true,
+      "evidence": "Uses trodes_pos_params_name and never references position_info_param_name or SpikeSortingV1."
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "eval_id": 81,
+  "eval_name": "abstain-v1-naming-extrapolation",
+  "stage": "hallucination-resistance",
+  "tier": "adversarial",
+  "difficulty": "medium",
+  "prompt": "I just inserted a row in `SpikeSortingSelection`. To actually run the sort, do I call `SpikeSortingV1.populate(key)` or `SpikeSortingV1().populate(key)`? I've seen both forms and I'm not sure which the v1 pipeline wants.",
+  "assertions": {
+    "required_substrings": [
+      "SpikeSorting",
+      "spikesorting_v1_pipeline.md"
+    ],
+    "expected_output_tables_exempt": [
+      "SpikeSortingSelection",
+      "SpikeSortingRecording",
+      "MetricCuration",
+      "FigURLCuration",
+      "LFPV1",
+      "TrodesPosV1",
+      "DLCPosV1",
+      "RippleTimesV1",
+      "CurationV1",
+      "ClusterlessDecodingV1",
+      "SortedSpikesDecodingV1"
+    ],
+    "forbidden_substrings": [
+      "class SpikeSortingV1",
+      "SpikeSortingV1 is the v1 class"
+    ],
+    "behavioral_checks": [
+      "States that `SpikeSortingV1` does not exist",
+      "Identifies `SpikeSorting` (no V1 suffix) as the correct v1 spike-sorting Computed class and names its module (`spyglass.spikesorting.v1`)",
+      "Explicitly flags the v0→v1 naming asymmetry (some v1 classes keep the `V1` suffix, some drop it) — recommends verifying by import rather than extrapolating",
+      "Does not fabricate a signature for `SpikeSortingV1.populate` or claim it is an alias / deprecated name for `SpikeSorting`"
+    ]
+  },
+  "expected_output": "Neither — `SpikeSortingV1` does not exist. The v1 spike-sorting Computed class is `SpikeSorting` (from `spyglass.spikesorting.v1.sorting`). Correct call is `SpikeSorting.populate(key)` (or `SpikeSorting().populate(key)` — DataJoint accepts both class- and instance-form populate, so the user's real question about populate form is orthogonal). The skill should flag the v0→v1 naming asymmetry explicitly: v1 classes that keep the `V1` suffix are `LFPV1`, `TrodesPosV1`, `DLCPosV1`, `RippleTimesV1`, `CurationV1`, `ClusterlessDecodingV1`, `SortedSpikesDecodingV1`; v1 classes that drop the suffix include `SpikeSorting`, `SpikeSortingRecording`, `SpikeSortingSelection`, `MetricCuration`, `FigURLCuration`. There is no consistent rule — verify by import (`from spyglass.spikesorting.v1 import SpikeSorting`) or `python -c 'import spyglass.spikesorting.v1 as m; print([n for n in dir(m) if \"Sort\" in n])'` rather than extrapolating from the naming of adjacent v1 tables. Routes to spikesorting_v1_pipeline.md."
+}

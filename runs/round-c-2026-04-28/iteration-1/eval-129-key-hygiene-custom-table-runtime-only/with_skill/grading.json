@@ -1,0 +1,31 @@
+{
+  "eval_id": 129,
+  "eval_name": "key-hygiene-custom-table-runtime-only",
+  "expectations": [
+    {
+      "text": "Response contains substring `heading.primary_key`.",
+      "passed": true,
+      "evidence": "Substring 'heading.primary_key' found in response.md"
+    },
+    {
+      "text": "States that `code_graph.py` cannot see tables defined outside `$SPYGLASS_SRC`",
+      "passed": true,
+      "evidence": "Says 'code_graph.py only walks $SPYGLASS_SRC/spyglass/. It cannot see classes that live outside that tree (lab repos, institute forks, downstream pip packages).'"
+    },
+    {
+      "text": "Recommends runtime introspection through `db_graph.py` when available to the agent, or `MyLabRipplePostprocess.heading.primary_key` in the user's Python session; otherwise read the custom table's source definition directly",
+      "passed": true,
+      "evidence": "Path 1 recommends `MyLabRipplePostprocess.heading.primary_key`, Path 2 the bundled `db_graph.py describe`, Path 3 the source-definition read."
+    },
+    {
+      "text": "Does NOT guess the PK from the class name or assume it inherits `RippleTimesV1`'s shape",
+      "passed": true,
+      "evidence": "Says 'do not guess the PK from the class name, and do not assume it inherits RippleTimesV1's shape.'"
+    },
+    {
+      "text": "Treats this as a runtime-fact / custom-pipeline question, not a source-graph question",
+      "passed": true,
+      "evidence": "Opens with 'This is a runtime / custom-pipeline question, not a source-graph question.'"
+    }
+  ]
+}

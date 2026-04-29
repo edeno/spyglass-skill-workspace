@@ -1,0 +1,66 @@
+{
+  "eval_id": 51,
+  "eval_name": "is-this-a-merge-lookalike",
+  "expectations": [
+    {
+      "text": "Response contains substring `MuaEventsV1`.",
+      "passed": true,
+      "evidence": "Substring 'MuaEventsV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `dj.Computed`.",
+      "passed": true,
+      "evidence": "Substring 'dj.Computed' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SpikeSortingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'SpikeSortingOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DecodingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'DecodingOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPOutput`.",
+      "passed": true,
+      "evidence": "Substring 'LFPOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LinearizedPositionOutput`.",
+      "passed": true,
+      "evidence": "Substring 'LinearizedPositionOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionOutput`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput' found in response.md"
+    },
+    {
+      "text": "Identifies MuaEventsV1 as `dj.Computed`, not a merge master (rejects the 'spyglass bug' framing)",
+      "passed": true,
+      "evidence": "Says 'This is not a Spyglass bug. MuaEventsV1 is not a merge table — it is a regular dj.Computed table'."
+    },
+    {
+      "text": "Names the five actual merge masters (SpikeSortingOutput, LFPOutput, PositionOutput, LinearizedPositionOutput, DecodingOutput)",
+      "passed": true,
+      "evidence": "Table lists all five merge masters with file paths."
+    },
+    {
+      "text": "Shows the correct direct-restriction form for MuaEventsV1 (`& {...}` with actual PK fields) — NOT a `merge_*` method",
+      "passed": true,
+      "evidence": "Shows `(MuaEventsV1 & {'nwb_file_name': 'j1620210710_.nwb'}).fetch(as_dict=True)` and a fully-keyed variant."
+    },
+    {
+      "text": "States that *V1 / *Output suffixes are conventions, not enforced. Names at least one lookalike from this allowed set: MuaEventsV1, CurationV1, LFPV1, TrodesPosV1, DLCPosV1, RippleTimesV1, IntervalLinearizedPosition, or any *Selection table.",
+      "passed": true,
+      "evidence": "Lookalikes section names CurationV1, LFPV1, TrodesPosV1, DLCPosV1, RippleTimesV1, *Selection tables; says '*V1 and *Output are conventions'."
+    },
+    {
+      "text": "Offers the isinstance(table(), Merge) check OR equivalent as a programmatic check",
+      "passed": true,
+      "evidence": "Provides `isinstance(MuaEventsV1(), Merge)` and `is_merge_table()` helper as programmatic checks."
+    }
+  ]
+}

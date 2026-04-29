@@ -1,0 +1,23 @@
+{
+  "eval_id": 16,
+  "eval_name": "merge-key-decoding-clusterless",
+  "stage": "pipeline-usage",
+  "tier": "merge-key-discovery",
+  "difficulty": "medium",
+  "prompt": "For session j1620210710_, encoding_interval='02_r1', decoding_interval='02_r1', and whatever the lab's standard clusterless params are called — what's the DecodingOutput merge_id?",
+  "assertions": {
+    "required_substrings": [
+      "DecodingOutput",
+      "merge_get_part",
+      "DecodingParameters",
+      "ClusterlessDecodingV1"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Includes a discovery step (fetch existing param names from DecodingParameters and select the clusterless variant by its naming suffix) before naming one",
+      "Does not invent a specific params name without checking",
+      "Does not imply that clusterless and sorted-spikes params live in separate tables — DecodingParameters is a single dj.Lookup; the distinction is by naming convention"
+    ]
+  },
+  "expected_output": "Two-phase: (1) discover the param name from `DecodingParameters` — a single dj.Lookup table that holds both clusterless and sorted-spikes parameter sets, distinguished only by naming suffix (`*_clusterless_*` vs `*_sorted_*`). Call `DecodingParameters.fetch('decoding_param_name')` (optionally filtering by the clusterless substring) to see what's registered in this lab's copy. (2) Pick a clusterless entry and restrict: `DecodingOutput.merge_get_part({...}).fetch1('KEY')`. (3) If `merge_get_part` returns no matching entry for the chosen param name, fall back to displaying the candidate part rows directly: `DecodingOutput.ClusterlessDecodingV1 & {'nwb_file_name': ...}` — the user can pick the row whose interval / params actually match what they meant. If the skill answer supplies a made-up params name like `'default_clusterless'`, that's a failure — the discovery step must come first because param names are lab-specific and not in the skill registry. Answers that imply a separate \"clusterless decoding parameters\" table are also wrong: there is no such table; the distinction is purely by name."
+}

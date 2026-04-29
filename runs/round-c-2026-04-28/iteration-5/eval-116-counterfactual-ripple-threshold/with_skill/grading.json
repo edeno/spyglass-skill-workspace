@@ -1,0 +1,57 @@
+{
+  "eval_id": 116,
+  "eval_name": "counterfactual-ripple-threshold",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'RippleTimesV1'",
+      "passed": true,
+      "evidence": "found — 'RippleTimesV1'"
+    },
+    {
+      "text": "required_substring: 'RippleLFPSelection'",
+      "passed": true,
+      "evidence": "found — 'RippleLFPSelection'"
+    },
+    {
+      "text": "required_substring: 'ripple_param_dict'",
+      "passed": true,
+      "evidence": "found — 'ripple_param_dict'"
+    },
+    {
+      "text": "required_substring: 'provenance'",
+      "passed": true,
+      "evidence": "found — 'provenance'"
+    },
+    {
+      "text": "forbidden_substring: 'yes, just update1 the row'",
+      "passed": true,
+      "evidence": "absent — 'yes, just update1 the row'"
+    },
+    {
+      "text": "behavioral_check: Recommends inserting a NEW `RippleParameters` row (e.g. `ripple_param_name='zscore3'`) and populating `RippleTimesV1` against the new name — does NOT recommend mutating the existing `'default'` row via `update1()`",
+      "passed": true,
+      "evidence": "Explicitly: 'insert a new RippleParameters row under a new ripple_param_name and populate RippleTimesV1 against the new name'; with example `ripple_param_name='zscore3'`. Calls update1() WRONG with reasoning."
+    },
+    {
+      "text": "behavioral_check: Frames the issue as **provenance**: existing `RippleTimesV1` rows still reference the old param name but the blob would have changed, breaking reproducibility",
+      "passed": true,
+      "evidence": "'silently corrupts provenance'; explains 'every existing RippleTimesV1 row still keyed by ripple_param_name=\"default\" keeps pointing at this row by name, but the row's blob no longer reflects the parameters those events were actually computed under.'"
+    },
+    {
+      "text": "behavioral_check: Predicts the qualitative direction correctly: raising `zscore_threshold` from 2 to 3 yields FEWER detected ripple events (higher threshold = stricter trigger)",
+      "passed": true,
+      "evidence": "'Raising it from 2 → 3 is stricter, so you should expect fewer detected ripple events in the new rows than in the matched \"default\" rows.'"
+    },
+    {
+      "text": "behavioral_check: Notes that no new `RippleLFPSelection` row is needed — selection rows already exist for the LFP band + electrode group; just populate `RippleTimesV1` for the new param name",
+      "passed": true,
+      "evidence": "'No new RippleLFPSelection row is needed. Selection rows are keyed by (LFPBandV1 PK + group_name) — unchanged by a parameters change.'"
+    },
+    {
+      "text": "behavioral_check: Notes that old rows under `'default'` are unchanged (intact provenance) and the two sets coexist queryable side-by-side — that's the value of the new-name shape",
+      "passed": true,
+      "evidence": "'Old rows under ripple_param_name=\"default\" are untouched and still interpretable; the new rows under \"zscore3\" are independently queryable. The two sets coexist.' Plus summary table of differs/no-differs."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "eval_id": 62,
+  "eval_name": "disamb-trodes-vs-dlc",
+  "expectations": [
+    {
+      "text": "Response contains substring `TrodesPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'TrodesPosV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'DLCPosV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionOutput.TrodesPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput.TrodesPosV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionOutput.DLCPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput.DLCPosV1' found in response.md"
+    },
+    {
+      "text": "Identifies TrodesPosV1 as the LED-tracking path and DLCPosV1 as the pose-estimation path",
+      "passed": true,
+      "evidence": "'TrodesPosV1 ... the SpikeGadgets / Trodes online tracking path' and 'DLCPosV1 ... DeepLabCut pose-estimation path'."
+    },
+    {
+      "text": "Notes that both can coexist as separate part-table entries on the same session",
+      "passed": true,
+      "evidence": "'a single session can carry both a Trodes-LED-derived position and a DLC-derived position side by side ... PositionOutput.TrodesPosV1 and PositionOutput.DLCPosV1'."
+    },
+    {
+      "text": "Names at least one tradeoff dimension (latency / accuracy / setup cost / bodypart granularity)",
+      "passed": true,
+      "evidence": "Decision logic table covers Setup cost, Compute, Robustness, Accuracy, Latency, Bodypart granularity."
+    }
+  ]
+}

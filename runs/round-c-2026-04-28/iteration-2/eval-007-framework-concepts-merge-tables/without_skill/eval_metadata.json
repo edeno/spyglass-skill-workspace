@@ -1,0 +1,28 @@
+{
+  "eval_id": 7,
+  "eval_name": "framework-concepts-merge-tables",
+  "stage": "framework-concepts",
+  "tier": "table-classification",
+  "difficulty": "medium",
+  "prompt": "I'm new to spyglass. Every time I look at PositionOutput or LFPOutput I see this `merge_id` column plus weird helper methods like `merge_get_part` and `merge_restrict` — but none of this shows up in the DataJoint docs I've been reading. What are these actually? And while we're at it, I keep seeing `SpyglassMixin` in the class hierarchy on top of `dj.Computed` — what does that layer do that plain DataJoint doesn't?",
+  "assertions": {
+    "required_substrings": [
+      "fetch_nwb",
+      "01_Concepts",
+      "Spyglass convention",
+      "PositionOutput",
+      "TrodesPosV1",
+      "DLCPosV1"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Explains merge tables as a Spyglass convention on top of DataJoint",
+      "Does not lead with the classmethod-discard gotcha",
+      "Routes to 01_Concepts.ipynb before any deeper notebook"
+    ],
+    "expected_output_tables_exempt": [
+      "ImportedPose"
+    ]
+  },
+  "expected_output": "Routes to merge_methods.md and spyglassmixin_methods.md (+ `01_Concepts.ipynb` as canonical notebook). Explains that a merge table is a Spyglass convention on top of DataJoint — not a DataJoint primitive — that consolidates outputs from multiple pipeline versions/sources behind a single `merge_id`, with one part table per upstream source (e.g., PositionOutput parts: TrodesPosV1, DLCPosV1, CommonPos, ImportedPose). Explains that the `merge_*` methods are classmethods/staticmethods on the merge table that resolve or operate on the merge. Explains that SpyglassMixin adds: `fetch_nwb` for NWB-aware fetches, `<<` / `>>` upstream/downstream traversal, export hooks for reproducibility (ExportMixin), and PopulateMixin transaction/hash-check behavior. Does NOT lead with 04_Merge_Tables.ipynb (the skill explicitly flags that as a later specialized concept for novices). Does NOT teach classmethod-discard gotcha as the FIRST thing — save that for when the user is actually writing code."
+}

@@ -1,0 +1,37 @@
+{
+  "eval_id": 39,
+  "eval_name": "runtime-clusterless-contact-unique",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (set_group_by_shank, SortGroup.SortGroupElectrode, SpikeSortingRecording).",
+      "passed": true,
+      "evidence": "All required substrings present."
+    },
+    {
+      "text": "Response does not contain forbidden substring `set_group_by_electrode_group is fine`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent."
+    },
+    {
+      "text": "Identifies set_group_by_electrode_group as the wrong grouper for clusterless pipelines",
+      "passed": true,
+      "evidence": "'The older v0 pipeline ... did expose a set_group_by_electrode_group helper that grouped a whole electrode_group_name together. There's no v1 equivalent — and even on v0 it would have produced this same multi-shank-group footgun on a polymer probe. Don't try to port it over.'"
+    },
+    {
+      "text": "Recommends set_group_by_shank with the exact method name",
+      "passed": true,
+      "evidence": "`SortGroup().set_group_by_shank(nwb_file_name=nwb_file_name)` shown as the supported v1 helper."
+    },
+    {
+      "text": "Shows SortGroup.SortGroupElectrode inspection to verify one-shank-per-group",
+      "passed": true,
+      "evidence": "Verify section uses `(SortGroup.SortGroupElectrode & key).fetch(format='frame')` and `groupby('sort_group_id')['probe_shank'].nunique()` to confirm 1 shank per group."
+    },
+    {
+      "text": "Does not frame this as a SpikeInterface bug",
+      "passed": true,
+      "evidence": "Opening: 'this is not a SpikeInterface bug and the grouper isn't broken'."
+    }
+  ]
+}

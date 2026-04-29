@@ -1,0 +1,37 @@
+{
+  "eval_id": 1,
+  "eval_name": "fresh-install-remote-lab-db",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'scripts/install.py'",
+      "passed": false,
+      "evidence": "MISSING — 'scripts/install.py'"
+    },
+    {
+      "text": "required_substring: 'SPYGLASS_BASE_DIR'",
+      "passed": true,
+      "evidence": "found — 'SPYGLASS_BASE_DIR'"
+    },
+    {
+      "text": "forbidden_substring: 'conda install -c conda-forge spyglass'",
+      "passed": true,
+      "evidence": "absent — 'conda install -c conda-forge spyglass'"
+    },
+    {
+      "text": "behavioral_check: Recommends scripts/install.py over manual pip/conda steps",
+      "passed": false,
+      "evidence": "Recommends manual mamba env create + pip install -e . path (Section 2); never mentions scripts/install.py at all."
+    },
+    {
+      "text": "behavioral_check: Asks about or sets SPYGLASS_BASE_DIR before finishing",
+      "passed": true,
+      "evidence": "Section 6 sets `export SPYGLASS_BASE_DIR=\"$HOME/spyglass_data\"` and adds it to ~/.zshrc."
+    },
+    {
+      "text": "behavioral_check: Uses a valid DataJoint config persistence target: global `~/.datajoint_config.json` is sufficient for a personal laptop; local `dj_local_conf.json` is optional/project-scoped, not required from the installer",
+      "passed": null,
+      "evidence": "pending behavioral grader"
+    }
+  ]
+}

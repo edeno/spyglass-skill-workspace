@@ -1,0 +1,31 @@
+{
+  "eval_id": 12,
+  "eval_name": "atomic-count-electrodes",
+  "expectations": [
+    {
+      "text": "Response contains substring `Electrode`.",
+      "passed": true,
+      "evidence": "Substring 'Electrode' found in response.md"
+    },
+    {
+      "text": "Response contains substring `len(`.",
+      "passed": true,
+      "evidence": "Substring 'len(' found in response.md"
+    },
+    {
+      "text": "Uses len(relation) to count without fetching all rows",
+      "passed": true,
+      "evidence": "Code: `len(Electrode & {\"nwb_file_name\": \"j1620210710_.nwb\"})`; explicitly notes 'DataJoint translates that to a SELECT COUNT(*) on the server, so no rows are fetched'."
+    },
+    {
+      "text": "Does not fetch the full Electrode set just to take its length",
+      "passed": true,
+      "evidence": "Calls out 'len(rel.fetch()) ... pulls every row over the wire just to take its length. Avoid' \u2014 actively warns against the anti-pattern."
+    },
+    {
+      "text": "Bonus: notes that each Electrode row is one recording contact (keyed by electrode_id within an ElectrodeGroup), so the count returns total contacts \u2014 not tetrodes/shanks/ElectrodeGroups (e.g., a 32-tetrode session yields 128 Electrode rows, not 32)",
+      "passed": true,
+      "evidence": "Explicitly states 'Each row is one recording contact ... not a tetrode' and gives the 32-tetrode \u2192 128 Electrode example."
+    }
+  ]
+}

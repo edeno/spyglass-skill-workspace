@@ -1,0 +1,37 @@
+{
+  "eval_id": 48,
+  "eval_name": "runtime-positiongroup-variable-mismatch",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (position_variables, (DLCPosV1 & key).fetch1_dataframe, ClusterlessDecodingSelection, PositionGroup).",
+      "passed": true,
+      "evidence": "All required substrings present."
+    },
+    {
+      "text": "Identifies variable-name mismatch (NOT empty DLC output) as root cause",
+      "passed": true,
+      "evidence": "Short answer: 'No — your DLC output almost certainly is not missing the head-position columns. The bug is in the other direction: you overrode position_variables with names that don't exist on the DLC dataframe'."
+    },
+    {
+      "text": "Shows (DLCPosV1 & key).fetch1_dataframe().columns as the concrete diagnostic",
+      "passed": true,
+      "evidence": "'Confirm in one line': `print((DLCPosV1 & key).fetch1_dataframe().columns.tolist())` with expected output."
+    },
+    {
+      "text": "Recognizes that the default position_variables=['position_x', 'position_y'] matches DLC",
+      "passed": true,
+      "evidence": "'Trodes positions emit the same position_x / position_y schema, which is exactly why PositionGroup.create_group's default position_variables=[position_x, position_y] was chosen — it matches both upstream sources without modification'."
+    },
+    {
+      "text": "Names _upsample as the line that raises KeyError",
+      "passed": true,
+      "evidence": "'Where the KeyError actually fires': describes `_upsample(position_df, ..., position_variable_names=...)` and 'df[head_position_x] on a DataFrame whose columns are [...] is exactly the KeyError'."
+    },
+    {
+      "text": "Does not recommend re-running DLC populate as the fix",
+      "passed": true,
+      "evidence": "'Re-running DLC populate will not change the output column names — they are hard-coded in DLCPosV1.fetch1_dataframe'."
+    }
+  ]
+}

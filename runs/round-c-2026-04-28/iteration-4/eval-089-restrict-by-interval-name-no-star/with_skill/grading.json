@@ -1,0 +1,57 @@
+{
+  "eval_id": 89,
+  "eval_name": "restrict-by-interval-name-no-star",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'IntervalList'",
+      "passed": false,
+      "evidence": "MISSING — 'IntervalList'"
+    },
+    {
+      "text": "required_substring: 'interval_list_name'",
+      "passed": true,
+      "evidence": "found — 'interval_list_name'"
+    },
+    {
+      "text": "required_substring: 'SpikeSortingRecording'",
+      "passed": true,
+      "evidence": "found — 'SpikeSortingRecording'"
+    },
+    {
+      "text": "required_substring: 'SpikeSortingRecordingSelection'",
+      "passed": true,
+      "evidence": "found — 'SpikeSortingRecordingSelection'"
+    },
+    {
+      "text": "required_substring: '& ('",
+      "passed": true,
+      "evidence": "found — '& ('"
+    },
+    {
+      "text": "behavioral_check: Restricts via a sub-restriction of the form `(Table & (Other & {...}))` — the response must contain '& (' as a literal substring",
+      "passed": true,
+      "evidence": "Uses `Session & (SpikeSortingRecording & {...})` form throughout."
+    },
+    {
+      "text": "behavioral_check: Routes the IntervalList restriction through `SpikeSortingRecordingSelection` (where `nwb_file_name` / `interval_list_name` actually live as secondary attrs via `-> IntervalList`), NOT directly through `SpikeSortingRecording` (which only carries `recording_id` in its heading per recording.py:185-191)",
+      "passed": false,
+      "evidence": "Response restricts on SpikeSortingRecording directly (`SpikeSortingRecording & {\"interval_list_name\": ...}`) and explicitly (incorrectly) claims it carries nwb_file_name/interval_list_name in its heading."
+    },
+    {
+      "text": "behavioral_check: Does not propose a multi-table `*` chain in the proposed code blocks — the canonical answer should use a sub-restriction (`& (...)` parens) rather than chaining tables with the natural-join operator",
+      "passed": true,
+      "evidence": "All code uses `&` semi-joins; `*` only appears in the cautionary 'avoid Session * SpikeSortingRecording' note."
+    },
+    {
+      "text": "behavioral_check: Fetches `nwb_file_name` from the restricted `SpikeSortingRecordingSelection` (or via a deliberate join/proj), NOT from `SpikeSortingRecording` itself — the latter has no `nwb_file_name` in its heading",
+      "passed": false,
+      "evidence": "Fetches `.fetch('nwb_file_name')` from `SpikeSortingRecording`-restricted Session subquery; never routes through SpikeSortingRecordingSelection."
+    },
+    {
+      "text": "behavioral_check: Does not claim DataJoint 'walks the FK chain' from `SpikeSortingRecording` to `IntervalList` automatically — the restriction works only because both `SpikeSortingRecordingSelection` and the restricted `IntervalList` share `(nwb_file_name, interval_list_name)` in their headings",
+      "passed": true,
+      "evidence": "Explanation invokes shared-PK semi-join semantics, not an automatic FK walk; never claims DJ walks the chain."
+    }
+  ]
+}

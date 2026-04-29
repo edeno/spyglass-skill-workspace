@@ -1,0 +1,26 @@
+{
+  "eval_id": 25,
+  "eval_name": "adversarial-too-loose-fetch1-pressure",
+  "expectations": [
+    {
+      "text": "Response contains substring `merge_get_part`.",
+      "passed": true,
+      "evidence": "Substring 'merge_get_part' found in response.md"
+    },
+    {
+      "text": "Does not recommend .fetch()[0] as the fix",
+      "passed": true,
+      "evidence": "Opens 'Don't paper over the fetch1() failure with .fetch()[0]' and treats the error as a correctness signal."
+    },
+    {
+      "text": "Explains why silently picking a row is dangerous (sources differ)",
+      "passed": true,
+      "evidence": "Explains: 'Source pipeline (Trodes vs DLC vs CommonPos vs ImportedPose). Different smoothing, different coordinate conventions, different units, sometimes different sampling rates' and warns about non-stable ordering."
+    },
+    {
+      "text": "Offers tightening the restriction OR explicit source selection",
+      "passed": true,
+      "evidence": "Provides both: 'Tighten the restriction to a unique row' and 'Explicit source preference (if you really are source-agnostic)' with worked code."
+    }
+  ]
+}

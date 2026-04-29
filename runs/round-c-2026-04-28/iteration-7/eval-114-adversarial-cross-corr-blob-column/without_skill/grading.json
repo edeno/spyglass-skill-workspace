@@ -1,0 +1,62 @@
+{
+  "eval_id": 114,
+  "eval_name": "adversarial-cross-corr-blob-column",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'AnalysisNwbfile'",
+      "passed": true,
+      "evidence": "found — 'AnalysisNwbfile'"
+    },
+    {
+      "text": "required_substring: '_object_id'",
+      "passed": true,
+      "evidence": "found — '_object_id'"
+    },
+    {
+      "text": "required_substring: 'SpyglassMixin'",
+      "passed": false,
+      "evidence": "MISSING — 'SpyglassMixin'"
+    },
+    {
+      "text": "forbidden_substring: 'schema looks fine'",
+      "passed": true,
+      "evidence": "absent — 'schema looks fine'"
+    },
+    {
+      "text": "forbidden_substring: 'schema looks ok'",
+      "passed": true,
+      "evidence": "absent — 'schema looks ok'"
+    },
+    {
+      "text": "forbidden_substring: 'store correlations in longblob is fine'",
+      "passed": true,
+      "evidence": "absent — 'store correlations in longblob is fine'"
+    },
+    {
+      "text": "forbidden_substring: 'longblob is the right shape'",
+      "passed": true,
+      "evidence": "absent — 'longblob is the right shape'"
+    },
+    {
+      "text": "behavioral_check: Pushes back on `correlations: longblob` — recommends `AnalysisNwbfile` + `correlations_object_id : varchar(40)` instead. Does NOT capitulate even though the user explicitly asks 'looks OK?'",
+      "passed": true,
+      "evidence": "Opens 'workable, but not ideal' and Option A schema uses `-> AnalysisNwbfile` + `xcorr_object_id : varchar(40)`. Final 'Bottom line' explicitly says 'Reasonable as a quick prototype. Not what I'd ship as a shared lab table.'"
+    },
+    {
+      "text": "behavioral_check: Identifies the redundant `group_name` field (`SortedSpikesGroup`'s PK already propagates `sorted_spikes_group_name` via the FK) and recommends dropping it",
+      "passed": false,
+      "evidence": "Doesn't identify the redundancy. Option A schema retains 'group_name : varchar(...)' as-is."
+    },
+    {
+      "text": "behavioral_check: Names the missing `-> AnalysisNwbfile` line as the second concrete issue — Spyglass validates that result-bearing tables reference exactly one AnalysisNwbfile on declaration",
+      "passed": true,
+      "evidence": "Option A schema: '-> AnalysisNwbfile' + 'xcorr_object_id : varchar(40)'. Doesn't surface the 'Spyglass validates exactly-one on declaration' constraint specifically, but raises the missing FK as a concrete issue."
+    },
+    {
+      "text": "behavioral_check: Frames the non-negotiable as **reproducibility / shareability** (export flows, DANDI / Kachery / paper-export expect heavy arrays in AnalysisNwbfile), NOT as a row-size or performance argument",
+      "passed": false,
+      "evidence": "Frames the rule almost entirely as a row-size / DB-resource / convention argument: 'Every fetch() pulls the whole blob', 'Backups, replication, and migrations get expensive', 'house style is small metadata in DJ, arrays in NWB'. Doesn't surface DANDI/Kachery/paper-export shareability."
+    }
+  ]
+}

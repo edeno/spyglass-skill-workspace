@@ -1,0 +1,42 @@
+{
+  "eval_id": 57,
+  "eval_name": "param-target-sampling-rate",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'Nyquist'",
+      "passed": true,
+      "evidence": "found — 'Nyquist'"
+    },
+    {
+      "text": "required_substring: 'LFPV1'",
+      "passed": true,
+      "evidence": "found — 'LFPV1'"
+    },
+    {
+      "text": "forbidden_substring: \"sample rate doesn't matter\"",
+      "passed": true,
+      "evidence": "absent — \"sample rate doesn't matter\""
+    },
+    {
+      "text": "behavioral_check: Explains that target_sampling_rate sets the downsampled output rate of LFPV1",
+      "passed": true,
+      "evidence": "Opening line states it is the rate LFPV1.make() will 'decimate the filtered LFP down to before storing it', and that it is the rate downstream consumers read back."
+    },
+    {
+      "text": "behavioral_check: Connects the rate to the Nyquist constraint for downstream band filters (e.g., ripple band 150–250 Hz needs > 500 Hz sampling)",
+      "passed": true,
+      "evidence": "Explicitly walks through Nyquist for target=500 (Nyquist 250 Hz, ripple top edge), 400 Hz (Nyquist 200 Hz cuts off ripple), 300 Hz (Nyquist 150 Hz, below ripple band)."
+    },
+    {
+      "text": "behavioral_check: Names 1000 Hz as the canonical default and the consequence of going lower (aliasing in the downstream band)",
+      "passed": true,
+      "evidence": "Names 1000 Hz as canonical default repeatedly, and details aliasing into the ripple band as the consequence of going lower."
+    },
+    {
+      "text": "behavioral_check: Does not say the sample rate is arbitrary or that any value works (this would contradict the Nyquist constraint)",
+      "passed": true,
+      "evidence": "Strongly conveys that rate is constrained by Nyquist and downstream filter cutoffs; explicitly calls arbitrary low rates a 'common mis-configuration'."
+    }
+  ]
+}

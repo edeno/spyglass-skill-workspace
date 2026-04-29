@@ -1,0 +1,36 @@
+{
+  "eval_id": 51,
+  "eval_name": "is-this-a-merge-lookalike",
+  "stage": "common-mistakes",
+  "tier": "merge-table-gotchas",
+  "difficulty": "easy",
+  "prompt": "`MuaEventsV1.merge_get_part({'nwb_file_name': 'j1620210710_.nwb'})` is raising `AttributeError: type object 'MuaEventsV1' has no attribute 'merge_get_part'`. I thought all the `*Output` and `*V1` tables in spyglass were merge tables — is this a spyglass bug?",
+  "assertions": {
+    "required_substrings": [
+      "MuaEventsV1",
+      "dj.Computed",
+      "SpikeSortingOutput",
+      "DecodingOutput",
+      "LFPOutput",
+      "LinearizedPositionOutput",
+      "PositionOutput"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Identifies MuaEventsV1 as `dj.Computed`, not a merge master (rejects the 'spyglass bug' framing)",
+      "Names the five actual merge masters (SpikeSortingOutput, LFPOutput, PositionOutput, LinearizedPositionOutput, DecodingOutput)",
+      "Shows the correct direct-restriction form for MuaEventsV1 (`& {...}` with actual PK fields) — NOT a `merge_*` method",
+      "States that *V1 / *Output suffixes are conventions, not enforced. Names at least one lookalike from this allowed set: MuaEventsV1, CurationV1, LFPV1, TrodesPosV1, DLCPosV1, RippleTimesV1, IntervalLinearizedPosition, or any *Selection table.",
+      "Offers the isinstance(table(), Merge) check OR equivalent as a programmatic check"
+    ],
+    "expected_output_tables_exempt": [
+      "CurationV1",
+      "DLCPosV1",
+      "LFPV1",
+      "RippleTimesV1",
+      "TrodesPosV1",
+      "Merge"
+    ]
+  },
+  "expected_output": "Routes to merge_methods.md 'Is this a merge table?' registry. Not a spyglass bug — `MuaEventsV1` is a `dj.Computed` table (`src/spyglass/mua/v1/mua.py:63`), not a merge master. Only 5 tables in Spyglass inherit from `_Merge`: `SpikeSortingOutput`, `LFPOutput`, `PositionOutput`, `LinearizedPositionOutput`, `DecodingOutput`. `MuaEventsV1` is named like a pipeline V1 table but is just a computed table with its own multi-field PK (`nwb_file_name`, `mua_param_name`, `sorted_spikes_group_name`, `pos_merge_id`, `detection_interval`).\n\nThe `*V1` suffix and the `*Output` suffix are NOT a reliable merge-table signal. Lookalikes that are NOT merges include `MuaEventsV1`, `CurationV1` (`dj.Manual`), `LFPV1`, `TrodesPosV1`, `DLCPosV1`, `RippleTimesV1`, and every `*Selection` table. Note: there is NO `SpikeSortingV1` class — the actual v1 sorting class is named `SpikeSorting` (no V1 suffix); this is a naming asymmetry users coming from the v0 → v1 migration often trip on.\n\nFor `MuaEventsV1`, restrict directly by its actual PK fields — no `merge_*` methods needed:\n\n```python\n(MuaEventsV1 & {'nwb_file_name': 'j1620210710_.nwb'}).fetch(as_dict=True)\n```\n\nQuick check in Python whether something is a merge table: `from spyglass.utils.dj_merge_tables import Merge; isinstance(MuaEventsV1(), Merge)` — False for everything except the five masters above."
+}

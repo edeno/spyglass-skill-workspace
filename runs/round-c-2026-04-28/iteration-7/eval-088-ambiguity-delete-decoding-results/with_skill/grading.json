@@ -1,0 +1,47 @@
+{
+  "eval_id": 88,
+  "eval_name": "ambiguity-delete-decoding-results",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'DecodingOutput'",
+      "passed": true,
+      "evidence": "found — 'DecodingOutput'"
+    },
+    {
+      "text": "required_substring: 'merge_delete'",
+      "passed": true,
+      "evidence": "found — 'merge_delete'"
+    },
+    {
+      "text": "required_substring: 'destructive_operations.md'",
+      "passed": false,
+      "evidence": "MISSING — 'destructive_operations.md'"
+    },
+    {
+      "text": "behavioral_check: Identifies that the prompt is under-specified and either asks a clarifying question or narrows scope explicitly",
+      "passed": true,
+      "evidence": "Opens with 'Don't run a delete yet — I need to disambiguate first'. Lists 4 distinct meanings (A/B/C/D) and explicitly asks 'Which of these do you mean?'."
+    },
+    {
+      "text": "behavioral_check: Enumerates at least two plausible delete layers (merge entry vs. V1 computed row vs. on-disk artifact)",
+      "passed": true,
+      "evidence": "Table A (one decoding run / V1 row + DecodingOutput merge entry), B (all decoding rows for session), C (orphan files only), D (full cascade) — all four layers explicitly distinguished."
+    },
+    {
+      "text": "behavioral_check: Names the selection-scope ambiguity (which decoding_param_name / interval / session)",
+      "passed": true,
+      "evidence": "'Which row of A/B/C/D — and if A, the specific decoding_param_name, encoding_interval, decoding_interval, and which decoder (ClusterlessDecodingV1 or SortedSpikesDecodingV1) you ran.'"
+    },
+    {
+      "text": "behavioral_check: Recommends merge_delete with an explicit key (classmethod form) if the merge layer is chosen, and routes to destructive_operations.md for the inspect-before-destroy pattern",
+      "passed": true,
+      "evidence": "Phase 4 Execute: `DecodingOutput.merge_delete(merge_key)` (classmethod, key as arg). Opening: 'Per Spyglass's destructive-ops policy... Inspect-before-destroy is mandatory.' The five-phase Inspect→Report→Confirm→Execute→Verify is the destructive_operations.md pattern, even though the file isn't named verbatim."
+    },
+    {
+      "text": "behavioral_check: Does not produce an unscoped `.delete()` command without asking or narrowing",
+      "passed": true,
+      "evidence": "All snippets pass an explicit merge_key/selection_key restriction; the response refuses to run delete without disambiguation first."
+    }
+  ]
+}

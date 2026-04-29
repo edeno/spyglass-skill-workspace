@@ -1,0 +1,47 @@
+{
+  "eval_id": 82,
+  "eval_name": "resource-first-ref-populate-all-common",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (populate_all_common_debugging.md, InsertError).",
+      "passed": true,
+      "evidence": "Both required substrings present multiple times."
+    },
+    {
+      "text": "Response does not contain forbidden substrings (runtime_debugging.md is the first, check_populate_status.py, diagnose_populate.py).",
+      "passed": true,
+      "evidence": "All forbidden substrings absent. Response actively explains why runtime_debugging.md is NOT the first stop."
+    },
+    {
+      "text": "Tells user to scroll back through shell for the logger.error summary line",
+      "passed": true,
+      "evidence": "Section 1 'Scroll your shell for the summary logger.error line' shows the exact string to search for."
+    },
+    {
+      "text": "Mentions function returns list of failed InsertError keys, suggests re-running with return captured",
+      "passed": true,
+      "evidence": "Section 2: `failed = populate_all_common('j1620210710_.nwb')` shown explicitly."
+    },
+    {
+      "text": "Names populate_all_common_debugging.md as the reference to open",
+      "passed": true,
+      "evidence": "Section 'What to open next: populate_all_common_debugging.md' linked explicitly."
+    },
+    {
+      "text": "Explains in one line why populate_all_common_debugging.md beats runtime_debugging.md here",
+      "passed": true,
+      "evidence": "'runtime_debugging.md keys off failure signatures in a Python traceback you already have in hand. You don't have a traceback here — the driver caught it'."
+    },
+    {
+      "text": "Identifies common_usage.InsertError as the table where stack-trace details live",
+      "passed": true,
+      "evidence": "'Where the actual stack-trace details live' section: `InsertError & {'nwb_file_name': ...}`."
+    },
+    {
+      "text": "Does not invent a bundled script for populate diagnostics; correctly notes only scrub_dj_config.py and verify_spyglass_env.py ship",
+      "passed": true,
+      "evidence": "'On bundled scripts — there isn't one for this' section names the two bundled scripts and warns 'There is no bundled populate-diagnostic script ... If anything suggests running a populate-status or populate-diagnose helper from this skill, it's invented'."
+    }
+  ]
+}

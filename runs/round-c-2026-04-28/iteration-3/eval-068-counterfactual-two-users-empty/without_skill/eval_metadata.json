@@ -1,0 +1,30 @@
+{
+  "eval_id": 68,
+  "eval_name": "counterfactual-two-users-empty",
+  "stage": "pipeline-usage",
+  "tier": "counterfactual",
+  "difficulty": "hard",
+  "prompt": "A labmate and I both ran the same selection + populate on `j1620210710_.nwb`. My `fetch_results` returns data, theirs returns empty. What differs between our pipeline states to explain this?",
+  "assertions": {
+    "required_substrings": [
+      "params_name",
+      "Selection & key",
+      "upstream restriction",
+      "UserEnvironment"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Lists at least three plausible state differences (different params name, missing populate, different upstream restriction, env / version drift) without committing to one cause",
+      "Recommends a concrete first diagnostic (e.g., inspecting (Selection & key).fetch() output side-by-side)",
+      "Fetches from UserEnvironment and compares against the user's running env (sys.version, package versions); does not generic-suggest 'check your env'.",
+      "Does not claim the pipeline state must be identical when the symptoms prove otherwise",
+      "Does not misframe cautious_delete as a write/populate gate — cautious_delete blocks deletes only"
+    ],
+    "expected_output_tables_exempt": [
+      "DLCPosV1",
+      "PositionGroup",
+      "SpikeSortingRecording"
+    ]
+  },
+  "expected_output": "Lists at least three plausible state differences without committing to one cause: (1) different params_name on the selection — same prompt-level 'parameters' but different named entry in the params table; (2) one user's selection row hasn't been populated yet — fetch_results returns empty when the downstream Computed row simply doesn't exist; (3) different upstream restriction — the selection key resolved to different upstream rows for each user (e.g., different DLCPosV1 merge_id implicit in PositionGroup, different SpikeSortingRecording UUID); (4) environment / package version drift causing different populate behavior or different output shapes per user — Spyglass actually records this in `common.UserEnvironment` (`src/spyglass/common/common_user.py:28`); fetch the `env` blob for each user's `env_id` and diff against the user's currently-running env (e.g., `conda env export` / `pip freeze` / `sys.version`) to nail this down quickly instead of generic-suggesting 'check your env'. Recommends inspecting both users' (Selection & key).fetch() output side-by-side as the first diagnostic. Does not claim the pipeline state is identical when the symptoms prove otherwise. Note: cautious_delete only gates DELETES, not writes or populate, so it is not a plausible cause of empty fetch_results."
+}

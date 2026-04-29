@@ -1,0 +1,41 @@
+{
+  "eval_id": 127,
+  "eval_name": "key-hygiene-partial-populate-scope",
+  "expectations": [
+    {
+      "text": "Response contains substring `RippleLFPSelection`.",
+      "passed": true,
+      "evidence": "Substring 'RippleLFPSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `pos_merge_id`.",
+      "passed": true,
+      "evidence": "Substring 'pos_merge_id' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ripple/v1/ripple.py`.",
+      "passed": true,
+      "evidence": "Substring 'ripple/v1/ripple.py' found in response.md"
+    },
+    {
+      "text": "Identifies the populate restriction as partial-PK and explains it runs over every combination of the missing PK fields",
+      "passed": true,
+      "evidence": "Says 'restriction is partial-PK, and populate() will run over every combination of the missing PK fields' and 'cross-product of every RippleLFPSelection row × every PositionOutput merge_id'."
+    },
+    {
+      "text": "Names the missing PK fields explicitly (`RippleLFPSelection`, `pos_merge_id`)",
+      "passed": true,
+      "evidence": "Lists 'RippleLFPSelection's PK ... and pos_merge_id (the projected merge_id from PositionOutput)' as missing."
+    },
+    {
+      "text": "Recommends building a fully-scoped `populate_key` with the missing fields included",
+      "passed": true,
+      "evidence": "Provides `populate_key = {**rip_sel_key, 'ripple_param_name': 'tighter_thresh', 'pos_merge_id': pos_merge_id}` and `RippleTimesV1.populate(populate_key)`."
+    },
+    {
+      "text": "Verifies the full PK with `code_graph.py describe RippleTimesV1` (agent tool) or `RippleTimesV1.heading.primary_key` in the user's Python session, not memory",
+      "passed": true,
+      "evidence": "Says 'Don't trust my recall — confirm the full PK' and provides both `code_graph.py describe RippleTimesV1` and `RippleTimesV1.heading.primary_key`."
+    }
+  ]
+}

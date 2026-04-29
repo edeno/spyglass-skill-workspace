@@ -1,0 +1,25 @@
+{
+  "eval_id": 39,
+  "eval_name": "runtime-clusterless-contact-unique",
+  "stage": "runtime-debugging",
+  "tier": "runtime-errors",
+  "difficulty": "medium",
+  "prompt": "Setting up clusterless decoding (v1 pipeline), and `SpikeSortingRecording.populate` fails with `ValueError: contact positions are not unique`. I built my sort groups by manually inserting into `SortGroup` and `SortGroup.SortGroupElectrode` so each group spans a whole probe (multiple shanks together) — I wanted more units grouped together for the clusterless analysis. Is the grouper broken?",
+  "assertions": {
+    "required_substrings": [
+      "set_group_by_shank",
+      "SortGroup.SortGroupElectrode",
+      "SpikeSortingRecording"
+    ],
+    "forbidden_substrings": [
+      "set_group_by_electrode_group is fine"
+    ],
+    "behavioral_checks": [
+      "Identifies set_group_by_electrode_group as the wrong grouper for clusterless pipelines",
+      "Recommends set_group_by_shank with the exact method name",
+      "Shows the SortGroup.SortGroupElectrode inspection to verify one-shank-per-group",
+      "Does not frame this as a SpikeInterface bug"
+    ]
+  },
+  "expected_output": "Routes to spikesorting_v1_pipeline.md 'Clusterless sorting requires one sort group per shank'. Root cause: a sort group that spans multiple shanks of a polymer probe yields duplicate `(x, y)` contact positions across the group. SpikeInterface rejects non-unique contact positions at `SpikeSortingRecording.populate`. For clusterless / waveform-based pipelines, build sort groups one-shank-at-a-time using `SortGroup().set_group_by_shank(nwb_file_name=nwb_file)` (`src/spyglass/spikesorting/v1/recording.py:51`) — that's the only sort-group helper exposed on v1 `SortGroup`. (The v0 SortGroup at `spyglass/spikesorting/v0/spikesorting_recording.py:94` did expose a `set_group_by_electrode_group` helper, but it has no v1 counterpart and would have produced the same multi-shank-group footgun anyway.) Verify: `(SortGroup.SortGroupElectrode & key).fetch()` — rows from more than one shank per `sort_group_id` means regroup before inserting selection rows."
+}

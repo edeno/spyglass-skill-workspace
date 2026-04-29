@@ -1,0 +1,46 @@
+{
+  "eval_id": 71,
+  "eval_name": "dep-trace-decoding-output",
+  "stage": "pipeline-usage",
+  "tier": "dependency-tracing",
+  "difficulty": "hard",
+  "prompt": "Given a `DecodingOutput.ClusterlessDecodingV1` merge entry, enumerate every upstream table (including selections and parameter tables) that must have had an entry for this row to exist. Assume I want to regenerate from raw NWB.",
+  "assertions": {
+    "required_substrings": [
+      "Nwbfile",
+      "Session",
+      "IntervalList",
+      "Electrode",
+      "SortGroup",
+      "SpikeSortingRecording",
+      "CurationV1",
+      "SpikeSortingOutput",
+      "UnitWaveformFeaturesGroup",
+      "WaveformFeaturesParams",
+      "PositionGroup",
+      "DecodingParameters",
+      "ClusterlessDecodingSelection",
+      "ClusterlessDecodingV1",
+      "SpikeSortingRecordingSelection",
+      "SpikeSortingSelection",
+      "UnitWaveformFeaturesSelection",
+      "UnitWaveformFeatures",
+      "Raw",
+      "SpikeSortingPreprocessingParameters",
+      "SpikeSorterParameters",
+      "LabTeam"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Produces an ordered or grouped list covering raw-data tables, recording / sorting branch, position branch, parameter table, selection table",
+      "Names every direct FK parent on `SpikeSortingRecordingSelection` (`Raw`, `SortGroup`, `IntervalList`, `SpikeSortingPreprocessingParameters`, `LabTeam`) and on `SpikeSortingSelection` (`SpikeSortingRecording`, `SpikeSorterParameters`, `IntervalList`) — does NOT collapse the recording / sorting branch to just the Selection / Computed pair",
+      "Does not invent table names that don't exist in Spyglass source",
+      "Names the clusterless waveform-features chain explicitly: `WaveformFeaturesParams` + `UnitWaveformFeaturesSelection` -> `UnitWaveformFeatures` -> `UnitWaveformFeaturesGroup`. Does NOT list `MetricCuration` as a must-have upstream — it is optional / downstream of its own selection, not on the must-have chain that produces a `ClusterlessDecodingV1` row."
+    ],
+    "expected_output_tables_exempt": [
+      "MetricCuration",
+      "MetricCurationSelection"
+    ]
+  },
+  "expected_output": "Routes to decoding_pipeline.md. Produces an ordered or grouped enumeration covering: raw-data tables (Nwbfile, Session, IntervalList, Electrode); recording / sorting branch (`Raw` + `SortGroup` + `IntervalList` + `SpikeSortingPreprocessingParameters` + `LabTeam` -> `SpikeSortingRecordingSelection` -> `SpikeSortingRecording`; then `SpikeSorterParameters` + `IntervalList` -> `SpikeSortingSelection` -> `SpikeSorting`; `CurationV1`; `SpikeSortingOutput`), then the clusterless waveform-features chain (`WaveformFeaturesParams` + `UnitWaveformFeaturesSelection` -> `UnitWaveformFeatures` -> `UnitWaveformFeaturesGroup`)); position branch (one of the position pipeline outputs feeding PositionGroup); decoding-specific (DecodingParameters, ClusterlessDecodingSelection, ClusterlessDecodingV1). Does not invent table names.\n\nNote: `MetricCuration` is **optional**, not a must-have upstream — it is downstream of its own `MetricCurationSelection` and feeds into curation as a metric-driven labelling step, but `SpikeSortingOutput.CurationV1` only depends on `CurationV1` itself (`spikesorting_merge.py:42`). Listing `MetricCuration` as required for a clusterless decoding row to exist is a misattribution."
+}

@@ -1,0 +1,47 @@
+{
+  "eval_id": 121,
+  "eval_name": "editable-install-drift-after-pull",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'pip install -e'",
+      "passed": true,
+      "evidence": "found — 'pip install -e'"
+    },
+    {
+      "text": "required_substring: 'editable'",
+      "passed": true,
+      "evidence": "found — 'editable'"
+    },
+    {
+      "text": "required_substring: 'spyglass.__file__'",
+      "passed": true,
+      "evidence": "found — 'spyglass.__file__'"
+    },
+    {
+      "text": "forbidden_substring: 'pip install spyglass-neuro from PyPI'",
+      "passed": true,
+      "evidence": "absent — 'pip install spyglass-neuro from PyPI'"
+    },
+    {
+      "text": "behavioral_check: Checks `spyglass.__file__` (or `pip show spyglass-neuro` editable status) BEFORE recommending anything destructive — distinguishes Shape A (site-packages shadowing) from Shape B (editable desync after pyproject.toml / setup.cfg bump)",
+      "passed": true,
+      "evidence": "Confirm-it-in-30-seconds block runs `print(spyglass.__file__)` first to distinguish 'under .../site-packages' (Shape A) from 'under your source checkout' (Shape B)."
+    },
+    {
+      "text": "behavioral_check: Notes that a `git pull` that bumps `setup.cfg` / `pyproject.toml` can desync a previously editable install; re-running `pip install -e .` from the checkout refreshes the editable wrapper",
+      "passed": true,
+      "evidence": "Fix block: `pip install -e .   # <-- the step that's missing` after a pull. Diagnoses 'the source moved (a new module, a renamed re-export, a moved symbol), but site-packages still has the previous layout'."
+    },
+    {
+      "text": "behavioral_check: Does NOT recommend `pip install spyglass-neuro` from PyPI as the fix — that creates the site-packages-shadowing problem if the user already had an editable checkout",
+      "passed": true,
+      "evidence": "Explicitly the opposite: 'If at some point you ran `pip install spyglass-neuro` (the PyPI build), that takes precedence over an editable install in the same env. Uninstall it first, then redo the editable install'."
+    },
+    {
+      "text": "behavioral_check: Mentions kernel restart for Jupyter when reinstalling — Python caches imports across `pip install` so the running kernel won't pick up the new module otherwise",
+      "passed": true,
+      "evidence": "'restart the Jupyter kernel / Python process so the old import cache clears. Re-running the import in the same kernel will keep failing because Python caches spyglass in sys.modules.'"
+    }
+  ]
+}

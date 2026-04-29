@@ -1,0 +1,26 @@
+{
+  "eval_id": 128,
+  "eval_name": "key-hygiene-v0-v1-cross-version",
+  "stage": "hallucination-resistance",
+  "tier": "disambiguation",
+  "difficulty": "medium",
+  "prompt": "On v1's `SortGroup`, can I call `set_group_by_electrode_group(nwb_file_name)` like the v0 docs show?",
+  "assertions": {
+    "required_substrings": [
+      "set_group_by_shank",
+      "spikesorting_v1_pipeline.md",
+      "spikesorting/v1/recording.py"
+    ],
+    "expected_output_tables_exempt": [
+      "SortGroup"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "States that `set_group_by_electrode_group` does NOT exist on v1's SortGroup, in any phrasing — does not affirm that v1 supports the v0 helper",
+      "Names `set_group_by_shank` as the v1 alternative",
+      "Verifies with `code_graph.py find-method` (agent tool), a version-specific source read, or Python introspection on the imported v1 SortGroup — not memory",
+      "Cites distinct v0 and v1 source paths to anchor the version difference"
+    ]
+  },
+  "expected_output": "No — `set_group_by_electrode_group` exists only on v0's `SortGroup` (`spyglass/spikesorting/v0/spikesorting_recording.py:94`). v1's `SortGroup` exposes only `set_group_by_shank` (`spyglass/spikesorting/v1/recording.py:51`); there is no electrode-group-grouping helper on v1. Verify by any of: (a) **agent tool** — `code_graph.py find-method set_group_by_electrode_group` returns the v0 owner only; (b) **source read** — grep `spyglass/spikesorting/v1/recording.py` for the method set on v1's `SortGroup`; (c) **Python session** — `from spyglass.spikesorting.v1.recording import SortGroup; [m for m in dir(SortGroup) if 'set_group' in m]`. Use `set_group_by_shank` for clusterless / waveform-based v1 workflows; do NOT port the v0 electrode-group pattern. Routes to spikesorting_v1_pipeline.md and spikesorting_v0_legacy.md."
+}

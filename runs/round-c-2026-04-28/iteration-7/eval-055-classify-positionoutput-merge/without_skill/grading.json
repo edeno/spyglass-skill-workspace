@@ -1,0 +1,37 @@
+{
+  "eval_id": 55,
+  "eval_name": "classify-positionoutput-merge",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'merge table'",
+      "passed": true,
+      "evidence": "found — 'merge table'"
+    },
+    {
+      "text": "required_substring: 'PositionOutput.TrodesPosV1'",
+      "passed": false,
+      "evidence": "MISSING — 'PositionOutput.TrodesPosV1'"
+    },
+    {
+      "text": "required_substring: 'PositionOutput.DLCPosV1'",
+      "passed": false,
+      "evidence": "MISSING — 'PositionOutput.DLCPosV1'"
+    },
+    {
+      "text": "behavioral_check: Explains that rows enter PositionOutput via insert into a part table (PositionOutput.TrodesPosV1 or PositionOutput.DLCPosV1), not via populate()",
+      "passed": true,
+      "evidence": "Section 'How rows get in there': 'You don't populate() a merge table. You insert into it explicitly using the _Merge helper method insert()... atomically: mints a new merge_id UUID, inserts a row into the master with source = TrodesPosV1, inserts a row into the corresponding part table'. Concrete `PositionOutput.insert([key], part_name=\"TrodesPosV1\")` example."
+    },
+    {
+      "text": "behavioral_check: Names at least one valid downstream consumer pattern (e.g., merge_get_part(key).fetch1('KEY'))",
+      "passed": true,
+      "evidence": "Lists `merge_get_part`, `merge_get_parent`, `merge_restrict`, `merge_view`, `fetch_nwb` as the consumer toolkit."
+    },
+    {
+      "text": "behavioral_check: Does not recommend PositionOutput.populate() or populate(PositionOutput, ...) as the entry point — explicitly contrasts with how rows actually arrive (insert into a part table)",
+      "passed": true,
+      "evidence": "'You don't populate() a merge table.' Practical implication explicitly: 'If you were trying to populate PositionOutput, what you actually want is: 1. Run populate() on the upstream pipeline... 2. Once the upstream row exists, call PositionOutput.insert([upstream_key], part_name=...).'"
+    }
+  ]
+}

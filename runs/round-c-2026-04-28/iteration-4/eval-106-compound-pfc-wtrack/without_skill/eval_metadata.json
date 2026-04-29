@@ -1,0 +1,29 @@
+{
+  "eval_id": 106,
+  "eval_name": "compound-pfc-wtrack",
+  "prompt": "I need a list of animals that have prefrontal cortex recordings *and* ran on a w-track. I'm new to the DB.",
+  "stage": "pipeline-usage",
+  "tier": "compound",
+  "difficulty": "hard",
+  "required_substrings": [
+    "BrainRegion",
+    "Electrode",
+    "TaskEpoch",
+    "task_name",
+    "Subject",
+    "region_name",
+    "subject_id",
+    ".proj("
+  ],
+  "forbidden_substrings": [
+    "Session.fetch1('task_name')",
+    "Session.fetch1(\"task_name\")"
+  ],
+  "behavioral_checks": [
+    "Filters on `region_name` from `BrainRegion` (a secondary varchar column, NOT a PK) and walks through `Electrode` (which FKs to BrainRegion per common_ephys.py:79) to identify sessions with PFC electrodes",
+    "Routes the w-track restriction PRIMARILY through `Task.task_name` and/or `TaskEpoch.task_environment` (common_task.py), with `IntervalList.interval_list_name` mentioned only as a fallback / validation clue (the lab-dependent naming convention) — does NOT rely solely on interval-list naming",
+    "Projects each side to `subject_id` (via Session's `-> [nullable] Subject` FK) BEFORE intersecting, rather than attempting a single multi-table `*` join across PFC + w-track + subject (which would either trigger dependent-attribute refusal or produce spurious Cartesian products)",
+    "Flags both `region_name` substrings and `task_name` / `task_environment` values as lab-dependent conventions to confirm via `Task.fetch('task_name')` etc. before running the filter",
+    "Does NOT claim Session has a `task_name` column directly (it doesn't); the path goes through TaskEpoch -> Task"
+  ]
+}

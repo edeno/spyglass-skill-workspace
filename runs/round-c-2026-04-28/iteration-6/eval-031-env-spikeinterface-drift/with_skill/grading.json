@@ -1,0 +1,42 @@
+{
+  "eval_id": 31,
+  "eval_name": "env-spikeinterface-drift",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (spikeinterface, WaveformExtractor, pyproject.toml).",
+      "passed": true,
+      "evidence": "All three required substrings present throughout response.md."
+    },
+    {
+      "text": "Response does not contain forbidden substring `pip install -U spyglass`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent. Response actively warns against `pip install -U` of SpikeInterface as a fix."
+    },
+    {
+      "text": "Asks whether the user upgraded any package before naming a fix",
+      "passed": true,
+      "evidence": "First section 'did anything in your environment change?' explicitly asks about upgrades to spikeinterface or sibling libraries before any fix."
+    },
+    {
+      "text": "Identifies the version-coupling issue (WaveformExtractor removed after 0.99.x, SortingAnalyzer replacement)",
+      "passed": true,
+      "evidence": "'SpikeInterface removed the top-level `WaveformExtractor` class after the 0.99.x line and replaced the whole waveform-extraction surface with `SortingAnalyzer` / `create_sorting_analyzer(...)` in 0.100+'."
+    },
+    {
+      "text": "Points at pyproject.toml as the source of truth for the pin",
+      "passed": true,
+      "evidence": "Section 'The pin lives in pyproject.toml, not in the skill' instructs to grep pyproject.toml directly."
+    },
+    {
+      "text": "Recommends downgrading SpikeInterface, NOT patching Spyglass",
+      "passed": true,
+      "evidence": "Fix section: `pip install 'spikeinterface>=0.99.1,<0.100'`. What-not-to-do explicitly: 'Don't patch Spyglass to call SortingAnalyzer'."
+    },
+    {
+      "text": "If v0 vs v1 mentioned, does not recommend downgrading to v0",
+      "passed": true,
+      "evidence": "'Don't downgrade to the v0 spike-sorting pipeline as a workaround. It doesn't — v0's code paths are also tied to the old SI API ... the answer if you really need a newer SI is to migrate to v1'."
+    }
+  ]
+}

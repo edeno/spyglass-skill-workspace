@@ -1,0 +1,82 @@
+{
+  "eval_id": 106,
+  "eval_name": "compound-pfc-wtrack",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'BrainRegion'",
+      "passed": true,
+      "evidence": "found — 'BrainRegion'"
+    },
+    {
+      "text": "required_substring: 'Electrode'",
+      "passed": true,
+      "evidence": "found — 'Electrode'"
+    },
+    {
+      "text": "required_substring: 'TaskEpoch'",
+      "passed": true,
+      "evidence": "found — 'TaskEpoch'"
+    },
+    {
+      "text": "required_substring: 'task_name'",
+      "passed": true,
+      "evidence": "found — 'task_name'"
+    },
+    {
+      "text": "required_substring: 'Subject'",
+      "passed": true,
+      "evidence": "found — 'Subject'"
+    },
+    {
+      "text": "required_substring: 'region_name'",
+      "passed": true,
+      "evidence": "found — 'region_name'"
+    },
+    {
+      "text": "required_substring: 'subject_id'",
+      "passed": true,
+      "evidence": "found — 'subject_id'"
+    },
+    {
+      "text": "required_substring: '.proj('",
+      "passed": false,
+      "evidence": "MISSING — '.proj('"
+    },
+    {
+      "text": "forbidden_substring: \"Session.fetch1('task_name')\"",
+      "passed": true,
+      "evidence": "absent — \"Session.fetch1('task_name')\""
+    },
+    {
+      "text": "forbidden_substring: 'Session.fetch1(\"task_name\")'",
+      "passed": true,
+      "evidence": "absent — 'Session.fetch1(\"task_name\")'"
+    },
+    {
+      "text": "behavioral_check: Filters on `region_name` from `BrainRegion` (a secondary varchar column, NOT a PK) and walks through `Electrode` (which FKs to BrainRegion per common_ephys.py:79) to identify sessions with PFC electrodes",
+      "passed": true,
+      "evidence": "Restricts BrainRegion via `region_name LIKE '%refrontal%' OR region_name LIKE '%PFC%'` and walks ElectrodeGroup → BrainRegion (also notes Electrode equivalent)."
+    },
+    {
+      "text": "behavioral_check: Routes the w-track restriction PRIMARILY through `Task.task_name` and/or `TaskEpoch.task_environment` (common_task.py), with `IntervalList.interval_list_name` mentioned only as a fallback / validation clue (the lab-dependent naming convention) — does NOT rely solely on interval-list naming",
+      "passed": true,
+      "evidence": "Filters Task by task_name and joins TaskEpoch & wtrack_tasks; never relies on IntervalList naming."
+    },
+    {
+      "text": "behavioral_check: Projects each side to `subject_id` (via Session's `-> [nullable] Subject` FK) BEFORE intersecting, rather than attempting a single multi-table `*` join across PFC + w-track + subject (which would either trigger dependent-attribute refusal or produce spurious Cartesian products)",
+      "passed": true,
+      "evidence": "Computes `subjects_pfc = set(sessions_with_pfc.fetch('subject_id'))` and `subjects_wtrack = set(sessions_with_wtrack.fetch('subject_id'))` then intersects in Python — separate per-side projection."
+    },
+    {
+      "text": "behavioral_check: Flags both `region_name` substrings and `task_name` / `task_environment` values as lab-dependent conventions to confirm via `Task.fetch('task_name')` etc. before running the filter",
+      "passed": true,
+      "evidence": "Step 1 explicitly says both labels are free-text and recommends `BrainRegion.fetch('region_name', ...)` and `Task.fetch('task_name', ...)` before restricting."
+    },
+    {
+      "text": "behavioral_check: Does NOT claim Session has a `task_name` column directly (it doesn't); the path goes through TaskEpoch -> Task",
+      "passed": true,
+      "evidence": "The path is Session ← TaskEpoch → Task; never restricts Session by task_name."
+    }
+  ]
+}

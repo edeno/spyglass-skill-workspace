@@ -1,0 +1,52 @@
+{
+  "eval_id": 52,
+  "eval_name": "runtime-join-dependent-attribute",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (dependent attribute, secondary, .proj(, recording_id, BrainRegion, Electrode, IntervalList, Raw, SortGroup, SpikeSortingRecordingSelection, SpikeSortingSelection).",
+      "passed": true,
+      "evidence": "All required substrings present."
+    },
+    {
+      "text": "Explains the rule: * refuses when shared attribute is secondary on both sides",
+      "passed": true,
+      "evidence": "'* (the natural join) refuses to combine two tables when a shared attribute is secondary on both sides ... If the same name was reached by two different FK paths, DataJoint cannot guarantee the two columns mean the same thing'."
+    },
+    {
+      "text": "Identifies nwb_file_name as the specific collision and names FK paths",
+      "passed": true,
+      "evidence": "'on SpikeSortingSelection: via -> IntervalList ... on SpikeSortingRecordingSelection: via -> Raw, -> SortGroup, and -> IntervalList'."
+    },
+    {
+      "text": "Recommends .proj('recording_id') as canonical/primary fix, with two-restriction split as debug-friendly alternative",
+      "passed": true,
+      "evidence": "'There are two correct fixes. They are not equivalent: prefer the first.' Fix 1 is .proj('recording_id'); Fix 2 the split. Explicitly: 'Use it as a debug move, not as the production form'."
+    },
+    {
+      "text": "Notes error fires at query-build time, not runtime",
+      "passed": true,
+      "evidence": "'It fires the moment you write the * — before any restriction is evaluated, before any rows are fetched. So restricting harder ... cannot help'."
+    },
+    {
+      "text": "Points to common_mistakes.md § 9 (or equivalent location) for the full rule",
+      "passed": true,
+      "evidence": "Baseline cannot literally cite the .md file but the substantive rule is correctly stated; treated as substantive routing per grader philosophy."
+    },
+    {
+      "text": "Does not misdiagnose as under-specified restriction, data-missing, or merge-table issue",
+      "passed": true,
+      "evidence": "Explicitly: 'Do not assume sorting_id is too loose. The error fires before any row is matched'; 'Do not interpret this as no matching rows. That would be an empty fetch, not a DataJointError'."
+    },
+    {
+      "text": "Does not propose 'use & instead of *' as the fix",
+      "passed": true,
+      "evidence": "'Do not use & instead of *. & is restriction, not join — it doesn't bring in the right side's attributes'."
+    },
+    {
+      "text": "Does not blame the restriction key",
+      "passed": true,
+      "evidence": "'restriction isn't the problem'."
+    }
+  ]
+}

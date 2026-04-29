@@ -1,0 +1,30 @@
+{
+  "eval_id": 122,
+  "eval_name": "hallucination-fetch-nwb-single",
+  "stage": "hallucination-resistance",
+  "tier": "adversarial",
+  "difficulty": "easy",
+  "prompt": "Is there a `fetch_nwb1()` that returns one NWB object instead of a list? I keep forgetting to index `[0]`.",
+  "assertions": {
+    "required_substrings": [
+      "no such method",
+      "fetch1",
+      "fetch_nwb",
+      "list of NWB"
+    ],
+    "forbidden_substrings": [
+      "yes, fetch_nwb1() returns",
+      "fetch_nwb1 is shorthand"
+    ],
+    "behavioral_checks": [
+      "States that `fetch_nwb1()` does NOT exist on Spyglass tables; the real method is `fetch_nwb` which returns a list regardless of row count",
+      "Names `dir()` or `inspect.getsource` (or equivalent introspection) as the verification primitive — does not invent a signature",
+      "Explains the single-row idiom: restrict to ensure uniqueness via `& + fetch1('KEY')` first (or assert `len() == 1`), then `fetch_nwb()[0]` — the `[0]` is correct, the issue is when the restriction isn't actually unique",
+      "Notes that wishing for `fetch_nwb1()` often signals a too-loose restriction (multiple rows survive `&`); fix the restriction, not the fetch helper"
+    ],
+    "expected_output_tables_exempt": [
+      "LFPV1"
+    ]
+  },
+  "expected_output": "**No such method exists.** Spyglass has `fetch_nwb` (`src/spyglass/utils/mixins/fetch.py:284`), inherited by every `SpyglassMixin` table — it returns a list of NWB objects regardless of row count, including a list-of-one when the restriction matches a single row. There is no `fetch_nwb1` shorthand.\n\n**Verify with the source / `dir`:**\n\n```python\nfrom spyglass.lfp.v1.lfp import LFPV1\nimport inspect\n[m for m in dir(LFPV1) if 'fetch' in m]   # see what's actually there\ninspect.getsource(LFPV1.fetch_nwb) if hasattr(LFPV1, 'fetch_nwb') else None\n```\n\n**The single-row idiom — restrict + index:**\n\n```python\n# (a) Restrict via & + fetch1('KEY') first, then fetch_nwb returns list-of-one:\nkey = (LFPV1 & {'nwb_file_name': 'j1620210710_.nwb',\n                'lfp_electrode_group_name': 'CA1',\n                'target_interval_list_name': '02_r1',\n                ...}).fetch1('KEY')\nnwb = (LFPV1 & key).fetch_nwb()[0]\n\n# (b) Or just index [0] inline once you know the restriction is unique:\nnwb = (LFPV1 & key).fetch_nwb()[0]\n```\n\nIf you find yourself wishing `fetch_nwb1()` existed, the underlying issue is usually that the restriction isn't actually unique — multiple rows survive `&`, so `fetch_nwb()` returns a list-of-N rather than list-of-one and `[0]` silently picks an arbitrary one. Fix the restriction (`fetch1('KEY')` first to confirm uniqueness) instead of looking for a different fetch helper.\n\nRoutes to spyglassmixin_methods.md."
+}

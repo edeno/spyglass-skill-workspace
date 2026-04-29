@@ -1,0 +1,42 @@
+{
+  "eval_id": 118,
+  "eval_name": "counterfactual-decoding-bin-size",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'DecodingParameters'",
+      "passed": true,
+      "evidence": "found — 'DecodingParameters'"
+    },
+    {
+      "text": "required_substring: 'ClusterlessDecodingV1'",
+      "passed": true,
+      "evidence": "found — 'ClusterlessDecodingV1'"
+    },
+    {
+      "text": "required_substring: 'ClusterlessDecodingSelection'",
+      "passed": true,
+      "evidence": "found — 'ClusterlessDecodingSelection'"
+    },
+    {
+      "text": "behavioral_check: Correctly identifies that ONLY the decoding output (`ClusterlessDecodingV1` / `SortedSpikesDecodingV1`) changes — spike sorting and position upstream are unaffected because they don't FK to `DecodingParameters`",
+      "passed": true,
+      "evidence": "Cascade diagram limits downstream to *DecodingSelection → *DecodingV1 → DecodingOutput.* part-table → DecodingOutput merge. Concludes 'Nothing else in Spyglass depends on DecodingParameters.'"
+    },
+    {
+      "text": "behavioral_check: Recommends inserting a NEW `DecodingParameters` row with a different `decoding_param_name` (e.g. `'bin5cm'`) and a fresh `ClusterlessDecodingSelection` + populate, rather than `update1()` on the existing row",
+      "passed": true,
+      "evidence": "Interpretation 2 (recommended): 'Insert a new row with a new name (e.g. contfrag_clusterless_bin5cm) ... Build a new ClusterlessDecodingSelection row with decoding_param_name=... and call populate().' Strongly preferred over Interpretation 1."
+    },
+    {
+      "text": "behavioral_check: Names the qualitative direction (coarser bins = fewer state bins = faster, lower spatial resolution) without misattributing the change to upstream pipelines",
+      "passed": false,
+      "evidence": "Does not explicitly characterize the direction (coarser bins → fewer state bins → faster, lower spatial resolution). Caveat section even questions whether position_bin_size is honored; the qualitative consequences for the posterior aren't named."
+    },
+    {
+      "text": "behavioral_check: Notes that `UnitWaveformFeaturesGroup` and `PositionGroup` (referenced by the selection) are untouched — they're FK'd by the SELECTION, not by `DecodingParameters` directly",
+      "passed": false,
+      "evidence": "Does not name UnitWaveformFeaturesGroup or PositionGroup explicitly. Implies upstream tables are untouched in general but does not call out the FK structure (selection-level vs DecodingParameters-level FKs)."
+    }
+  ]
+}

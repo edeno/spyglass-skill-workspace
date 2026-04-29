@@ -1,0 +1,24 @@
+{
+  "eval_id": 110,
+  "eval_name": "custom-analysis-table-shape",
+  "prompt": "I want to make a custom table that computes cross-correlation of all neuron pairs in a `SortedSpikesGroup`, with one row per group. What's the right shape? Should I store the correlation matrix as a blob column?",
+  "stage": "pipeline-authoring",
+  "tier": "atomic-read",
+  "difficulty": "medium",
+  "required_substrings": [
+    "AnalysisNwbfile",
+    "SpyglassMixin",
+    "_object_id",
+    "dj.Computed"
+  ],
+  "forbidden_substrings": [
+    "correlations: longblob",
+    "correlations : longblob"
+  ],
+  "behavioral_checks": [
+    "Recommends writing the correlation matrix to an `AnalysisNwbfile` and storing only an `*_object_id` (varchar(40)) plus `analysis_file_name` reference in the DJ row — does NOT store the matrix as a `longblob` / `blob` column",
+    "Names the SpyglassMixin-first MRO requirement (`class X(SpyglassMixin, dj.Computed)`) as a non-negotiable — the validator pins this with a regression fixture",
+    "Cites the non-negotiable that tables reference exactly ONE AnalysisNwbfile table (Spyglass validates on declaration); the row carries the file name + object IDs, not the heavy array itself",
+    "Uses the `AnalysisNwbfile().build(nwb_file_name)` context manager for the create -> add -> register lifecycle, OR an equivalent atomic shape — does not interleave separate `create()` / `add_nwb_object()` / `add()` calls"
+  ]
+}

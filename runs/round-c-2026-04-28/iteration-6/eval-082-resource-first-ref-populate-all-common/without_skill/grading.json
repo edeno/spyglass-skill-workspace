@@ -1,0 +1,47 @@
+{
+  "eval_id": 82,
+  "eval_name": "resource-first-ref-populate-all-common",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (populate_all_common_debugging.md, InsertError).",
+      "passed": false,
+      "evidence": "Required substring `populate_all_common_debugging.md` is ABSENT from response.md (grep -c returns 0). InsertError is present. Baseline cannot literally cite the .md filename without the skill loaded."
+    },
+    {
+      "text": "Response does not contain forbidden substrings (runtime_debugging.md is the first, check_populate_status.py, diagnose_populate.py).",
+      "passed": true,
+      "evidence": "All forbidden substrings absent. Response actively warns 'If you find a recipe online or in old notes that references something like check_populate_status.py or diagnose_populate.py, those aren't part of the current Spyglass distribution — don't go hunting for them'."
+    },
+    {
+      "text": "Tells user to scroll back through shell for the logger.error summary line",
+      "passed": true,
+      "evidence": "Section 1 'Scroll back through your terminal for a logger line, not just tracebacks' shows the exact string format."
+    },
+    {
+      "text": "Mentions function returns list of failed InsertError keys, suggests re-running with return captured",
+      "passed": true,
+      "evidence": "Section 2: 'just re-run and capture the return value' with `failed = populate_all_common('j1620210710_.nwb')`."
+    },
+    {
+      "text": "Names populate_all_common_debugging.md as the reference to open",
+      "passed": false,
+      "evidence": "Baseline does not name populate_all_common_debugging.md (no such filename appears). Response only routes to the InsertError query and the bundled diagnostic scripts; no reference-file routing. Substantive routing is to a database table, not a skill file — distinct from the expectation."
+    },
+    {
+      "text": "Explains in one line why populate_all_common_debugging.md beats runtime_debugging.md here",
+      "passed": false,
+      "evidence": "Baseline does not compare populate_all_common_debugging.md vs runtime_debugging.md (does not name either). No comparison present."
+    },
+    {
+      "text": "Identifies common_usage.InsertError as the table where stack-trace details live",
+      "passed": true,
+      "evidence": "Section 3 'The actual stack traces live in common_usage.InsertError' explicitly fetches error_type, error_message, error_raw."
+    },
+    {
+      "text": "Does not invent a bundled script for populate diagnostics; correctly notes only scrub_dj_config.py and verify_spyglass_env.py ship",
+      "passed": true,
+      "evidence": "'A note on what's bundled' section names exactly those two bundled scripts and warns against hunting for invented diagnostic scripts."
+    }
+  ]
+}

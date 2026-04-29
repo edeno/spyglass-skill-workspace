@@ -1,0 +1,16 @@
+{
+  "eval_id": 59,
+  "eval_name": "param-encoding-vs-decoding-interval",
+  "prompt": "Clusterless decoding selection has both `encoding_interval` and `decoding_interval`. Can these be the same interval? When would I set them differently?",
+  "stage": "parameter-understanding",
+  "tier": "parameter-semantics",
+  "difficulty": "medium",
+  "required_substrings": [
+    "IntervalList"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Explains that encoding_interval trains the place-field / receptive-field model; decoding_interval is where the trained model is applied",
+    "Gives a same-interval use (within-run reconstruction) and a different-interval use (train on run, decode replay during sleep / reward)"
+  ]
+}

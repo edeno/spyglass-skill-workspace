@@ -1,0 +1,36 @@
+{
+  "eval_id": 130,
+  "eval_name": "key-hygiene-discovery-before-fetch",
+  "expectations": [
+    {
+      "text": "Response contains substring `lfp_electrode_group_name`.",
+      "passed": false,
+      "evidence": "Substring 'lfp_electrode_group_name' NOT found in response.md"
+    },
+    {
+      "text": "Response contains substring `lfp_pipeline.md`.",
+      "passed": false,
+      "evidence": "Substring 'lfp_pipeline.md' NOT found in response.md"
+    },
+    {
+      "text": "Treats the prompt as under-specified — either asks the user for the missing keys OR shows discovery code that enumerates candidates first",
+      "passed": false,
+      "evidence": "Hands back a one-liner `(LFPV1 & {'nwb_file_name': nwb_file_name}).fetch1_dataframe()` without acknowledging missing PK fields or showing discovery."
+    },
+    {
+      "text": "Names the LFP-specific keys the user needs to choose (`lfp_electrode_group_name`, `target_interval_list_name`, `filter_name`, `filter_sampling_rate`)",
+      "passed": false,
+      "evidence": "None of lfp_electrode_group_name, target_interval_list_name, filter_name, or filter_sampling_rate appears in the response."
+    },
+    {
+      "text": "Resolves the merge_id through a merge-aware helper (`LFPOutput.merge_get_part(...).fetch1('KEY')` OR `LFPOutput.merge_restrict(...)`), NOT through a bare `LFPOutput & {nwb_file_name: ...}` restriction",
+      "passed": false,
+      "evidence": "Uses `(LFPOutput & {'nwb_file_name': nwb_file_name}).fetch1('KEY')` — the exact silent no-op anti-pattern (LFPOutput is a merge master with only merge_id in its heading)."
+    },
+    {
+      "text": "Does NOT hand back a single-line bare-restriction `fetch1_dataframe()` without first verifying cardinality or scoping",
+      "passed": false,
+      "evidence": "First example is exactly `(LFPV1 & {'nwb_file_name': nwb_file_name}).fetch1_dataframe()` with no cardinality check or scoping."
+    }
+  ]
+}

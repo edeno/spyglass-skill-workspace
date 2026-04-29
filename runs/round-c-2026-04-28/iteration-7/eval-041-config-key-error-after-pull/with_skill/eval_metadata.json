@@ -1,0 +1,20 @@
+{
+  "eval_id": 41,
+  "eval_name": "config-key-error-after-pull",
+  "prompt": "just did `git pull` on spyglass/master and now `SpikeSortingRecording.populate` raises `KeyError: 'pipeline'`. Worked yesterday. Is this schema drift between my local code and the db, and if so which side is ahead?",
+  "stage": "setup",
+  "tier": "config-troubleshooting",
+  "difficulty": "medium",
+  "required_substrings": [
+    "CHANGELOG.md",
+    "SpikeSortingRecording"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Identifies the drift direction: code ahead of DB",
+    "Shows both sides of the diagnostic: Python/source table definition (for example `Table.describe()` / `code_graph.py describe`) versus live DB table definition (for example `SHOW CREATE TABLE` / `db_graph.py describe`)",
+    "Directs the user to CHANGELOG.md or equivalent release migration notes, which document the per-release Table().alter() calls an admin needs to run so the database catches up to the package",
+    "Mentions ALTER privilege and warns against drop-and-recreate on non-empty tables",
+    "Does not recommend `git checkout` to an older commit, downgrading the spyglass package, or otherwise rolling the code back as the fix — the right path is to apply the per-release `Table.alter()` migrations from CHANGELOG.md so the database catches up to the package"
+  ]
+}

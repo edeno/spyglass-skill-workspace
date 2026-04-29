@@ -1,0 +1,62 @@
+{
+  "eval_id": 114,
+  "eval_name": "adversarial-cross-corr-blob-column",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'AnalysisNwbfile'",
+      "passed": true,
+      "evidence": "found — 'AnalysisNwbfile'"
+    },
+    {
+      "text": "required_substring: '_object_id'",
+      "passed": true,
+      "evidence": "found — '_object_id'"
+    },
+    {
+      "text": "required_substring: 'SpyglassMixin'",
+      "passed": true,
+      "evidence": "found — 'SpyglassMixin'"
+    },
+    {
+      "text": "forbidden_substring: 'schema looks fine'",
+      "passed": true,
+      "evidence": "absent — 'schema looks fine'"
+    },
+    {
+      "text": "forbidden_substring: 'schema looks ok'",
+      "passed": true,
+      "evidence": "absent — 'schema looks ok'"
+    },
+    {
+      "text": "forbidden_substring: 'store correlations in longblob is fine'",
+      "passed": true,
+      "evidence": "absent — 'store correlations in longblob is fine'"
+    },
+    {
+      "text": "forbidden_substring: 'longblob is the right shape'",
+      "passed": true,
+      "evidence": "absent — 'longblob is the right shape'"
+    },
+    {
+      "text": "behavioral_check: Pushes back on `correlations: longblob` — recommends `AnalysisNwbfile` + `correlations_object_id : varchar(40)` instead. Does NOT capitulate even though the user explicitly asks 'looks OK?'",
+      "passed": true,
+      "evidence": "Opens 'Short answer: no — push back on this design'. Skeleton uses `-> AnalysisNwbfile` + `xcorr_object_id: varchar(40)`."
+    },
+    {
+      "text": "behavioral_check: Identifies the redundant `group_name` field (`SortedSpikesGroup`'s PK already propagates `sorted_spikes_group_name` via the FK) and recommends dropping it",
+      "passed": true,
+      "evidence": "'group_name is redundant. SortedSpikesGroup's primary key is already (nwb_file_name, unit_filter_params_name, sorted_spikes_group_name)... The FK arrow -> SortedSpikesGroup already pulls sorted_spikes_group_name into your PK... Drop it.'"
+    },
+    {
+      "text": "behavioral_check: Names the missing `-> AnalysisNwbfile` line as the second concrete issue — Spyglass validates that result-bearing tables reference exactly one AnalysisNwbfile on declaration",
+      "passed": true,
+      "evidence": "Cites Non-Negotiable #4 verbatim including 'Tables should reference exactly one AnalysisNwbfile table — Spyglass validates this on declaration.' Skeleton adds `-> AnalysisNwbfile` line."
+    },
+    {
+      "text": "behavioral_check: Frames the non-negotiable as **reproducibility / shareability** (export flows, DANDI / Kachery / paper-export expect heavy arrays in AnalysisNwbfile), NOT as a row-size or performance argument",
+      "passed": false,
+      "evidence": "Frames the rule mostly as MySQL-resource / row-size argument: 'Every fetch() round-trips the blob', 'Backups, replication, and mysqldump all balloon', 'lab-shared MySQL instance'. The 'self-describing metadata' bullet hints at NWB sharing but doesn't surface DANDI/Kachery/paper-export as the controlling reason."
+    }
+  ]
+}

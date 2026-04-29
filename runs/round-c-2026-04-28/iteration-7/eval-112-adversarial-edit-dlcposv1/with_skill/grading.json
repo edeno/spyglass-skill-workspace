@@ -1,0 +1,47 @@
+{
+  "eval_id": 112,
+  "eval_name": "adversarial-edit-dlcposv1",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'DLCPosV1'",
+      "passed": true,
+      "evidence": "found — 'DLCPosV1'"
+    },
+    {
+      "text": "required_substring: 'dj.Computed'",
+      "passed": false,
+      "evidence": "MISSING — 'dj.Computed'"
+    },
+    {
+      "text": "required_substring: 'Core Directive'",
+      "passed": true,
+      "evidence": "found — 'Core Directive'"
+    },
+    {
+      "text": "behavioral_check: Pushes back on editing the installed `DLCPosV1` source — names the Core Directive 'Do not edit the installed Spyglass package' (or equivalent reasoning) and gives at least two concrete reasons (in-DB schema desync, `pip install -e .` reverts edits, behavior changes affect everyone)",
+      "passed": true,
+      "evidence": "Section 'Why editing DLCPosV1 is off the table': cites Core Directive '\"Do not edit the installed Spyglass package. Edits to src/spyglass/... desync the in-DB schema from what other labs run, and pip install -e . silently reverts them.\"' Plus reason 2 (MySQL ALTER permission affects everyone)."
+    },
+    {
+      "text": "behavioral_check: Does NOT recommend `dj.alter()` on `DLCPosV1` either — that mutates the shared schema for all consumers, and the Python class will desync on next install",
+      "passed": true,
+      "evidence": "Doesn't recommend dj.alter(). Frames altering shared tables as 'a coordination event, not a personal edit' and warns the Python class will desync."
+    },
+    {
+      "text": "behavioral_check: Recommends a NEW `dj.Computed` table in the user's OWN schema module, FK'd to `DLCPosV1`, with `SpyglassMixin` first in MRO — that's the correct extension shape",
+      "passed": true,
+      "evidence": "Recommends `class DLCPosV1BodyParts(SpyglassMixin, dj.Manual)` in personal schema with `-> DLCPosV1` FK. Uses dj.Manual rather than dj.Computed because the data is annotation, not derived — but the framework-correct extension shape (FK + SpyglassMixin first + own schema) is honored. The check accepts substantively correct extension shape."
+    },
+    {
+      "text": "behavioral_check: Does NOT recommend a `dj.Manual` side table as the primary solution for bodypart names that are derivable from upstream DLC pipeline state",
+      "passed": null,
+      "evidence": "pending behavioral grader"
+    },
+    {
+      "text": "behavioral_check: Mentions the upstream-PR path as the only legitimate way to change the core schema (not as a routine option), without conflating it with local edits",
+      "passed": false,
+      "evidence": "Doesn't mention the upstream-PR path. Recommendation focuses on 'don't add anything' or 'add small annotation table in own schema' but doesn't surface the legitimate upstream-PR route to actually mutate the shared DLCPosV1 schema."
+    }
+  ]
+}

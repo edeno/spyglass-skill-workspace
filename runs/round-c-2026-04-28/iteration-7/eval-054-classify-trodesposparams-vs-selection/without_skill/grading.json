@@ -1,0 +1,42 @@
+{
+  "eval_id": 54,
+  "eval_name": "classify-trodesposparams-vs-selection",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'insert1'",
+      "passed": true,
+      "evidence": "found — 'insert1'"
+    },
+    {
+      "text": "required_substring: 'trodes_pos_params_name'",
+      "passed": true,
+      "evidence": "found — 'trodes_pos_params_name'"
+    },
+    {
+      "text": "required_substring: 'TrodesPosParams'",
+      "passed": true,
+      "evidence": "found — 'TrodesPosParams'"
+    },
+    {
+      "text": "required_substring: 'TrodesPosSelection'",
+      "passed": true,
+      "evidence": "found — 'TrodesPosSelection'"
+    },
+    {
+      "text": "behavioral_check: Identifies TrodesPosParams as the parameter table (named, reusable param dict; insert once per param set)",
+      "passed": true,
+      "evidence": "'TrodesPosParams is a parameter library. One row = one named recipe... You insert into it once per parameter set and reuse those rows across many epochs.'"
+    },
+    {
+      "text": "behavioral_check: Identifies TrodesPosSelection as the selection table (picks session + interval + params name for one populate run)",
+      "passed": true,
+      "evidence": "'TrodesPosSelection is the do this table. One row = one job: run Trodes position processing on this raw position interval using this parameter set. Inserting here is what schedules the work.'"
+    },
+    {
+      "text": "behavioral_check: Does not claim TrodesPosParams and TrodesPosSelection are the same table or interchangeable",
+      "passed": true,
+      "evidence": "Clearly distinguished as Params vs Selection roles. 'If you ever find yourself wanting to put the nwb file name into TrodesPosParams, or wanting to put smoothing constants into TrodesPosSelection, you've crossed the wires — back up.'"
+    }
+  ]
+}

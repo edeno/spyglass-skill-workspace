@@ -1,0 +1,28 @@
+{
+  "eval_id": 50,
+  "eval_name": "merge-method-misattribution",
+  "stage": "common-mistakes",
+  "tier": "merge-table-gotchas",
+  "difficulty": "easy",
+  "prompt": "I'm trying to grab the PositionOutput merge_ids for a bunch of sessions at once. I saw the spikesorting docs use `SpikeSortingOutput().get_restricted_merge_ids(key, sources=['v1'])` — can I do the same thing on PositionOutput? Something like `PositionOutput().get_restricted_merge_ids({'nwb_file_name': 'j1620210710_.nwb'})`?",
+  "assertions": {
+    "required_substrings": [
+      "SpikeSortingOutput",
+      "AttributeError",
+      "merge_restrict",
+      "DecodingOutput",
+      "LFPOutput",
+      "LinearizedPositionOutput",
+      "PositionOutput"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "States that get_restricted_merge_ids is SpikeSortingOutput-only (not on the _Merge base)",
+      "Names the correct replacement methods for PositionOutput: merge_restrict and/or merge_get_part",
+      "Explains that calling it on the wrong master raises AttributeError (not silent wrong data)",
+      "Does not recommend subclassing or monkeypatching PositionOutput",
+      "Does NOT recommend calling `get_restricted_merge_ids` on `PositionOutput` (or any non-`SpikeSortingOutput` master). Quoting the user's failed call to explain why it raises is fine; recommending it as the path forward is not."
+    ]
+  },
+  "expected_output": "Routes to merge_methods.md 'Per-master method availability'. No — `get_restricted_merge_ids` is defined only on `SpikeSortingOutput` (`src/spyglass/spikesorting/spikesorting_merge.py:111`), not on `_Merge` itself. Calling it on `PositionOutput`, `LFPOutput`, `DecodingOutput`, or `LinearizedPositionOutput` raises `AttributeError`. The spikesorting helper wraps a sorting-specific 'resolve session + sort-group + artifact filter → merge_ids' flow that doesn't generalize to the other masters.\n\nFor `PositionOutput` use the base `_Merge` methods that every master has:\n\n```python\n# Resolve merge_ids for a session (all sources):\nmerge_ids = (\n    PositionOutput.merge_restrict({'nwb_file_name': 'j1620210710_.nwb'})\n    .fetch('merge_id')\n)\n\n# Or resolve the full KEY dict for each matching row (one source at a time):\nkey = PositionOutput.merge_get_part({'nwb_file_name': ..., 'interval_list_name': ..., 'trodes_pos_params_name': ...}).fetch1('KEY')\n```\n\n`merge_restrict` is the general-purpose filter across part-table attributes; `merge_get_part` resolves to the specific part table when the restriction is narrow enough to pick one source. Neither requires a `sources=` kwarg."
+}

@@ -1,0 +1,67 @@
+{
+  "eval_id": 107,
+  "eval_name": "compound-sorted-spikes-across-sort-groups",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'SortedSpikesGroup'",
+      "passed": false,
+      "evidence": "MISSING — 'SortedSpikesGroup'"
+    },
+    {
+      "text": "required_substring: 'SpikeSortingOutput'",
+      "passed": true,
+      "evidence": "found — 'SpikeSortingOutput'"
+    },
+    {
+      "text": "required_substring: 'UnitSelectionParams'",
+      "passed": false,
+      "evidence": "MISSING — 'UnitSelectionParams'"
+    },
+    {
+      "text": "required_substring: 'create_group'",
+      "passed": false,
+      "evidence": "MISSING — 'create_group'"
+    },
+    {
+      "text": "required_substring: 'spikesorting_merge_id'",
+      "passed": false,
+      "evidence": "MISSING — 'spikesorting_merge_id'"
+    },
+    {
+      "text": "forbidden_substring: 'store sort_group_ids as a list in a blob column'",
+      "passed": true,
+      "evidence": "absent — 'store sort_group_ids as a list in a blob column'"
+    },
+    {
+      "text": "forbidden_substring: 'sort_group_ids = ['",
+      "passed": true,
+      "evidence": "absent — 'sort_group_ids = ['"
+    },
+    {
+      "text": "behavioral_check: Routes to `SortedSpikesGroup` (group.py:63-74) as the existing aggregation abstraction; does NOT propose building a new aggregation table from scratch or stuffing a list of sort_group_ids into a single blob column",
+      "passed": false,
+      "evidence": "Builds a new aggregation table from scratch (CompoundTetrodeSpikes) that walks CuratedSpikeSorting via DataJoint restrictions inside make(); doesn't reference SortedSpikesGroup. Misses the prebuilt abstraction entirely."
+    },
+    {
+      "text": "behavioral_check: Recommends inserting one `SortedSpikesGroup` row via `create_group(...)`, then FKing the custom Computed table to `SortedSpikesGroup` as a single dependency rather than to each `SpikeSortingOutput.merge_id` individually",
+      "passed": false,
+      "evidence": "Doesn't recommend SortedSpikesGroup or create_group. Custom table FKs Nwbfile + SortInterval + custom params; no group abstraction."
+    },
+    {
+      "text": "behavioral_check: Names `UnitSelectionParams` (the parameter table that controls which unit labels are included) and at least one default value (`'all_units'` or `'exclude_noise'`)",
+      "passed": false,
+      "evidence": "Doesn't mention UnitSelectionParams. Mentions ad-hoc 'restrict .Unit by label' as a future-work hint."
+    },
+    {
+      "text": "behavioral_check: Notes that `SortedSpikesGroup.Units` part FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73), so the keys passed into `create_group(...)` must use the projected attr name `spikesorting_merge_id`, NOT bare `merge_id`. Use `SpikeSortingOutput().get_restricted_merge_ids(...)` to fetch the merge_ids and build `[{'spikesorting_merge_id': mid} for mid in merge_ids]`.",
+      "passed": false,
+      "evidence": "Doesn't discuss SortedSpikesGroup at all, so the spikesorting_merge_id projection nuance is absent."
+    },
+    {
+      "text": "behavioral_check: Explains why this is reusable: once the group exists, multiple downstream tables (decoding / MUA / custom) can all FK to the same group key without re-listing the constituent merge_ids",
+      "passed": false,
+      "evidence": "Generalizes the 'restriction algebra' approach but doesn't surface the group-key reusability across decoding / MUA / custom tables. Each downstream table would need to re-run its own restriction logic in this design, which is the opposite of the reusability the check wants."
+    }
+  ]
+}

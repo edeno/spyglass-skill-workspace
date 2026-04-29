@@ -1,0 +1,23 @@
+{
+  "eval_id": 19,
+  "eval_name": "count-tetrodes-per-session",
+  "stage": "pipeline-usage",
+  "tier": "joins",
+  "difficulty": "easy",
+  "prompt": "For each session from subject aj80, how many tetrodes were recorded?",
+  "assertions": {
+    "required_substrings": [
+      "electrode_group_name",
+      "subject_id",
+      "Session",
+      "Electrode"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Restricts to subject aj80",
+      "Counts distinct electrode_group_name values per session — does not count raw Electrode rows as tetrodes (each tetrode has 4 electrodes)",
+      "Names .aggr() OR an equivalent (Session.proj * Electrode.proj | unique-on-electrode-group) approach; does not require .aggr() as the only valid answer."
+    ]
+  },
+  "expected_output": "Routes to datajoint_api.md (aggregation patterns). The canonical answer uses `.aggr()`: `(Session & {'subject_id': 'aj80'}).aggr(Electrode, n_tetrodes='count(distinct electrode_group_name)')` — one row per session with the count. An equivalent shape without `.aggr()` works too: project Session and Electrode to disambiguate, join, then deduplicate on (session, electrode_group_name) before counting in pandas — for instance, fetching `(Session & {'subject_id': 'aj80'}) * Electrode.proj('electrode_group_name')` to a DataFrame and grouping. Either path is correct as long as the final count is per-session-per-distinct-electrode-group-name. Does not count raw Electrode rows as tetrodes (each tetrode has 4 electrodes)."
+}

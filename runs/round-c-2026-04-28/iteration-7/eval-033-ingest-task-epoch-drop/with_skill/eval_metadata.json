@@ -1,0 +1,24 @@
+{
+  "eval_id": 33,
+  "eval_name": "ingest-task-epoch-drop",
+  "prompt": "My NWB has 8 behavioral epochs — I confirmed via `NWBHDF5IO` that `nwb.epochs` has 8 rows. But after `insert_sessions('j1620210710.nwb')` only 2 rows landed in `TaskEpoch`. insert_sessions didn't raise anything. Are the other 6 getting silently dropped?",
+  "stage": "ingestion",
+  "tier": "post-ingest-validation",
+  "difficulty": "medium",
+  "required_substrings": [
+    "epochs.tags",
+    "task_epochs",
+    "IntervalList",
+    "TaskEpoch"
+  ],
+  "forbidden_substrings": [
+    "silently fine",
+    "insert_sessions silently succeeded"
+  ],
+  "behavioral_checks": [
+    "Confirms epochs are silently dropped (not errored) when task_epochs/tags don't match IntervalList rows",
+    "Shows the concrete pynwb introspection for both epochs.tags and task_table",
+    "Does not over-emphasize zero-padded tag format — the matcher tries exact, 2-digit, and 3-digit numeric matches",
+    "Recommends NWB-side rewrite plus re-ingest with reinsert=True (not skip_duplicates=True)"
+  ]
+}

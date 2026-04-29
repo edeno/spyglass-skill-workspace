@@ -1,0 +1,56 @@
+{
+  "eval_id": 67,
+  "eval_name": "counterfactual-ripple-electrode-set",
+  "expectations": [
+    {
+      "text": "Response contains substring `RippleTimesV1`.",
+      "passed": true,
+      "evidence": "Substring 'RippleTimesV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPBandV1`.",
+      "passed": true,
+      "evidence": "Substring 'LFPBandV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `RippleParameters`.",
+      "passed": true,
+      "evidence": "Substring 'RippleParameters' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPBandSelection`.",
+      "passed": true,
+      "evidence": "Substring 'LFPBandSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPElectrodeGroup`.",
+      "passed": true,
+      "evidence": "Substring 'LFPElectrodeGroup' found in response.md"
+    },
+    {
+      "text": "Response contains substring `RippleLFPSelection`.",
+      "passed": true,
+      "evidence": "Substring 'RippleLFPSelection' found in response.md"
+    },
+    {
+      "text": "Identifies LFPBandV1 (or upstream LFP) as needing a new selection only if the new electrodes weren't already in the group",
+      "passed": true,
+      "evidence": "Case A 'unaffected: LFPBandV1' if already band-filtered; Case B 'LFPBandV1 — re-populates for the new selection' if not."
+    },
+    {
+      "text": "Identifies RippleTimesV1 as the table that re-populates",
+      "passed": true,
+      "evidence": "'RippleTimesV1 — re-populates. This is the table that actually recomputes the ripple times'."
+    },
+    {
+      "text": "States that RippleParameters is UNAFFECTED because it is a parameter Lookup table, not electrode-dependent",
+      "passed": true,
+      "evidence": "'RippleParameters — this is a dj.Lookup table holding parameter names ... It has no electrode dependency'."
+    },
+    {
+      "text": "Notes unrelated branches (decoding, position) are unaffected unless they consume the same ripple times",
+      "passed": true,
+      "evidence": "'Position pipelines ... don't depend on the electrode selection ... Decoding pipelines ... unaffected unless your downstream analysis explicitly restricts decoded posteriors to ripple times'."
+    }
+  ]
+}

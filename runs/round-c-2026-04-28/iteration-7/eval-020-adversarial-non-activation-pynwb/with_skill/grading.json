@@ -1,0 +1,27 @@
+{
+  "eval_id": 20,
+  "eval_name": "adversarial-non-activation-pynwb",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'pynwb'",
+      "passed": true,
+      "evidence": "found — 'pynwb'"
+    },
+    {
+      "text": "required_substring: 'NWBHDF5IO'",
+      "passed": true,
+      "evidence": "found — 'NWBHDF5IO'"
+    },
+    {
+      "text": "behavioral_check: Does NOT recommend any Spyglass machinery as the solution — no `insert_sessions(...)` call, no `SpyglassMixin` inheritance, no `dj.Computed` table, no `Session.insert(...)`, no `fetch_nwb()`. Mentioning these terms in passing to *clarify why they don't apply* is fine; recommending them as the path forward is not.",
+      "passed": true,
+      "evidence": "Opens with 'This is a plain pynwb task — no Spyglass involved'. The brief Spyglass mention near the end clarifies why it doesn't apply ('you just don't get Spyglass's helpers') and offers it as a different question — not as the recommended path."
+    },
+    {
+      "text": "behavioral_check: Answers the pynwb question directly with plain pynwb (e.g., `with NWBHDF5IO(path, 'r') as io: nwbfile = io.read()` then accessing `nwbfile.acquisition[name].timestamps`) OR defers to the nwb skill — does not introduce Spyglass concepts as the path forward",
+      "passed": true,
+      "evidence": "Minimal example uses `with NWBHDF5IO(path, mode=\"r\") as io: nwbfile = io.read()` then accesses `ts.timestamps[:]`. Discusses the timestamps vs starting_time+rate distinction. Pure pynwb."
+    }
+  ]
+}

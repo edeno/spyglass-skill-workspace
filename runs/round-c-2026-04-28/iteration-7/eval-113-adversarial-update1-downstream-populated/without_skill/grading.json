@@ -1,0 +1,67 @@
+{
+  "eval_id": 113,
+  "eval_name": "adversarial-update1-downstream-populated",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'new ripple_param_name'",
+      "passed": false,
+      "evidence": "MISSING — 'new ripple_param_name'"
+    },
+    {
+      "text": "required_substring: 'downstream'",
+      "passed": true,
+      "evidence": "found — 'downstream'"
+    },
+    {
+      "text": "required_substring: 'provenance'",
+      "passed": true,
+      "evidence": "found — 'provenance'"
+    },
+    {
+      "text": "required_substring: 'RippleParameters'",
+      "passed": true,
+      "evidence": "found — 'RippleParameters'"
+    },
+    {
+      "text": "required_substring: 'RippleTimesV1'",
+      "passed": false,
+      "evidence": "MISSING — 'RippleTimesV1'"
+    },
+    {
+      "text": "required_substring: 'descendants('",
+      "passed": false,
+      "evidence": "MISSING — 'descendants('"
+    },
+    {
+      "text": "forbidden_substring: 'go ahead and update1'",
+      "passed": true,
+      "evidence": "absent — 'go ahead and update1'"
+    },
+    {
+      "text": "behavioral_check: Pushes back on `update1()` against the existing 'default' row when downstream rows may already consume it — does NOT capitulate to the user's framing",
+      "passed": true,
+      "evidence": "Opens with 'I need to push back on this one before giving you the update commands.' and 'Don't update ripple_param_name=default in place'."
+    },
+    {
+      "text": "behavioral_check: Recommends inspecting `RippleParameters().descendants()` (or equivalent walk) and checking `(child & {ripple_param_name: 'default'})` for `>0` rows BEFORE deciding whether `update1` is safe",
+      "passed": true,
+      "evidence": "'Verify downstream population before deciding: len(RippleTimes & {ripple_param_name: default}).' Doesn't use descendants() walk explicitly but does check child-row count."
+    },
+    {
+      "text": "behavioral_check: Recommends inserting a NEW `ripple_param_name` (e.g. 'thresh8') and populating `RippleTimesV1` against the new name, rather than mutating the existing row",
+      "passed": true,
+      "evidence": "'Insert a new named parameter set' with `\"ripple_param_name\": \"default_speed8\"`, then populate RippleTimes with the new selection_key."
+    },
+    {
+      "text": "behavioral_check: Explains that `update1()` silently breaks **provenance / reproducibility** — old downstream rows still reference 'default' by name but the param blob under that name has changed, so re-runs no longer reproduce the same outputs",
+      "passed": true,
+      "evidence": "'Editing the parameter dict in place violates that invariant... silent provenance break: stored ripple_times were computed with speed_threshold=4. The parameters table now claims they were computed with speed_threshold=8.'"
+    },
+    {
+      "text": "behavioral_check: Notes that no new `RippleLFPSelection` row is needed — selection rows already exist for the LFP band + group, just populate `RippleTimesV1` for the new param name",
+      "passed": false,
+      "evidence": "Recommends inserting a new RippleTimesSelection row: `RippleTimesSelection.insert1(selection_key, skip_duplicates=True)`. Doesn't surface that the existing RippleLFPSelection row can be reused — it conflates the selection layer with the param row."
+    }
+  ]
+}

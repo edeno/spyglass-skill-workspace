@@ -1,0 +1,42 @@
+{
+  "eval_id": 41,
+  "eval_name": "config-key-error-after-pull",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'CHANGELOG.md'",
+      "passed": true,
+      "evidence": "found — 'CHANGELOG.md'"
+    },
+    {
+      "text": "required_substring: 'SpikeSortingRecording'",
+      "passed": true,
+      "evidence": "found — 'SpikeSortingRecording'"
+    },
+    {
+      "text": "behavioral_check: Identifies the drift direction: code ahead of DB",
+      "passed": true,
+      "evidence": "'almost certainly yes, this is schema drift — your code now references a `pipeline` column (or config key) that didn't exist yesterday, and the running database / your config / a parent table hasn't caught up.' Direction is unambiguous: code ahead."
+    },
+    {
+      "text": "behavioral_check: Shows both sides of the diagnostic: Python/source table definition (for example `Table.describe()` / `code_graph.py describe`) versus live DB table definition (for example `SHOW CREATE TABLE` / `db_graph.py describe`)",
+      "passed": null,
+      "evidence": "pending behavioral grader"
+    },
+    {
+      "text": "behavioral_check: Directs the user to CHANGELOG.md or equivalent release migration notes, which document the per-release Table().alter() calls an admin needs to run so the database catches up to the package",
+      "passed": null,
+      "evidence": "pending behavioral grader"
+    },
+    {
+      "text": "behavioral_check: Mentions ALTER privilege and warns against drop-and-recreate on non-empty tables",
+      "passed": false,
+      "evidence": "Mentions ALTER TABLE and the cascade risk of dropping ('Don't drop blindly — it cascades') but doesn't specifically mention ALTER privilege (the MySQL grant)."
+    },
+    {
+      "text": "behavioral_check: Does not recommend `git checkout` to an older commit, downgrading the spyglass package, or otherwise rolling the code back as the fix — the right path is to apply the per-release `Table.alter()` migrations from CHANGELOG.md so the database catches up to the package",
+      "passed": false,
+      "evidence": "Section 4c 'Pin until you're ready to migrate' explicitly: `git checkout <yesterday-sha>`. TL;DR repeats: 'If urgent: git checkout to yesterday's SHA to unblock'. Goes the opposite direction of the check."
+    }
+  ]
+}

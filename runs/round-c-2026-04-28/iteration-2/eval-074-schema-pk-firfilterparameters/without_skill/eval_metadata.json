@@ -1,0 +1,23 @@
+{
+  "eval_id": 74,
+  "eval_name": "schema-pk-firfilterparameters",
+  "stage": "framework-concepts",
+  "tier": "schema-introspection",
+  "difficulty": "easy",
+  "prompt": "What is the primary key of the `FirFilterParameters` table? Return only the field names as a comma-separated list, nothing else.",
+  "assertions": {
+    "required_substrings": [
+      "filter_name",
+      "filter_sampling_rate"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Lists exactly the two PK fields (filter_name, filter_sampling_rate); no extra fields",
+      "Response obeys the requested format — a comma-separated list of identifiers with no prose, headers, or extra commentary"
+    ],
+    "expected_output_tables_exempt": [
+      "FirFilterParameters"
+    ]
+  },
+  "expected_output": "Routes to common_tables.md (FirFilterParameters entry) or lfp_pipeline.md (Nyquist note references the same FK). Lists exactly the two PK fields: filter_name, filter_sampling_rate. Optionally explains the consequence: a filter named for one rate doesn't apply to a stream at another rate (the canonical 'filter named for one rate' footgun in the Nyquist note)."
+}

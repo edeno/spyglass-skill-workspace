@@ -1,0 +1,26 @@
+{
+  "eval_id": 67,
+  "eval_name": "counterfactual-ripple-electrode-set",
+  "stage": "pipeline-usage",
+  "tier": "counterfactual",
+  "difficulty": "hard",
+  "prompt": "If I added 3 more CA1 tetrodes to my ripple detection electrode selection and re-populated, which downstream tables would change and which would be unaffected?",
+  "assertions": {
+    "required_substrings": [
+      "RippleTimesV1",
+      "LFPBandV1",
+      "RippleParameters",
+      "LFPBandSelection",
+      "LFPElectrodeGroup",
+      "RippleLFPSelection"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Identifies LFPBandV1 (or upstream LFP) as needing a new selection only if the new electrodes weren't already in the group",
+      "Identifies RippleTimesV1 as the table that re-populates",
+      "States that RippleParameters is UNAFFECTED because it is a parameter Lookup table, not electrode-dependent",
+      "Notes unrelated branches (decoding, position) are unaffected unless they consume the same ripple times"
+    ]
+  },
+  "expected_output": "Routes to ripple_pipeline.md and lfp_pipeline.md. Identifies what changes: a new RippleLFPSelection row (or modified one) flows into a new RippleTimesV1 entry. Notes that LFPBandV1 itself only needs to be re-populated if the new electrodes weren't already in the LFPBandElectrode part-table of LFPBandSelection (the precise gate — LFPBand has its own electrode part table that's a subset of LFPElectrodeGroup; if the new electrodes are already represented in LFPBandSelection's LFPBandElectrode rows, LFPBandV1 doesn't need re-population) (often they're in the LFP-band group already, so LFPBandV1 may not need to change). Identifies what is unaffected: position pipelines, decoding pipelines that don't directly depend on these specific ripple times, anything not downstream of RippleTimesV1. Mentions RippleParameters does not change (it's the parameter table, not electrode-dependent)."
+}

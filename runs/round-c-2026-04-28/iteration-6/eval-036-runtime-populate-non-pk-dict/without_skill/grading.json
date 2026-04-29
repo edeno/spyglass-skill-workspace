@@ -1,0 +1,42 @@
+{
+  "eval_id": 36,
+  "eval_name": "runtime-populate-non-pk-dict",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (fetch1(, KEY, SpikeSortingSelection).",
+      "passed": true,
+      "evidence": "All present in response.md."
+    },
+    {
+      "text": "Response does not contain forbidden substring `pip install kilosort2`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent."
+    },
+    {
+      "text": "Identifies that `sorter` is not on the Selection-table primary key",
+      "passed": true,
+      "evidence": "'The only primary-key attribute is sorting_id. Everything else (nwb_file_name, sorter, ...) lives below the --- line — it's a secondary attribute'."
+    },
+    {
+      "text": "Explains populate(key) silently iterates the whole Selection",
+      "passed": true,
+      "evidence": "'populate happily iterates everything matching ... fails late ... unlike fetch1, populate does not raise on a loose dict; it just quietly does the wrong thing'."
+    },
+    {
+      "text": "Shows fetch1('KEY') / .proj() fix",
+      "passed": true,
+      "evidence": "Fix section: `(SpikeSortingSelection & {...}).fetch1('KEY')` and `sel.proj()` shown explicitly."
+    },
+    {
+      "text": "Generalizes to other *V1.populate(...) entry points",
+      "passed": true,
+      "evidence": "'This generalizes to every *V1.populate(...) in Spyglass' section lists LFPV1, TrodesPosV1, DLCPosV1, RippleTimesV1, decoding tables."
+    },
+    {
+      "text": "Names key_source as the mechanism",
+      "passed": true,
+      "evidence": "Walks key_source = parents[0].proj() = PK only, populate restricts against key_source, '& silently drops keys that are not in the relation's heading'."
+    }
+  ]
+}

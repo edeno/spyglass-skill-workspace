@@ -1,0 +1,32 @@
+{
+  "eval_id": 56,
+  "eval_name": "classify-lfpband-role",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'LFPBandV1.populate'",
+      "passed": true,
+      "evidence": "found — 'LFPBandV1.populate'"
+    },
+    {
+      "text": "required_substring: 'LFPBandSelection'",
+      "passed": true,
+      "evidence": "found — 'LFPBandSelection'"
+    },
+    {
+      "text": "behavioral_check: Identifies LFPBandV1 as Computed; user populates it after inserting LFPBandSelection",
+      "passed": true,
+      "evidence": "'LFPBandV1 is a compute table' and 'standard recipe: insert into LFPBandSelection → call LFPBandV1.populate(key)'."
+    },
+    {
+      "text": "behavioral_check: Notes there is no merge wrapper — LFPBandV1 itself is the consumer-facing endpoint",
+      "passed": false,
+      "evidence": "Hallucinates a 'LFPBandOutput' merge wrapper ('in spyglass.lfp.lfp_band_merge / lfp_band_output... it has a part LFPBandV1') and recommends restricting through it. The actual fact is that band-filtered LFP has no merge layer; downstream consumers FK LFPBandV1 directly."
+    },
+    {
+      "text": "behavioral_check: Does not invent an `LFPBandOutput` merge/output table, `lfp_band_merge` module, or merge_get_part workflow for LFPBandV1",
+      "passed": null,
+      "evidence": "pending behavioral grader"
+    }
+  ]
+}

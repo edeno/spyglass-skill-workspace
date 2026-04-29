@@ -1,0 +1,32 @@
+{
+  "eval_id": 96,
+  "eval_name": "dependency-downstream-decoding-output",
+  "stage": "framework-concepts",
+  "tier": "dependency-tracing",
+  "difficulty": "hard",
+  "prompt": "I want to find every custom analysis table in my DB that takes data from `DecodingOutput`. How do I enumerate them?",
+  "assertions": {
+    "required_substrings": [
+      "DecodingOutput.descendants(",
+      "children(",
+      "merge master"
+    ],
+    "forbidden_substrings": [
+      "DecodingOutput.parents(",
+      "fetch_nwb"
+    ],
+    "behavioral_checks": [
+      "Recommends `DecodingOutput.descendants()` (transitive walk) over `DecodingOutput.children()` (one-hop) and explains the distinction between the two",
+      "Notes that `DecodingOutput` is a merge master, so downstream consumers FK to the master itself, not to its part tables (e.g. ClusterlessDecodingV1)"
+    ],
+    "required_substrings_exempt": [
+      "DecodingOutput.descendants(",
+      "children("
+    ],
+    "expected_output_tables_exempt": [
+      "ClusterlessDecodingV1",
+      "SortedSpikesDecodingV1"
+    ]
+  },
+  "expected_output": "Use `DecodingOutput.descendants()` to enumerate every downstream table — every direct child plus every transitive descendant — in one call. `DecodingOutput.children()` only returns the *one-hop* children (the tables that FK directly to `DecodingOutput`); custom analysis tables that FK to one of those children, or to a child-of-a-child, are missed. `descendants()` walks the full transitive closure, which is what you want for 'every table that takes data from DecodingOutput' — that includes tables several layers downstream that you might not have authored yourself.\n\n```python\nfrom spyglass.decoding.decoding_merge import DecodingOutput\nfor t in DecodingOutput.descendants():\n    print(t)\n```\n\nOne subtlety: `DecodingOutput` is a **merge master**. Downstream consumers FK to the merge master (`DecodingOutput`), not to the part tables (`DecodingOutput.ClusterlessDecodingV1`, `DecodingOutput.SortedSpikesDecodingV1`). So `DecodingOutput.descendants()` is the right call — calling `.descendants()` on the part tables would only enumerate things FK'd to *that specific part*, missing anything FK'd to the merge.\n\nIf you want to filter to just tables defined in your own schema (vs. tables Spyglass ships), check `t.full_table_name.startswith('`your_schema`.')` per row. Routes to spyglassmixin_methods.md (descendants/ancestors note) and datajoint_api.md."
+}

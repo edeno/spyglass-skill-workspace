@@ -1,0 +1,46 @@
+{
+  "eval_id": 78,
+  "eval_name": "abstain-session-samplingrate",
+  "expectations": [
+    {
+      "text": "Response contains substring `Session`.",
+      "passed": true,
+      "evidence": "Substring 'Session' found in response.md"
+    },
+    {
+      "text": "Response contains substring `heading`.",
+      "passed": true,
+      "evidence": "Substring 'heading' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Raw`.",
+      "passed": true,
+      "evidence": "Substring 'Raw' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `sampling_rate is stored on Session`.",
+      "passed": true,
+      "evidence": "Substring 'sampling_rate is stored on Session' absent in response.md"
+    },
+    {
+      "text": "States that `sampling_rate` does not exist as a column on Session",
+      "passed": true,
+      "evidence": "Opens with: 'No \u2014 that fetch1 will not work. Session does not have a sampling_rate column.'"
+    },
+    {
+      "text": "Names `Session.heading` (or `.heading.names` / `.describe()`) as the verification primitive",
+      "passed": true,
+      "evidence": "Mentions 'Session.heading is the canonical primitive for what columns does this table actually have?' and shows Session.heading, Session.heading.names, Session.describe()."
+    },
+    {
+      "text": "Redirects to `Raw` (direct column `sampling_rate`) as the correct source \u2014 accepts either `Raw.fetch1('sampling_rate')` or a fetch_nwb-based path",
+      "passed": true,
+      "evidence": "Provides: '(Raw & {nwb_file_name: ...}).fetch1(\"sampling_rate\")' and a fetch_nwb fallback."
+    },
+    {
+      "text": "Does not invent a numeric default sampling rate or a fake fetch1 return shape on Session",
+      "passed": true,
+      "evidence": "Explicit: 'I haven't run this against your DB, so I'm not asserting a numeric Hz value.' No invented defaults."
+    }
+  ]
+}

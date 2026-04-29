@@ -1,0 +1,71 @@
+{
+  "eval_id": 28,
+  "eval_name": "brain-region-for-curated-sorting",
+  "expectations": [
+    {
+      "text": "Response contains substring `SortGroup`.",
+      "passed": true,
+      "evidence": "Substring 'SortGroup' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Electrode`.",
+      "passed": true,
+      "evidence": "Substring 'Electrode' found in response.md"
+    },
+    {
+      "text": "Response contains substring `BrainRegion`.",
+      "passed": true,
+      "evidence": "Substring 'BrainRegion' found in response.md"
+    },
+    {
+      "text": "Response contains substring `region_name`.",
+      "passed": true,
+      "evidence": "Substring 'region_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `SortGroupElectrode`.",
+      "passed": true,
+      "evidence": "Substring 'SortGroupElectrode' found in response.md"
+    },
+    {
+      "text": "Response contains substring `limit=1`.",
+      "passed": true,
+      "evidence": "Substring 'limit=1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `CurationV1`.",
+      "passed": true,
+      "evidence": "Substring 'CurationV1' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `unit_id=5 has region`.",
+      "passed": true,
+      "evidence": "Substring 'unit_id=5 has region' absent in response.md"
+    },
+    {
+      "text": "Leads with the explicit FK walk `SortGroup.SortGroupElectrode * Electrode * BrainRegion` (with `.proj('recording_id')` on `SpikeSortingSelection` to avoid the dependent-attribute refusal, OR an equivalent two-restriction split) as the source-of-truth answer",
+      "passed": true,
+      "evidence": "'Source-of-truth answer \u2014 explicit FK walk' includes `(SpikeSortingSelection & key).proj('recording_id') * SpikeSortingRecordingSelection * SortGroup.SortGroupElectrode * Electrode * BrainRegion`."
+    },
+    {
+      "text": "Notes that `unit_id` does NOT affect the region \u2014 all units in a sort group share the same electrodes",
+      "passed": true,
+      "evidence": "'unit_id does not affect the answer \u2014 every unit produced by a given sort group is sorted from the same set of electrodes'."
+    },
+    {
+      "text": "Mentions `CurationV1.get_sort_group_info` only as a convenience shortcut, AND calls out its `limit=1` sampling: it returns one region per sort group, accurate for tetrodes but incomplete for polymer-probe sort groups whose electrodes span multiple regions",
+      "passed": true,
+      "evidence": "Calls it 'Convenience shortcut' and shows `.fetch(limit=1)` from curation.py:288-294; explicitly contrasts tetrodes vs polymer probes."
+    },
+    {
+      "text": "For polymer probes spanning regions within a sort group, recommends the explicit FK walk over the helper",
+      "passed": true,
+      "evidence": "'Use the explicit FK walk above whenever you can't guarantee per-sort-group region homogeneity'."
+    },
+    {
+      "text": "Does not invent a direct `region` attribute on `CurationV1` or on the unit itself",
+      "passed": true,
+      "evidence": "'CurationV1 itself has no region / brain_region attribute. If you find yourself reaching for one, you're missing the FK walk.'"
+    }
+  ]
+}

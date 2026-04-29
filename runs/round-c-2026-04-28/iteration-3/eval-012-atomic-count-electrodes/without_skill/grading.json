@@ -1,0 +1,31 @@
+{
+  "eval_id": 12,
+  "eval_name": "atomic-count-electrodes",
+  "expectations": [
+    {
+      "text": "Response contains substring `Electrode`.",
+      "passed": true,
+      "evidence": "Substring 'Electrode' found in response.md"
+    },
+    {
+      "text": "Response contains substring `len(`.",
+      "passed": true,
+      "evidence": "Substring 'len(' found in response.md"
+    },
+    {
+      "text": "Uses len(relation) to count without fetching all rows",
+      "passed": true,
+      "evidence": "Code: `len(Electrode & {...})`; explains 'len(<relation>) issues a SELECT COUNT(*) against the database \u2014 it does not pull all rows into Python'."
+    },
+    {
+      "text": "Does not fetch the full Electrode set just to take its length",
+      "passed": true,
+      "evidence": "Explicitly flags `len((...).fetch())` as the anti-pattern with 'DON'T \u2014 fetches all rows then counts in Python'."
+    },
+    {
+      "text": "Bonus: notes that each Electrode row is one recording contact (keyed by electrode_id within an ElectrodeGroup), so the count returns total contacts \u2014 not tetrodes/shanks/ElectrodeGroups (e.g., a 32-tetrode session yields 128 Electrode rows, not 32)",
+      "passed": true,
+      "evidence": "States 'one row per recording contact ... not the number of tetrodes (one tetrode = one ElectrodeGroup with 4 contacts)' and gives 32 ElectrodeGroups \u2192 128 Electrode rows."
+    }
+  ]
+}

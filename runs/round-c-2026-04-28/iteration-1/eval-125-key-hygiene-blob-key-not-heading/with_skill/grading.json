@@ -1,0 +1,36 @@
+{
+  "eval_id": 125,
+  "eval_name": "key-hygiene-blob-key-not-heading",
+  "expectations": [
+    {
+      "text": "Response contains substring `ripple_param_dict`.",
+      "passed": true,
+      "evidence": "Substring 'ripple_param_dict' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ripple_detection_params`.",
+      "passed": true,
+      "evidence": "Substring 'ripple_detection_params' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ripple_pipeline.md`.",
+      "passed": true,
+      "evidence": "Substring 'ripple_pipeline.md' found in response.md"
+    },
+    {
+      "text": "Identifies `speed_threshold` as a blob field nested under `ripple_param_dict[\"ripple_detection_params\"]`, NOT a heading column",
+      "passed": true,
+      "evidence": "States 'speed_threshold lives nested inside the ripple_param_dict longblob, two levels deep: ripple_param_dict[\"ripple_detection_params\"][\"speed_threshold\"]'."
+    },
+    {
+      "text": "Routes blob shape verification to `RippleTimesV1.make` (the consumer) or to an actual fetched row, NOT to the table name alone",
+      "passed": true,
+      "evidence": "Says 'the authoritative consumer is RippleTimesV1.make at src/spyglass/ripple/v1/ripple.py:207-224' and offers `RippleParameters.fetch('ripple_param_dict', limit=1, as_dict=True)` as runtime cross-check."
+    },
+    {
+      "text": "Recommends fetch-then-filter-in-Python rather than a DataJoint restriction on the blob field",
+      "passed": true,
+      "evidence": "Section 'What to do instead — fetch then filter in Python' uses `RippleParameters.fetch(as_dict=True)` and a list comprehension."
+    }
+  ]
+}

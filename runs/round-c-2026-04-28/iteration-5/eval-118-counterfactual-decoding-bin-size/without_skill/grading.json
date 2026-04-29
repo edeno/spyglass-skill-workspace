@@ -1,0 +1,42 @@
+{
+  "eval_id": 118,
+  "eval_name": "counterfactual-decoding-bin-size",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'DecodingParameters'",
+      "passed": true,
+      "evidence": "found — 'DecodingParameters'"
+    },
+    {
+      "text": "required_substring: 'ClusterlessDecodingV1'",
+      "passed": true,
+      "evidence": "found — 'ClusterlessDecodingV1'"
+    },
+    {
+      "text": "required_substring: 'ClusterlessDecodingSelection'",
+      "passed": true,
+      "evidence": "found — 'ClusterlessDecodingSelection'"
+    },
+    {
+      "text": "behavioral_check: Correctly identifies that ONLY the decoding output (`ClusterlessDecodingV1` / `SortedSpikesDecodingV1`) changes — spike sorting and position upstream are unaffected because they don't FK to `DecodingParameters`",
+      "passed": true,
+      "evidence": "Section 3 'What does not change' explicitly lists upstream as untouched (IntervalPositionInfo, TrodesPosV1, DLCPosV1, PositionGroup, UnitWaveformFeaturesGroup, SortedSpikesGroup). Section 2 limits the cascade to selection → *DecodingV1 → DecodingOutput merge."
+    },
+    {
+      "text": "behavioral_check: Recommends inserting a NEW `DecodingParameters` row with a different `decoding_param_name` (e.g. `'bin5cm'`) and a fresh `ClusterlessDecodingSelection` + populate, rather than `update1()` on the existing row",
+      "passed": true,
+      "evidence": "Section 1: 'insert a new parameter row with a new name (e.g. decoding_param_name=\"my_params_5cm\")'; section 4 walks through the full insert+populate sequence; explicit 'Recommendation: use a new name. Don't delete the 2 cm row'."
+    },
+    {
+      "text": "behavioral_check: Names the qualitative direction (coarser bins = fewer state bins = faster, lower spatial resolution) without misattributing the change to upstream pipelines",
+      "passed": true,
+      "evidence": "Section 5: '5 cm bins shrink the state space substantially. The posterior place_bins axis will change length' — captures coarser bins → fewer state bins / lower spatial resolution. Direction correctly attributed to decoder-internal discretization, not upstream."
+    },
+    {
+      "text": "behavioral_check: Notes that `UnitWaveformFeaturesGroup` and `PositionGroup` (referenced by the selection) are untouched — they're FK'd by the SELECTION, not by `DecodingParameters` directly",
+      "passed": true,
+      "evidence": "Section 3: 'PositionGroup / UnitWaveformFeaturesGroup / SortedSpikesGroup — all upstream of *DecodingSelection, so untouched.' Names both explicitly and ties to selection-level FKs."
+    }
+  ]
+}

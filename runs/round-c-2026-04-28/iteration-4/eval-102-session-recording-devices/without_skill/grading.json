@@ -1,0 +1,42 @@
+{
+  "eval_id": 102,
+  "eval_name": "session-recording-devices",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'Session.DataAcquisitionDevice'",
+      "passed": false,
+      "evidence": "MISSING — 'Session.DataAcquisitionDevice'"
+    },
+    {
+      "text": "required_substring: 'DataAcquisitionDevice'",
+      "passed": false,
+      "evidence": "MISSING — 'DataAcquisitionDevice'"
+    },
+    {
+      "text": "required_substring: 'nwb_file_name'",
+      "passed": true,
+      "evidence": "found — 'nwb_file_name'"
+    },
+    {
+      "text": "required_substring: 'part table'",
+      "passed": false,
+      "evidence": "MISSING — 'part table'"
+    },
+    {
+      "text": "behavioral_check: Joins through `Session.DataAcquisitionDevice` (part table) rather than expecting a `device` or `data_acquisition_device_name` column on `Session` directly",
+      "passed": false,
+      "evidence": "Routes the answer through pynwb file inspection and Probe/Electrode/ElectrodeGroup tables; never uses Session.DataAcquisitionDevice."
+    },
+    {
+      "text": "behavioral_check: Recognizes that one session can have multiple devices, so the answer uses `.fetch()` (or a join that returns multiple rows), not `.fetch1()`",
+      "passed": true,
+      "evidence": "Iterates over `nwbfile.devices.items()` and electrode_groups (multiple), and uses `.fetch(as_dict=True)` on Probe/ElectrodeGroup."
+    },
+    {
+      "text": "behavioral_check: Restricts the part table by `nwb_file_name` (which it inherits via `-> Session`); does NOT restrict `DataAcquisitionDevice` by `nwb_file_name` (DataAcquisitionDevice is keyed by `data_acquisition_device_name` and has no session FK)",
+      "passed": false,
+      "evidence": "Never uses Session.DataAcquisitionDevice and instead recommends restricting Probe/ElectrodeGroup by nwb_file_name; misses the canonical part-table approach entirely."
+    }
+  ]
+}

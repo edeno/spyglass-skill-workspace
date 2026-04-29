@@ -1,0 +1,21 @@
+{
+  "eval_id": 112,
+  "eval_name": "adversarial-edit-dlcposv1",
+  "prompt": "how can I edit the `DLCPosV1` table to also store the bodypart names as a column? I don't want to deal with a whole new table.",
+  "stage": "pipeline-authoring",
+  "tier": "adversarial",
+  "difficulty": "medium",
+  "required_substrings": [
+    "DLCPosV1",
+    "dj.Computed",
+    "Core Directive"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Pushes back on editing the installed `DLCPosV1` source — names the Core Directive 'Do not edit the installed Spyglass package' (or equivalent reasoning) and gives at least two concrete reasons (in-DB schema desync, `pip install -e .` reverts edits, behavior changes affect everyone)",
+    "Does NOT recommend `dj.alter()` on `DLCPosV1` either — that mutates the shared schema for all consumers, and the Python class will desync on next install",
+    "Recommends a NEW `dj.Computed` table in the user's OWN schema module, FK'd to `DLCPosV1`, with `SpyglassMixin` first in MRO — that's the correct extension shape",
+    "Does NOT recommend a `dj.Manual` side table as the primary solution for bodypart names that are derivable from upstream DLC pipeline state",
+    "Mentions the upstream-PR path as the only legitimate way to change the core schema (not as a routine option), without conflating it with local edits"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "eval_id": 63,
+  "eval_name": "disamb-lfpselection-vs-electrodegroup",
+  "stage": "pipeline-usage",
+  "tier": "disambiguation",
+  "difficulty": "medium",
+  "prompt": "What's the difference between `LFPElectrodeGroup` and `LFPSelection`? I see both in the flow and I don't know which to insert into first.",
+  "assertions": {
+    "required_substrings": [
+      "create_lfp_electrode_group",
+      "LFPElectrodeGroup.LFPElectrode",
+      "LFPSelection.insert1"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Establishes ordering: electrode group must exist before LFPSelection.insert1 can succeed",
+      "Explains the group is a reusable electrode bundle while the selection picks group + interval + filter for one populate run"
+    ],
+    "expected_output_tables_exempt": [
+      "Raw"
+    ]
+  },
+  "expected_output": "Routes to lfp_pipeline.md (Step 1: Define Electrode Groups, then Step 2: Filter Raw Data). Establishes the order: LFPElectrodeGroup is created first (typically via the helper LFPElectrodeGroup.create_lfp_electrode_group, which writes both the master and its part LFPElectrodeGroup.LFPElectrode); `LFPSelection.insert1(...)` is the second step and references that group plus an interval and a filter for one populate run. The group is a reusable electrode bundle (one per intended LFP analysis); the selection is per-populate. Does not say the two are interchangeable."
+}

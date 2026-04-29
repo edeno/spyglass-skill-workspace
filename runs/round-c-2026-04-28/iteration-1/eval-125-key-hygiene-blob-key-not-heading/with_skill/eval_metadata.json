@@ -1,0 +1,29 @@
+{
+  "eval_id": 125,
+  "eval_name": "key-hygiene-blob-key-not-heading",
+  "stage": "parameter-understanding",
+  "tier": "parameter-semantics",
+  "difficulty": "medium",
+  "prompt": "I want to find every RippleParameters row whose `speed_threshold` is below 4.0. What restriction do I run?",
+  "assertions": {
+    "required_substrings": [
+      "ripple_param_dict",
+      "ripple_detection_params",
+      "ripple_pipeline.md"
+    ],
+    "expected_output_tables_exempt": [
+      "RippleParameters",
+      "RippleTimesV1"
+    ],
+    "forbidden_substrings": [
+      "RippleParameters & {'speed_threshold'",
+      "RippleParameters & {\"speed_threshold\""
+    ],
+    "behavioral_checks": [
+      "Identifies `speed_threshold` as a blob field nested under `ripple_param_dict[\"ripple_detection_params\"]`, NOT a heading column",
+      "Routes blob shape verification to `RippleTimesV1.make` (the consumer) or to an actual fetched row, NOT to the table name alone",
+      "Recommends fetch-then-filter-in-Python rather than a DataJoint restriction on the blob field"
+    ]
+  },
+  "expected_output": "`speed_threshold` is NOT a heading field on `RippleParameters` — it lives nested inside the `ripple_param_dict` longblob, under `ripple_param_dict[\"ripple_detection_params\"][\"speed_threshold\"]` (verify the blob shape via `ripple_pipeline.md` § RippleParameters or by reading an existing row: `(RippleParameters & {}).fetch('ripple_param_dict', limit=1, as_dict=True)[0]`). The consumer site is `RippleTimesV1.make` (`ripple/v1/ripple.py:207-224`), which is the authority for what's actually inside the blob. There is no DataJoint restriction shape that filters on a blob field — fetch all the rows, deserialize, and filter in Python:\n\n```python\nrows = RippleParameters.fetch(as_dict=True)\nmatches = [\n    r for r in rows\n    if r['ripple_param_dict']['ripple_detection_params']['speed_threshold'] < 4.0\n]\n```\n\nRoutes to feedback_loops.md (blob-shape varies per pipeline) and ripple_pipeline.md."
+}

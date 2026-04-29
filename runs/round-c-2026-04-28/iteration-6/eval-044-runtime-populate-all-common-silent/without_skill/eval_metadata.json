@@ -1,0 +1,30 @@
+{
+  "eval_id": 44,
+  "eval_name": "runtime-populate-all-common-silent",
+  "stage": "runtime-debugging",
+  "tier": "runtime-errors",
+  "difficulty": "medium",
+  "prompt": "`insert_sessions('j1620210710.nwb')` finished without errors and Nwbfile + Session rows show up. But `Raw & {'nwb_file_name': 'j1620210710_.nwb'}` returns nothing, and downstream populates fail because Raw is empty. The ingest logs looked clean. Is there a known silent-failure pattern for this?",
+  "assertions": {
+    "required_substrings": [
+      "populate_all_common",
+      "raise_err=True",
+      "InsertError",
+      "DIOEvents",
+      "PositionSource",
+      "Raw",
+      "Session"
+    ],
+    "forbidden_substrings": [
+      "edit populate_all_common.py"
+    ],
+    "behavioral_checks": [
+      "Leads with `populate_all_common(nwb_file_name, raise_err=True)` as the primary fix — the function's built-in kwarg",
+      "Identifies the default `raise_err=False` behavior as the silent-failure root cause",
+      "Names InsertError as the inspection table for failed inserts (`common_usage.InsertError & {'nwb_file_name': ...}` returns the short-message log per failed table)",
+      "Shows the per-table populate loop as an alternative, not the primary fix",
+      "Does not recommend editing populate_all_common.py source or re-running insert_sessions"
+    ]
+  },
+  "expected_output": "Routes to populate_all_common_debugging.md (linked from runtime_debugging.md 'Debugging populate_all_common'). Yes — `populate_all_common` (the common-ingest driver that `insert_sessions` dispatches through) defaults to `raise_err=False`, catching exceptions per-table and writing only a short message to `common_usage.InsertError`; the full traceback is dropped. That's why the ingest 'completed' silently while common tables are missing rows.\\n\\n**Primary fix — pass `raise_err=True`:**\\n\\n```python\\nfrom spyglass.common import populate_all_common\\npopulate_all_common('j1620210710_.nwb', raise_err=True)\\n```\\n\\nThis uses the function's built-in `raise_err` parameter (`src/spyglass/common/populate_all_common.py`) to propagate the traceback. Once you have it, route back to the matching failure signature in runtime_debugging.md — usually signature A (fetch1 cardinality) or H (IntegrityError from a missing ancestor row).\\n\\n**Alternative — skip the driver entirely** and call each table directly (useful to isolate the slow/failing table without re-running the ones that succeeded):\\n\\n```python\\nfrom spyglass.common import Session, Raw, DIOEvents, PositionSource\\nfor T in [Session, Raw, DIOEvents, PositionSource]:\\n    T().populate({'nwb_file_name': 'j1620210710_.nwb'})   # exception propagates\\n```\\n\\nAlso inspect `common_usage.InsertError & {'nwb_file_name': 'j1620210710_.nwb'}` for the short-message log."
+}

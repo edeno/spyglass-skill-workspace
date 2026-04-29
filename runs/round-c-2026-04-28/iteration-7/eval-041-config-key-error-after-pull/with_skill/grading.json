@@ -1,0 +1,42 @@
+{
+  "eval_id": 41,
+  "eval_name": "config-key-error-after-pull",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'CHANGELOG.md'",
+      "passed": false,
+      "evidence": "MISSING — 'CHANGELOG.md'"
+    },
+    {
+      "text": "required_substring: 'SpikeSortingRecording'",
+      "passed": true,
+      "evidence": "found — 'SpikeSortingRecording'"
+    },
+    {
+      "text": "behavioral_check: Identifies the drift direction: code ahead of DB",
+      "passed": false,
+      "evidence": "Opens with 'probably not in-DB schema drift'. Treats schema drift as #3 in priority list and frames KeyError as more likely a Python lookup failure inside a params blob. Doesn't clearly identify code-ahead-of-DB as the diagnosis even though the prompt's framing is that very direction."
+    },
+    {
+      "text": "behavioral_check: Shows both sides of the diagnostic: Python/source table definition (for example `Table.describe()` / `code_graph.py describe`) versus live DB table definition (for example `SHOW CREATE TABLE` / `db_graph.py describe`)",
+      "passed": null,
+      "evidence": "pending behavioral grader"
+    },
+    {
+      "text": "behavioral_check: Directs the user to CHANGELOG.md or equivalent release migration notes, which document the per-release Table().alter() calls an admin needs to run so the database catches up to the package",
+      "passed": null,
+      "evidence": "pending behavioral grader"
+    },
+    {
+      "text": "behavioral_check: Mentions ALTER privilege and warns against drop-and-recreate on non-empty tables",
+      "passed": false,
+      "evidence": "Doesn't mention ALTER privilege or warn against drop-and-recreate. Doesn't address Table.alter() at all."
+    },
+    {
+      "text": "behavioral_check: Does not recommend `git checkout` to an older commit, downgrading the spyglass package, or otherwise rolling the code back as the fix — the right path is to apply the per-release `Table.alter()` migrations from CHANGELOG.md so the database catches up to the package",
+      "passed": false,
+      "evidence": "Section 'Minimal fix' explicitly recommends 'pin to the previous commit until the migration ships: `git checkout <yesterday's-sha>`' — exactly the wrong direction per the check."
+    }
+  ]
+}

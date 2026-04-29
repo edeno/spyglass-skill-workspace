@@ -1,0 +1,16 @@
+{
+  "eval_id": 66,
+  "eval_name": "resource-first-ref-merge-delete",
+  "prompt": "I want to delete one entry from `PositionOutput` via a merge_key. Which spyglass skill reference do you consult first?",
+  "stage": "destructive-operations",
+  "tier": "resource-selection",
+  "difficulty": "easy",
+  "required_substrings": [
+    "destructive_operations.md"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Names destructive_operations.md as the first reference (merge_methods.md acceptable as the second stop for the merge-specific classmethod-discard mechanics)",
+    "Mentions inspect-before-destroy as the operative pattern; bonus credit for naming the classmethod-discard merge gotcha"
+  ]
+}

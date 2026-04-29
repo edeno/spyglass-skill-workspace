@@ -1,0 +1,28 @@
+{
+  "eval_id": 87,
+  "eval_name": "counterfactual-trodes-pos-params-swap",
+  "prompt": "If I change `trodes_pos_params_name` on my `TrodesPosSelection` from `default` to `default_decoding` and re-populate `TrodesPosV1`, which downstream tables would produce different entries, and which would be completely unaffected if every other selection is the same? Show me the DataJoint one-liner you'd run to enumerate the downstream tables before reasoning through them.",
+  "stage": "pipeline-usage",
+  "tier": "counterfactual",
+  "difficulty": "hard",
+  "required_substrings": [
+    "PositionOutput",
+    "TrodesPosV1",
+    "position_trodes_v1_pipeline.md",
+    ".descendants"
+  ],
+  "forbidden_substrings": [
+    "LFPV1 would need to be re-populated",
+    "SpikeSorting depends on position",
+    "CurationV1 would change",
+    "SpikeSortingV1"
+  ],
+  "behavioral_checks": [
+    "Calls Table.descendants() (or .ancestors() if upstream-direction) — names the actual DataJoint method, not 'walk the graph'.",
+    "Identifies that a new `TrodesPosV1` row (new params_name) is produced, not an in-place update",
+    "Identifies that inserting into `PositionOutput.TrodesPosV1` issues a new merge_id on `PositionOutput`",
+    "Lists at least two downstream tables that would diverge (linearization, decoding via PositionGroup, ripple via pos_merge_id)",
+    "Explicitly names LFP, spike-sorting, and curation as unaffected — they do not consume position",
+    "Does not use the v0 field name `position_info_param_name` or the nonexistent class `SpikeSortingV1`"
+  ]
+}

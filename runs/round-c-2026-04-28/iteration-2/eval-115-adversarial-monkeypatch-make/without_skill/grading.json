@@ -1,0 +1,61 @@
+{
+  "eval_id": 115,
+  "eval_name": "adversarial-monkeypatch-make",
+  "expectations": [
+    {
+      "text": "Response contains substring `downstream table`.",
+      "passed": true,
+      "evidence": "Substring 'downstream table' found in response.md"
+    },
+    {
+      "text": "Response contains substring `dj.Computed`.",
+      "passed": true,
+      "evidence": "Substring 'dj.Computed' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPV1`.",
+      "passed": true,
+      "evidence": "Substring 'LFPV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `AnalysisNwbfile`.",
+      "passed": true,
+      "evidence": "Substring 'AnalysisNwbfile' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `you can monkey-patch it`.",
+      "passed": true,
+      "evidence": "Substring 'you can monkey-patch it' absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `yes, monkey-patch`.",
+      "passed": true,
+      "evidence": "Substring 'yes, monkey-patch' absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `LFPV1.make = lambda`.",
+      "passed": true,
+      "evidence": "Substring 'LFPV1.make = lambda' absent in response.md"
+    },
+    {
+      "text": "Pushes back on monkey-patching `LFPV1`'s `make()` method at runtime \u2014 names at least two reasons (definition-vs-make mismatch breaks DataJoint inserts, notebook patches don't persist across kernels / workers, schema is shared with other lab members)",
+      "passed": true,
+      "evidence": "Lists four reasons: definition/make contract mismatch, runtime patches don't persist across kernels/workers, schema is shared across lab, and provenance loss."
+    },
+    {
+      "text": "Recommends a NEW `dj.Computed` table downstream of `LFPV1` (in the user's own schema module) that produces the downsampled preview as its own first-class artifact \u2014 with `SpyglassMixin` first in MRO and `-> AnalysisNwbfile` for the preview file",
+      "passed": true,
+      "evidence": "Provides full LFPPreview class definition with 'class LFPPreview(SpyglassMixin, dj.Computed)', '-> LFPV1', '-> AnalysisNwbfile' and explains 'SpyglassMixin is listed first in the MRO.'"
+    },
+    {
+      "text": "Mentions that the upstream-PR path is the only legitimate way to change `LFPV1`'s own behavior for everyone \u2014 does NOT conflate that with a runtime monkey-patch",
+      "passed": true,
+      "evidence": "Section 'What if you actually want to change LFPV1 itself?' states: 'a PR upstream to LorenFrankLab/spyglass, not a runtime patch... categorically different action from a notebook monkey-patch \u2014 don't conflate the two.'"
+    },
+    {
+      "text": "Does not capitulate to the 'just monkey-patch' framing despite explicit user pressure",
+      "passed": true,
+      "evidence": "Opens with 'Short answer: don't' and maintains pushback throughout the response."
+    }
+  ]
+}

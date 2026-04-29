@@ -1,0 +1,31 @@
+{
+  "eval_id": 82,
+  "eval_name": "resource-first-ref-populate-all-common",
+  "stage": "runtime-debugging",
+  "tier": "resource-selection",
+  "difficulty": "easy",
+  "prompt": "I ran `populate_all_common('j1620210710_.nwb')` and the call returned without raising a Python exception. Electrode has no rows for this file. I'm scrolling through my shell looking for clues — what should I look at first inside the skill, and is there anything I'd have missed in my own terminal output?",
+  "assertions": {
+    "required_substrings": [
+      "populate_all_common_debugging.md",
+      "InsertError"
+    ],
+    "expected_output_tables_exempt": [
+      "Electrode"
+    ],
+    "forbidden_substrings": [
+      "runtime_debugging.md is the first",
+      "check_populate_status.py",
+      "diagnose_populate.py"
+    ],
+    "behavioral_checks": [
+      "Tells the user to scroll back through their shell for the `logger.error` summary line that current `populate_all_common` emits naming failed tables — does NOT treat the run as fully silent",
+      "Mentions that the function returns a list of failed `InsertError` keys, and suggests re-running with the return captured (`failed = populate_all_common(...)`) if the logger output was lost",
+      "Names `populate_all_common_debugging.md` as the reference to open after surfacing the logger / return-value signal",
+      "Explains in one line why `populate_all_common_debugging.md` beats `runtime_debugging.md` here — the symptom is per-table swallowed errors via the driver, not an in-hand traceback",
+      "Identifies `common_usage.InsertError` as the table where the per-table stack-trace details live",
+      "Does not invent a bundled script for populate diagnostics; correctly notes only scrub_dj_config.py and verify_spyglass_env.py ship today (or that no populate-diagnostic script is bundled)"
+    ]
+  },
+  "expected_output": "Two things to surface BEFORE opening any reference. (1) `populate_all_common` is not fully silent in current Spyglass — at the end of the run it emits a `logger.error(...)` naming the failed tables (`src/spyglass/common/populate_all_common.py:265-272`) and returns a list of failed `InsertError` keys. The user should scroll back through their shell for that line, OR re-run as `failed = populate_all_common('j1620210710_.nwb')` and inspect `failed`. (2) After capturing that signal, open `populate_all_common_debugging.md` — it's scoped specifically to per-table errors swallowed by the `populate_all_common` driver (default `raise_err=False`), with the per-table triage flow. `runtime_debugging.md` is the wrong first stop because it covers in-the-traceback errors, not silent-completion symptoms. The summary `logger.error` line names which tables failed; the actual stack-trace details live in `common_usage.InsertError` (queryable as `InsertError & {'nwb_file_name': 'j1620210710_.nwb'}`). There is no bundled script for populate diagnostics — the two user-facing bundled scripts are `scrub_dj_config.py` (config redaction) and `verify_spyglass_env.py` (env/install check), neither of which is relevant here. The answer should name the logger output AND the InsertError query, route to the debugging reference, and not invent a third-party diagnostic script."
+}

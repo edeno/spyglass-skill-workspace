@@ -1,0 +1,67 @@
+{
+  "eval_id": 8,
+  "eval_name": "author-custom-pipeline-off-lfp",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'SpyglassMixin'",
+      "passed": true,
+      "evidence": "found — 'SpyglassMixin'"
+    },
+    {
+      "text": "required_substring: 'dj.Lookup'",
+      "passed": false,
+      "evidence": "MISSING — 'dj.Lookup'"
+    },
+    {
+      "text": "required_substring: 'dj.Manual'",
+      "passed": true,
+      "evidence": "found — 'dj.Manual'"
+    },
+    {
+      "text": "required_substring: 'dj.Computed'",
+      "passed": true,
+      "evidence": "found — 'dj.Computed'"
+    },
+    {
+      "text": "required_substring: 'LFPBandV1'",
+      "passed": false,
+      "evidence": "MISSING — 'LFPBandV1'"
+    },
+    {
+      "text": "required_substring: 'LFPBandSelection'",
+      "passed": false,
+      "evidence": "MISSING — 'LFPBandSelection'"
+    },
+    {
+      "text": "forbidden_substring: 'spyglass_testuser_theta_gamma'",
+      "passed": true,
+      "evidence": "absent — 'spyglass_testuser_theta_gamma'"
+    },
+    {
+      "text": "behavioral_check: Routes the custom pipeline to LFPBandV1 (or LFPBandSelection) as the upstream FK — does NOT take LFPOutput (wideband/raw LFP) as the primary upstream and re-filter inside the custom make()",
+      "passed": null,
+      "evidence": "pending behavioral grader"
+    },
+    {
+      "text": "behavioral_check: Places SpyglassMixin as the FIRST base class in the Computed table (MRO order: `class X(SpyglassMixin, dj.Computed):`)",
+      "passed": true,
+      "evidence": "Line 83: `class ThetaGammaRatio(SpyglassMixin, dj.Computed)` — SpyglassMixin first."
+    },
+    {
+      "text": "behavioral_check: Foreign-keys on LFPBandV1 master, projecting `filter_name` (or equivalent) to disambiguate when both theta and gamma rows are referenced. NEVER foreign-keys a part-table column directly.",
+      "passed": false,
+      "evidence": "Doesn't FK LFPBandV1; uses LFPV1. The filter_name disambiguation question never comes up because the response computes both bands inside make()."
+    },
+    {
+      "text": "behavioral_check: Separates Params / Selection / Computed into three tiers",
+      "passed": true,
+      "evidence": "Three tables: ThetaGammaRatioParams (Manual), ThetaGammaRatioSelection (Manual), ThetaGammaRatio (Computed)."
+    },
+    {
+      "text": "behavioral_check: Does NOT prefix the schema name with `spyglass_` — personal/team schemas use `<database_user>_<suffix>`, so `testuser_theta_gamma` as the user proposed is correct, not `spyglass_testuser_theta_gamma`",
+      "passed": true,
+      "evidence": "Uses `your_lab_theta_gamma_v1`, no spyglass_ prefix."
+    }
+  ]
+}

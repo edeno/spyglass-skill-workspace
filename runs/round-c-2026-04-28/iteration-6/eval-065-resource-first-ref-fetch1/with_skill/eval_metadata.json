@@ -1,0 +1,19 @@
+{
+  "eval_id": 65,
+  "eval_name": "resource-first-ref-fetch1",
+  "stage": "runtime-debugging",
+  "tier": "resource-selection",
+  "difficulty": "easy",
+  "prompt": "I got `DataJointError: fetch1 should only be called on one tuple, but 47 were returned`. Before you answer the actual fix — which reference file inside the spyglass skill would you open first?",
+  "assertions": {
+    "required_substrings": [
+      "common_mistakes.md"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Names a specific reference file by name — common_mistakes.md (preferred) or datajoint_api.md (also valid)",
+      "Explains the choice in one line (cardinality error → common_mistakes.md #2, or datajoint_api.md fetch section)"
+    ]
+  },
+  "expected_output": "Names common_mistakes.md (Mistake #2: too-loose restriction + fetch1) as the first stop, optionally with datajoint_api.md as a follow-up for the broader fetch / fetch1 / heading mechanics. Explains the choice in one line: cardinality errors are the canonical first-page footgun and the common_mistakes file points directly at the diagnostic pattern (print len(rel) before fetch1)."
+}

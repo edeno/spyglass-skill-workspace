@@ -1,0 +1,24 @@
+{
+  "eval_id": 69,
+  "eval_name": "workflow-next-after-spikesortingselection",
+  "stage": "pipeline-usage",
+  "tier": "workflow-position",
+  "difficulty": "medium",
+  "prompt": "I just inserted into `SpikeSortingSelection` without errors. What's the next table I populate, and after that, what's the next?",
+  "assertions": {
+    "required_substrings": [
+      "SpikeSorting.populate",
+      "CurationV1",
+      "MetricCuration",
+      "MetricCurationSelection",
+      "SpikeSortingOutput"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Names SpikeSorting.populate as the immediate next step (not SpikeSortingV1.populate — the actual v1 class is named SpikeSorting)",
+      "Gives an ordered next-N list: SpikeSorting.populate → CurationV1 insert → MetricCuration → SpikeSortingOutput merge insert",
+      "Notes that CurationV1 comes before MetricCuration in the v1 flow"
+    ]
+  },
+  "expected_output": "Routes to spikesorting_v1_pipeline.md (V1 Pipeline Flow). Gives the ordered next steps: (1) SpikeSorting.populate(key) — runs the sorter; (2) insert a CurationV1 row (initial labels + merge groups) — typically via CurationV1.insert_curation; (3) MetricCurationSelection insert + MetricCuration.populate — quality metrics; (4) SpikeSortingOutput.insert (CurationV1 part-table) — surfaces the curation in the merge wrapper. Notes that CurationV1 comes BEFORE MetricCuration in the v1 flow (CurationV1 is the editable curation handle; MetricCuration computes metrics on top of an existing curation)."
+}

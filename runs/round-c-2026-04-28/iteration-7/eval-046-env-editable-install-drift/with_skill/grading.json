@@ -1,0 +1,42 @@
+{
+  "eval_id": 46,
+  "eval_name": "env-editable-install-drift",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'spyglass.__file__'",
+      "passed": true,
+      "evidence": "found — 'spyglass.__file__'"
+    },
+    {
+      "text": "required_substring: 'pip install -e .'",
+      "passed": true,
+      "evidence": "found — 'pip install -e .'"
+    },
+    {
+      "text": "required_substring: 'Jupyter kernel'",
+      "passed": true,
+      "evidence": "found — 'Jupyter kernel'"
+    },
+    {
+      "text": "behavioral_check: Identifies site-packages shadowing as the root cause (not a spyglass code bug) — does NOT recommend filing a bug or waiting for the next release; the fix is user-side (`pip install -e .` from the checkout)",
+      "passed": true,
+      "evidence": "Opens with 'almost certainly editable-install drift' and 'It's loading a different copy from the active environment's site-packages'. Step 3 fix is user-side `pip install -e .` from the checkout."
+    },
+    {
+      "text": "behavioral_check: Shows `print(spyglass.__file__)` as the concrete diagnostic",
+      "passed": true,
+      "evidence": "Step 1 first command is `print(spyglass.__file__)` and explains expected outputs (under checkout vs under site-packages)."
+    },
+    {
+      "text": "behavioral_check: Includes the `pip install -e .` step AND the Jupyter kernel restart",
+      "passed": true,
+      "evidence": "Step 3 fix block has `pip install -e .` AND 'restart the Python process or Jupyter kernel — importlib.reload is not enough'."
+    },
+    {
+      "text": "behavioral_check: Mentions uninstalling `spyglass-neuro` if both installs coexist",
+      "passed": true,
+      "evidence": "Step 3 fix: `pip uninstall spyglass-neuro       # ONLY if you ever installed from PyPI`."
+    }
+  ]
+}

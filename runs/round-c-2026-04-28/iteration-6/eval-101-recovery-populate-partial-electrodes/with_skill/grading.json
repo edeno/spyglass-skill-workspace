@@ -1,0 +1,28 @@
+{
+  "eval_id": 101,
+  "eval_name": "recovery-populate-partial-electrodes",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (InsertError, raise_err=True, ProbeType).",
+      "passed": true,
+      "evidence": "All required substrings present multiple times."
+    },
+    {
+      "text": "Response does not contain forbidden substrings (reinsert=True before, should super_delete).",
+      "passed": true,
+      "evidence": "Forbidden substrings absent verbatim. Response actively warns AGAINST 'reinsert=True before reading InsertError' and against using super_delete to wipe rows."
+    },
+    {
+      "text": "Inspects common_usage.InsertError first (with the session's nwb_file_name restriction)",
+      "passed": true,
+      "evidence": "Step 1: 'read common_usage.InsertError first (do not re-run yet)' with `(InsertError & {nwb_file_name: ...}).fetch(as_dict=True)`."
+    },
+    {
+      "text": "Mentions missing Probe rows often indicate upstream DataAcquisitionDevice / ProbeType dependency",
+      "subscriber": "behavioral",
+      "passed": true,
+      "evidence": "'almost always an upstream ancestor row that failed silently ... two upstream candidates are ProbeType (hard FK on Probe) and DataAcquisitionDevice (nullable FK on Probe)'."
+    }
+  ]
+}

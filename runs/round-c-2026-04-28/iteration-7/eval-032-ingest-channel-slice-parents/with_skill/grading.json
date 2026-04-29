@@ -1,0 +1,52 @@
+{
+  "eval_id": 32,
+  "eval_name": "ingest-channel-slice-parents",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'channel_name'",
+      "passed": true,
+      "evidence": "found — 'channel_name'"
+    },
+    {
+      "text": "required_substring: 'colnames'",
+      "passed": true,
+      "evidence": "found — 'colnames'"
+    },
+    {
+      "text": "required_substring: 'electrodes'",
+      "passed": true,
+      "evidence": "found — 'electrodes'"
+    },
+    {
+      "text": "required_substring: 'Probe'",
+      "passed": true,
+      "evidence": "found — 'Probe'"
+    },
+    {
+      "text": "forbidden_substring: 'this is a spyglass bug'",
+      "passed": true,
+      "evidence": "absent — 'this is a spyglass bug'"
+    },
+    {
+      "text": "behavioral_check: Identifies the NWB electrodes table's channel_name column as the root cause",
+      "passed": true,
+      "evidence": "Short answer explicitly: 'The trigger is a `channel_name` column on `nwb.electrodes`: from SpikeInterface 0.99 onward, the NWB recording extractor uses `channel_name` (when present) as the SpikeInterface `channel_ids`, instead of the integer `electrode_id`'."
+    },
+    {
+      "text": "behavioral_check: Shows the concrete pynwb diagnostic (`nwb.electrodes.colnames`)",
+      "passed": true,
+      "evidence": "Confirm-it block uses exactly `print(\"colnames:\", nwb.electrodes.colnames)` and tests `if \"channel_name\" in nwb.electrodes.colnames`."
+    },
+    {
+      "text": "behavioral_check: Points at the version fix (Spyglass ≥ 0.5.5) or the NWB-side rewrite as remediation",
+      "passed": true,
+      "evidence": "Fix #1 'Upgrade Spyglass' (newer releases handle channel_name) and Fix #2 'Rewrite the NWB to drop `channel_name`' + reinsert with reinsert=True. Both remediation paths covered."
+    },
+    {
+      "text": "behavioral_check: Does not frame this as a spyglass bug",
+      "passed": true,
+      "evidence": "'The fact that `insert_sessions` ran cleanly is consistent with this: the conflict is between the *NWB* electrodes-table schema and *SpikeInterface*'s reader, not between the NWB and Spyglass's ingest.'"
+    }
+  ]
+}

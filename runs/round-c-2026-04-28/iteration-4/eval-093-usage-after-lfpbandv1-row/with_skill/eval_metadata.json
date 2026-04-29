@@ -1,0 +1,20 @@
+{
+  "eval_id": 93,
+  "eval_name": "usage-after-lfpbandv1-row",
+  "prompt": "I have an `LFPBandV1` row populated for the theta band. What's the next thing I'd do with it?",
+  "stage": "pipeline-usage",
+  "tier": "table-usage",
+  "difficulty": "easy",
+  "required_substrings": [
+    "fetch1_dataframe",
+    "LFPBandV1"
+  ],
+  "forbidden_substrings": [
+    "LFPBandV1.fetch1_dataframe(",
+    "LFPBandV1.compute_signal_power("
+  ],
+  "behavioral_checks": [
+    "Names `(LFPBandV1 & key).fetch1_dataframe()` OR `(LFPBandV1 & key).compute_signal_power(...)` as the next operation — not both as a vague 'either fetch or compute'",
+    "Calls the methods on a restricted relation `(LFPBandV1 & key).method(...)`, not on the bare class"
+  ]
+}

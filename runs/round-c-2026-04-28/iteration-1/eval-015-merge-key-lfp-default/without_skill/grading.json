@@ -1,0 +1,51 @@
+{
+  "eval_id": 15,
+  "eval_name": "merge-key-lfp-default",
+  "expectations": [
+    {
+      "text": "Response contains substring `LFPOutput`.",
+      "passed": true,
+      "evidence": "Substring 'LFPOutput' found in response.md"
+    },
+    {
+      "text": "Response contains substring `merge_get_part`.",
+      "passed": true,
+      "evidence": "Substring 'merge_get_part' found in response.md"
+    },
+    {
+      "text": "Response contains substring `filter_name`.",
+      "passed": true,
+      "evidence": "Substring 'filter_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `filter_sampling_rate`.",
+      "passed": true,
+      "evidence": "Substring 'filter_sampling_rate' found in response.md"
+    },
+    {
+      "text": "Response contains substring `FirFilterParameters`.",
+      "passed": true,
+      "evidence": "Substring 'FirFilterParameters' found in response.md"
+    },
+    {
+      "text": "Uses `merge_get_part` as a classmethod, not on a restricted relation",
+      "passed": true,
+      "evidence": "Calls `LFPOutput.merge_get_part(key)` on the class and explicitly says 'merge_get_part is a classmethod. Call it on the merge class (LFPOutput.merge_get_part(key)), not on a restricted relation'."
+    },
+    {
+      "text": "Recognizes that `filter_name='LFP 0-400 Hz'` alone is NOT unique — `FirFilterParameters` keys on `(filter_name, filter_sampling_rate)` and the canonical 'LFP 0-400 Hz' filter is registered for both 20 kHz and 30 kHz raw rates",
+      "passed": true,
+      "evidence": "Says 'this filter is registered for two sampling rates (20 kHz and 30 kHz raw), and FirFilterParameters keys on (filter_name, filter_sampling_rate)' and reiterates 'filter_name alone is not unique'."
+    },
+    {
+      "text": "Either (a) shows a discovery step listing candidates with `lfp_electrode_group_name` / `target_interval_list_name` / `filter_sampling_rate` before restricting, OR (b) gives a fully-specified restriction including `filter_sampling_rate` (and ideally `lfp_electrode_group_name` / `target_interval_list_name`)",
+      "passed": true,
+      "evidence": "Step 2 explicitly fetches `lfp_electrode_group_name`, `target_interval_list_name`, `filter_sampling_rate` from LFPOutput.LFPV1 candidates, and Step 3 builds a fully-specified key including all three fields."
+    },
+    {
+      "text": "Uses the canonical filter name 'LFP 0-400 Hz' OR shows a discovery step (`FirFilterParameters.fetch`) — does not guess `filter_name='default'`",
+      "passed": true,
+      "evidence": "Uses 'LFP 0-400 Hz' canonically and explicitly warns 'Don't guess filter_name=default. The standard low-pass is literally registered as LFP 0-400 Hz.'"
+    }
+  ]
+}

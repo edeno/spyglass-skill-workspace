@@ -1,0 +1,42 @@
+{
+  "eval_id": 38,
+  "eval_name": "runtime-decoding-oom",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (n_chunks, cache_likelihood, XLA_PYTHON_CLIENT_MEM_FRACTION, DecodingParameters, ClusterlessDecodingV1).",
+      "passed": true,
+      "evidence": "All required substrings present throughout response.md."
+    },
+    {
+      "text": "Shows DecodingParameters.insert1 with decoding_kwargs as sibling top-level (NOT nested in decoding_params)",
+      "passed": true,
+      "evidence": "Insert example has 'decoding_params' and 'decoding_kwargs' as sibling keys; explicitly: 'on DecodingParameters, decoding_params and decoding_kwargs are sibling top-level attributes, NOT one nested inside the other'."
+    },
+    {
+      "text": "Includes concrete n_chunks (integer) and cache_likelihood=False values",
+      "passed": true,
+      "evidence": "decoding_kwargs={'n_chunks': 10, 'cache_likelihood': False}."
+    },
+    {
+      "text": "Mentions XLA_PYTHON_CLIENT_MEM_FRACTION as a complementary lever",
+      "passed": true,
+      "evidence": "Section (2) titled 'Raise the JAX memory cap' sets `os.environ['XLA_PYTHON_CLIENT_MEM_FRACTION'] = '0.95'` and notes 'Complementary to chunking — use both'."
+    },
+    {
+      "text": "Identifies decoding_kwargs are passed through to predict() vs estimate_parameters() per branch; doesn't claim estimate_parameters rejects them without checking",
+      "passed": true,
+      "evidence": "Walks both branches with line numbers; explicitly: 'Don't assume estimate_parameters() rejects them without checking — it may accept the same OOM knobs depending on version'."
+    },
+    {
+      "text": "Does not recommend upgrading the GPU as the primary fix",
+      "passed": true,
+      "evidence": "'Don't upgrade the GPU. A 24 GiB intermediate inside an 80 GiB device is a chunking problem, not a hardware problem'."
+    },
+    {
+      "text": "Does not include v0 decoding knobs (sorted_spikes_algorithm_params, block_size)",
+      "passed": true,
+      "evidence": "Explicitly: 'Don't reach for v0 sorted-spikes knobs (sorted_spikes_algorithm_params, block_size, etc.) — those belong to the v0 sorted-spikes path'."
+    }
+  ]
+}

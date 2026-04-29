@@ -1,0 +1,52 @@
+{
+  "eval_id": 2,
+  "eval_name": "ingest-new-nwb-file",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'insert_sessions'",
+      "passed": true,
+      "evidence": "found — 'insert_sessions'"
+    },
+    {
+      "text": "required_substring: 'Nwbfile'",
+      "passed": true,
+      "evidence": "found — 'Nwbfile'"
+    },
+    {
+      "text": "required_substring: 'Session'",
+      "passed": true,
+      "evidence": "found — 'Session'"
+    },
+    {
+      "text": "required_substring: 'Subject'",
+      "passed": true,
+      "evidence": "found — 'Subject'"
+    },
+    {
+      "text": "required_substring: 'Electrode'",
+      "passed": true,
+      "evidence": "found — 'Electrode'"
+    },
+    {
+      "text": "behavioral_check: Uses the raw filename (no trailing underscore) in insert_sessions()",
+      "passed": true,
+      "evidence": "Line 74: `insert_sessions(\"j1620210710.nwb\")` — raw filename, no underscore."
+    },
+    {
+      "text": "behavioral_check: Explains the copy-filename convention (Spyglass appends _ to .nwb)",
+      "passed": true,
+      "evidence": "Section 4 explains 'Copies the file to `<RAW_DIR>/j1620210710_.nwb` (note the trailing underscore — that's the \"Spyglass copy\"...)' and consistent use of underscore in downstream queries."
+    },
+    {
+      "text": "behavioral_check: Mentions reinsert=True as the correct flag for re-ingestion",
+      "passed": false,
+      "evidence": "Does not mention reinsert=True. For re-ingestion, the response recommends `(Nwbfile & key).delete()` as the path, which is more destructive and does not call out the canonical reinsert=True flag."
+    },
+    {
+      "text": "behavioral_check: Does not recommend skip_duplicates=True on insert_sessions (recommends reinsert=True instead — skip_duplicates=True raises TypeError on insert_sessions per common_mistakes.md #3)",
+      "passed": true,
+      "evidence": "Does not recommend skip_duplicates=True for insert_sessions; it does not appear in the response at all."
+    }
+  ]
+}

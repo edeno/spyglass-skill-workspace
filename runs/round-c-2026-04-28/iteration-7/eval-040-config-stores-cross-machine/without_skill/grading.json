@@ -1,0 +1,62 @@
+{
+  "eval_id": 40,
+  "eval_name": "config-stores-cross-machine",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: \"dj.config['stores']\"",
+      "passed": false,
+      "evidence": "MISSING — \"dj.config['stores']\""
+    },
+    {
+      "text": "required_substring: 'SPYGLASS_BASE_DIR'",
+      "passed": true,
+      "evidence": "found — 'SPYGLASS_BASE_DIR'"
+    },
+    {
+      "text": "required_substring: 'SpyglassConfig'",
+      "passed": false,
+      "evidence": "MISSING — 'SpyglassConfig'"
+    },
+    {
+      "text": "required_substring: \"['stores']['raw']\"",
+      "passed": false,
+      "evidence": "MISSING — \"['stores']['raw']\""
+    },
+    {
+      "text": "required_substring: 'save_dj_config'",
+      "passed": false,
+      "evidence": "MISSING — 'save_dj_config'"
+    },
+    {
+      "text": "forbidden_substring: 'SPYGLASS_BASE_DIR is all you need'",
+      "passed": true,
+      "evidence": "absent — 'SPYGLASS_BASE_DIR is all you need'"
+    },
+    {
+      "text": "behavioral_check: Confirms what the resolved `dj.config['stores']['raw']['location']` actually is on the failing (HPC) machine — does NOT assume the env var alone fixed it; runs the assertion that compares stores.raw.location's prefix against `SPYGLASS_BASE_DIR`",
+      "passed": true,
+      "evidence": "Diagnostic block prints `dj.config[\"stores\"]` and tests `os.path.isdir(loc)` / `os.access(loc, os.R_OK)` on each store's location. Compares to mounted paths via `mount | grep lab`."
+    },
+    {
+      "text": "behavioral_check: Notes the resolution precedence: explicit base_dir > `dj.config['custom']['spyglass_dirs']` > env vars > resolved <base>/<X>; `SpyglassConfig`'s `load_config()` method refreshes `dj.config['stores']` in memory but the persisted config file does not auto-regenerate from env-var changes alone",
+      "passed": false,
+      "evidence": "Mentions env vars and config files separately but does not enumerate the four-level precedence (explicit > custom > env vars > resolved). Doesn't surface SpyglassConfig.load_config() or the persistence-vs-env-var distinction."
+    },
+    {
+      "text": "behavioral_check: Recommends saving the corrected per-machine config — `SpyglassConfig().save_dj_config(...)` (defaults to global `~/.datajoint_config.json`; `save_method='local'` for project-scoped `dj_local_conf.json`) OR `dj.config.save_global()` / `dj.config.save_local()` after editing `dj.config['stores']` in place",
+      "passed": false,
+      "evidence": "Recommends 'Keep a separate dj_local_conf.json on the HPC' but doesn't show how to write/save it. Doesn't mention SpyglassConfig().save_dj_config(...) or dj.config.save_global()/save_local()."
+    },
+    {
+      "text": "behavioral_check: Does NOT claim that `SPYGLASS_BASE_DIR` can never refresh stores, and does NOT claim that stores persistence is exclusively `dj_local_conf.json` — both global and local config files are valid persistence targets",
+      "passed": true,
+      "evidence": "Says env vars do refresh stores at import time ('let Spyglass populate dj.config[stores] from there at import time'). Mentions both ~/.datajoint_config.json and dj_local_conf.json indirectly without claiming exclusivity of either."
+    },
+    {
+      "text": "behavioral_check: Does not recommend remounting the share at the same path on both machines as the primary fix",
+      "passed": true,
+      "evidence": "Mentions symlinking as one of four options ('Symlink the HPC path to match the workstation path... Works only if you have write access to /, which you usually don't on an HPC'); not the primary recommendation. Per-machine config and env-var driven are listed first."
+    }
+  ]
+}

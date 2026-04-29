@@ -1,0 +1,47 @@
+{
+  "eval_id": 111,
+  "eval_name": "custom-table-multiple-nwbs-blob-pushback",
+  "overall_passed": false,
+  "expectations": [
+    {
+      "text": "required_substring: 'AnalysisNwbfile'",
+      "passed": true,
+      "evidence": "found — 'AnalysisNwbfile'"
+    },
+    {
+      "text": "forbidden_substring: 'yes, inline blob is fine at that size'",
+      "passed": true,
+      "evidence": "absent — 'yes, inline blob is fine at that size'"
+    },
+    {
+      "text": "forbidden_substring: '5 MB is fine as a blob'",
+      "passed": true,
+      "evidence": "absent — '5 MB is fine as a blob'"
+    },
+    {
+      "text": "forbidden_substring: 'correlations: longblob is fine'",
+      "passed": true,
+      "evidence": "absent — 'correlations: longblob is fine'"
+    },
+    {
+      "text": "behavioral_check: Pushes back on the inline-blob plan — does NOT capitulate even though the user explicitly asks for a yes",
+      "passed": true,
+      "evidence": "Opens with 'technically yes, but you really shouldn't, and Spyglass is built around the assumption that you won't.' Recommends AnalysisNwbfile."
+    },
+    {
+      "text": "behavioral_check: Names at least two reasons the size-per-row framing is the wrong yardstick: (a) downstream-portability / export-flow opacity (DANDI / Kachery / paper-export / FigURL); (b) aggregate scaling (5 MB x N sessions x N params crosses the practical blob ceiling faster than expected); (c) the Spyglass design contract that exactly-one AnalysisNwbfile per table is what lets cross-cutting tooling enumerate result-bearing rows",
+      "passed": true,
+      "evidence": "Reason 2 'one matrix per session × ~hundreds of sessions × a few parameter sweeps = gigabytes'; Reason 3 'Spyglass's export and sharing workflows (Kachery, export.Export) are built around AnalysisNwbfiles'; Reasons 1 (MySQL not bulk-array store), 4 (NWB self-description), 5 (ecosystem) also given."
+    },
+    {
+      "text": "behavioral_check: Cites the relevant Non-Negotiable: heavy arrays go to AnalysisNwbfile; tables reference exactly one AnalysisNwbfile (Spyglass validates on declaration)",
+      "passed": false,
+      "evidence": "Doesn't cite the rule as a 'Non-Negotiable' formally and doesn't surface the 'exactly one AnalysisNwbfile per table is validated on declaration' constraint. Frames it as 'convention' rather than a contract."
+    },
+    {
+      "text": "behavioral_check: Shows the AnalysisNwbfile().build(...) context-manager shape as the recommended alternative — does not let 'I don't want to deal with AnalysisNwbfile' override the design contract",
+      "passed": false,
+      "evidence": "Shows the older interleaved `AnalysisNwbfile().create(...)` → `pynwb.NWBHDF5IO` → `AnalysisNwbfile().add(...)` path (steps 2–5 of section 'I don't want to deal with the plumbing'). Doesn't surface `build()` context manager."
+    }
+  ]
+}

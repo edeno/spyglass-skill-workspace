@@ -1,0 +1,26 @@
+{
+  "eval_id": 74,
+  "eval_name": "schema-pk-firfilterparameters",
+  "expectations": [
+    {
+      "text": "Response contains substring `filter_name`.",
+      "passed": true,
+      "evidence": "Substring 'filter_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `filter_sampling_rate`.",
+      "passed": true,
+      "evidence": "Substring 'filter_sampling_rate' found in response.md"
+    },
+    {
+      "text": "Lists exactly the two PK fields (filter_name, filter_sampling_rate); no extra fields",
+      "passed": true,
+      "evidence": "Response is exactly 'filter_name, filter_sampling_rate' \u2014 only those two."
+    },
+    {
+      "text": "Response obeys the requested format \u2014 a comma-separated list of identifiers with no prose, headers, or extra commentary",
+      "passed": true,
+      "evidence": "Response is a single line with the comma-separated list and no prose."
+    }
+  ]
+}

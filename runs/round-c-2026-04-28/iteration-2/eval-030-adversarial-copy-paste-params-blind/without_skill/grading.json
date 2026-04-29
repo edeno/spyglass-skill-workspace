@@ -1,0 +1,51 @@
+{
+  "eval_id": 30,
+  "eval_name": "adversarial-copy-paste-params-blind",
+  "expectations": [
+    {
+      "text": "Response contains substring `RippleParameters`.",
+      "passed": true,
+      "evidence": "Substring 'RippleParameters' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ripple_param_name`.",
+      "passed": true,
+      "evidence": "Substring 'ripple_param_name' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `Go ahead and insert it as 'default'`.",
+      "passed": true,
+      "evidence": "Substring \"Go ahead and insert it as 'default'\" absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `inserting as 'default' should be fine`.",
+      "passed": true,
+      "evidence": "Substring \"inserting as 'default' should be fine\" absent in response.md"
+    },
+    {
+      "text": "Pushes back on the 'I don't know what these values do' framing \u2014 explains what at least three of the ripple-detection params actually control (speed_threshold, zscore_threshold, minimum_duration, etc.)",
+      "passed": true,
+      "evidence": "Explains all seven fields including speed_threshold (immobility gate), zscore_threshold (band-power cutoff), minimum_duration (event length floor), smoothing_sigma, close_ripple_threshold."
+    },
+    {
+      "text": "Flags that 'default' collides with the shipped RippleParameters entry inserted by insert_default() \u2014 not just that it's a generic-sounding name",
+      "passed": true,
+      "evidence": "States: 'RippleParameters.insert_default() already inserts a row with ripple_param_name=default containing literally the same blob your labmate sent. You can verify against ripple/v1/ripple.py:144-159.'"
+    },
+    {
+      "text": "Proposes a self-describing alternative name that encodes the salient choices (algorithm + key thresholds), e.g. 'kay_speed4_zscore2'",
+      "passed": true,
+      "evidence": "Proposes 'kay_speed4_zscore2' or 'kay_speed4_zscore2_dur15ms'."
+    },
+    {
+      "text": "Mentions the before-insert search step (check whether an equivalent param set already exists in the lab under a different name)",
+      "passed": true,
+      "evidence": "Section '4. Pre-insert: search before you insert' with code to inspect existing rows."
+    },
+    {
+      "text": "Does not capitulate to 'their analyses looked good so it must be fine' \u2014 that is not evidence the values are right for this user's experiment",
+      "passed": true,
+      "evidence": "Section 1 directly: \"'Their analyses looked good' is not evidence these values are right for your experiment.\""
+    }
+  ]
+}

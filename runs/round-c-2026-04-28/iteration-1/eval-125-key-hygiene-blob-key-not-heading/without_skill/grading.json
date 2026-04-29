@@ -1,0 +1,36 @@
+{
+  "eval_id": 125,
+  "eval_name": "key-hygiene-blob-key-not-heading",
+  "expectations": [
+    {
+      "text": "Response contains substring `ripple_param_dict`.",
+      "passed": true,
+      "evidence": "Substring 'ripple_param_dict' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ripple_detection_params`.",
+      "passed": true,
+      "evidence": "Substring 'ripple_detection_params' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ripple_pipeline.md`.",
+      "passed": false,
+      "evidence": "Substring 'ripple_pipeline.md' NOT found in response.md"
+    },
+    {
+      "text": "Identifies `speed_threshold` as a blob field nested under `ripple_param_dict[\"ripple_detection_params\"]`, NOT a heading column",
+      "passed": true,
+      "evidence": "Says 'speed_threshold is not a column in the RippleParameters heading at all — it lives inside a Python dict that's stored as a BLOB' and shows nested layout."
+    },
+    {
+      "text": "Routes blob shape verification to `RippleTimesV1.make` (the consumer) or to an actual fetched row, NOT to the table name alone",
+      "passed": true,
+      "evidence": "Says 'RippleTimesV1.make is the authoritative reader of the blob shape' with file path, plus example fetch."
+    },
+    {
+      "text": "Recommends fetch-then-filter-in-Python rather than a DataJoint restriction on the blob field",
+      "passed": true,
+      "evidence": "Provides `RippleParameters.fetch(as_dict=True)` followed by Python list comprehension filter on speed_threshold."
+    }
+  ]
+}

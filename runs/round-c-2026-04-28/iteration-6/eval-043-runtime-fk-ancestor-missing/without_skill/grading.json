@@ -1,0 +1,37 @@
+{
+  "eval_id": 43,
+  "eval_name": "runtime-fk-ancestor-missing",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (find_insert_fail, parents(as_objects=True), IntervalList, LabTeam, Raw, SortGroup, SpikeSortingPreprocessingParameters, SpikeSortingRecordingSelection).",
+      "passed": true,
+      "evidence": "All required substrings present in response.md."
+    },
+    {
+      "text": "Response does not contain forbidden substring `must be a typo in the key`.",
+      "passed": true,
+      "evidence": "Forbidden substring absent. Response actively dismisses 'must be a typo in the key' as a bad strategy in the framing."
+    },
+    {
+      "text": "Uses find_insert_fail(key) as the primary diagnostic, not guessing the missing parent",
+      "passed": true,
+      "evidence": "'First: use the SpyglassMixin diagnostic' — `SpikeSortingRecordingSelection().find_insert_fail(key)` shown as the primary check."
+    },
+    {
+      "text": "Names the concrete FK parents (Raw, SortGroup, IntervalList, SpikeSortingPreprocessingParameters, LabTeam)",
+      "passed": true,
+      "evidence": "All five FK parents enumerated in 'The concrete FK parents for this Selection' section with their sub-keys."
+    },
+    {
+      "text": "Identifies sort_02_r1 as a likely missing IntervalList row but as hypothesis to confirm",
+      "passed": true,
+      "evidence": "'sort_02_r1 looks like a custom sort interval ... It is very common to assume that ... it's automatically in the database — it isn't' framed as 'Most likely candidate (a hypothesis to confirm with the diagnostic)' and 'don't take my word for which one is missing — let find_insert_fail tell you'."
+    },
+    {
+      "text": "Does not assume this is a spyglass bug",
+      "passed": true,
+      "evidence": "'This is the expected workflow, not a Spyglass bug; the FK constraint is doing its job.'"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "eval_id": 5,
+  "eval_name": "merge-delete-classmethod-discard",
+  "stage": "common-mistakes",
+  "tier": "baseline",
+  "difficulty": "medium",
+  "prompt": "I inserted a bad position entry (the tracking was corrupted on that session) and I'm trying to delete just that one merge_id from PositionOutput. I did `merge_key = PositionOutput.merge_get_part({'nwb_file_name': 'j1620210710_.nwb', 'interval_list_name': '02_r1'}).fetch1('KEY')` and then `(PositionOutput & merge_key).merge_delete()` — but it's asking me to confirm deletion of like 200 rows? I only want the one.",
+  "assertions": {
+    "required_substrings": [
+      "PositionOutput.merge_delete(merge_key)",
+      "classmethod-restriction-discard"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Explicitly warns the user to NOT confirm the 200-row prompt",
+      "Shows the corrected form with restriction as an argument",
+      "Cites the classmethod-restriction-discard pattern"
+    ]
+  },
+  "expected_output": "Catches the classmethod-restriction-discard (Common Mistake #1). Explains that `merge_delete` is a classmethod with `restriction=True` default, so `(PositionOutput & merge_key).merge_delete()` dispatches to the class and drops the `& merge_key`. Fix: `PositionOutput.merge_delete(merge_key)`. Shows the paired inspect-before-destroy pattern from destructive_operations.md. STRONGLY warns the user NOT to confirm the 200-row deletion, since that cascade is not what they asked for."
+}

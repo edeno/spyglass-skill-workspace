@@ -1,0 +1,56 @@
+{
+  "eval_id": 35,
+  "eval_name": "merge-empty-list-ambiguity",
+  "expectations": [
+    {
+      "text": "Response contains substring `PositionOutput.CommonPos`.",
+      "passed": true,
+      "evidence": "Substring 'PositionOutput.CommonPos' found in response.md"
+    },
+    {
+      "text": "Response contains substring `merge_get_part`.",
+      "passed": true,
+      "evidence": "Substring 'merge_get_part' found in response.md"
+    },
+    {
+      "text": "Response contains substring `_merge_insert`.",
+      "passed": true,
+      "evidence": "Substring '_merge_insert' found in response.md"
+    },
+    {
+      "text": "Response contains substring `IntervalPositionInfo`.",
+      "passed": true,
+      "evidence": "Substring 'IntervalPositionInfo' found in response.md"
+    },
+    {
+      "text": "Response contains substring `TrodesPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'TrodesPosV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DLCPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'DLCPosV1' found in response.md"
+    },
+    {
+      "text": "Decodes the error correctly — 'Found 0 potential parts: []' means zero source-table rows mapped to a merge-part-table row, not 'multiple'",
+      "passed": true,
+      "evidence": "Says 'Your case is the too few case' and 'It does not mean I found multiple ambiguous matches and gave up.'"
+    },
+    {
+      "text": "Gives the `len(part & restriction)` diagnostic to confirm zero-in-merge-part",
+      "passed": true,
+      "evidence": "Shows `len(PositionOutput.CommonPos & restriction)` returning 0 vs `len(IntervalPositionInfo & restriction) > 0`."
+    },
+    {
+      "text": "Identifies the missing merge-insert step as the root cause",
+      "passed": true,
+      "evidence": "States 'having rows in IntervalPositionInfo does not by itself give you rows in PositionOutput.CommonPos. The merge part table is downstream of the source; somebody (or some make()) has to actively insert into it.'"
+    },
+    {
+      "text": "Correctly states that `IntervalPositionInfo`'s `make` method does NOT auto-insert into `PositionOutput.CommonPos` — so populating IntervalPositionInfo alone won't fix it; the user must also call `PositionOutput._merge_insert(rows, part_name='CommonPos')` explicitly. (Contrast: `TrodesPosV1`'s `make` and `DLCPosV1`'s `make` DO auto-insert into their respective PositionOutput parts.) Does NOT claim that `IntervalPositionInfo.populate(...)` alone fills the merge, and does NOT suggest `PositionOutput.insert(...)` on the master.",
+      "passed": true,
+      "evidence": "Contrasts TrodesPosV1.make() and DLCPosV1.make() (auto-insert) with IntervalPositionInfo.make() ('does not do this'); fix is `PositionOutput._merge_insert(rows, part_name='CommonPos')`; explicitly warns 'Don't call PositionOutput.insert(...) directly on the master' and 'Don't assume I just need to IntervalPositionInfo.populate(...) again.'"
+    }
+  ]
+}

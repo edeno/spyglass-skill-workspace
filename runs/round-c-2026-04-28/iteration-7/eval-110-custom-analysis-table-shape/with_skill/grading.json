@@ -1,0 +1,57 @@
+{
+  "eval_id": 110,
+  "eval_name": "custom-analysis-table-shape",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'AnalysisNwbfile'",
+      "passed": true,
+      "evidence": "found — 'AnalysisNwbfile'"
+    },
+    {
+      "text": "required_substring: 'SpyglassMixin'",
+      "passed": true,
+      "evidence": "found — 'SpyglassMixin'"
+    },
+    {
+      "text": "required_substring: '_object_id'",
+      "passed": true,
+      "evidence": "found — '_object_id'"
+    },
+    {
+      "text": "required_substring: 'dj.Computed'",
+      "passed": true,
+      "evidence": "found — 'dj.Computed'"
+    },
+    {
+      "text": "forbidden_substring: 'correlations: longblob'",
+      "passed": true,
+      "evidence": "absent — 'correlations: longblob'"
+    },
+    {
+      "text": "forbidden_substring: 'correlations : longblob'",
+      "passed": true,
+      "evidence": "absent — 'correlations : longblob'"
+    },
+    {
+      "text": "behavioral_check: Recommends writing the correlation matrix to an `AnalysisNwbfile` and storing only an `*_object_id` (varchar(40)) plus `analysis_file_name` reference in the DJ row — does NOT store the matrix as a `longblob` / `blob` column",
+      "passed": true,
+      "evidence": "Computed table definition stores `-> AnalysisNwbfile`, `ccg_object_id: varchar(40)`, etc. Explicitly: 'too big for a DataJoint blob column. The DJ row stores only file name + object ids.'"
+    },
+    {
+      "text": "behavioral_check: Names the SpyglassMixin-first MRO requirement (`class X(SpyglassMixin, dj.Computed)`) as a non-negotiable — the validator pins this with a regression fixture",
+      "passed": true,
+      "evidence": "'SpyglassMixin first in MRO, with SpyglassMixinPart for the part table (Non-Negotiable #1).' All schema classes use the SpyglassMixin-first form."
+    },
+    {
+      "text": "behavioral_check: Cites the non-negotiable that tables reference exactly ONE AnalysisNwbfile table (Spyglass validates on declaration); the row carries the file name + object IDs, not the heavy array itself",
+      "passed": true,
+      "evidence": "'Output goes to AnalysisNwbfile (Non-Negotiable #4)... The DJ row stores only file name + object ids.' One `-> AnalysisNwbfile` reference per table."
+    },
+    {
+      "text": "behavioral_check: Uses the `AnalysisNwbfile().build(nwb_file_name)` context manager for the create -> add -> register lifecycle, OR an equivalent atomic shape — does not interleave separate `create()` / `add_nwb_object()` / `add()` calls",
+      "passed": true,
+      "evidence": "make() uses `with AnalysisNwbfile().build(nwb_file_name) as builder: ...` and inside calls `builder.add_nwb_object(...)`. No separate create/add interleaving."
+    }
+  ]
+}

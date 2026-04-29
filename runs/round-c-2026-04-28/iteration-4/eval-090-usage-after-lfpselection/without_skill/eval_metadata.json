@@ -1,0 +1,19 @@
+{
+  "eval_id": 90,
+  "eval_name": "usage-after-lfpselection",
+  "prompt": "I have an `LFPSelection` row in front of me — I just inserted it. What's the next thing I'd do with it?",
+  "stage": "pipeline-usage",
+  "tier": "table-usage",
+  "difficulty": "easy",
+  "required_substrings": [
+    "LFPV1.populate",
+    "LFPSelection"
+  ],
+  "forbidden_substrings": [
+    "LFPSelection.populate"
+  ],
+  "behavioral_checks": [
+    "Names the next-step operation as `LFPV1.populate(key)` — not just 'populate' or 'populate the table' generically",
+    "Identifies LFPV1 as the paired Computed table that consumes LFPSelection rows"
+  ]
+}

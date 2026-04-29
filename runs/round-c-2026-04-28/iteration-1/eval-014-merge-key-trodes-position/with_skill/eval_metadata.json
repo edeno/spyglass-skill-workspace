@@ -1,0 +1,24 @@
+{
+  "eval_id": 14,
+  "eval_name": "merge-key-trodes-position",
+  "stage": "pipeline-usage",
+  "tier": "merge-key-discovery",
+  "difficulty": "medium",
+  "prompt": "Find the merge_id for Trodes position on session j1620210710_, interval 02_r1, params `default`.",
+  "assertions": {
+    "required_substrings": [
+      "merge_get_part",
+      "fetch1(",
+      "PositionOutput"
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Calls `merge_get_part` as a classmethod (`PositionOutput.merge_get_part(...)`), not on a restricted relation",
+      "Retrieves the merge key via `fetch1('merge_id')` (the scalar the prompt asks for) OR `fetch1('KEY')` (the full PK dict, also acceptable) — not a `.fetch()` list of merge_ids"
+    ],
+    "required_substrings_exempt": [
+      "fetch1("
+    ]
+  },
+  "expected_output": "Either form is correct — the prompt asks for `merge_id` so the scalar form is the most direct answer; `'KEY'` returns the full PK dict, which on a merge master is just `{'merge_id': ...}` (`PositionOutput`'s master PK is literally `merge_id`).\n\n```python\nPositionOutput.merge_get_part({\n    'nwb_file_name': 'j1620210710_.nwb',\n    'interval_list_name': '02_r1',\n    'trodes_pos_params_name': 'default',\n}).fetch1('merge_id')   # scalar UUID — directly answers the prompt\n# or equivalently:\n# .fetch1('KEY')         # returns {'merge_id': ...} — useful when you want a key\n#                         that downstream merge-aware helpers can consume\n```\n\nConfirms `len == 1` before `fetch1` if there's any doubt about uniqueness."
+}

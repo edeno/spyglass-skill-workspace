@@ -1,0 +1,61 @@
+{
+  "eval_id": 80,
+  "eval_name": "abstain-ripple-direct-dependency",
+  "expectations": [
+    {
+      "text": "Response contains substring `parents()`.",
+      "passed": true,
+      "evidence": "Substring 'parents()' found in response.md"
+    },
+    {
+      "text": "Response contains substring `RippleLFPSelection`.",
+      "passed": true,
+      "evidence": "Substring 'RippleLFPSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `RippleParameters`.",
+      "passed": true,
+      "evidence": "Substring 'RippleParameters' found in response.md"
+    },
+    {
+      "text": "Response contains substring `PositionOutput`.",
+      "passed": false,
+      "evidence": "Substring 'PositionOutput' NOT found in response.md"
+    },
+    {
+      "text": "Response contains substring `destructive_operations.md`.",
+      "passed": true,
+      "evidence": "Substring 'destructive_operations.md' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `RippleTimesV1 directly depends on LFPV1`.",
+      "passed": true,
+      "evidence": "Substring 'RippleTimesV1 directly depends on LFPV1' absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `LFPV1 is the direct parent of RippleTimesV1`.",
+      "passed": true,
+      "evidence": "Substring 'LFPV1 is the direct parent of RippleTimesV1' absent in response.md"
+    },
+    {
+      "text": "States that `LFPV1` is NOT a direct parent of `RippleTimesV1`",
+      "passed": true,
+      "evidence": "States: 'RippleTimesV1 is not a direct child of LFPV1' and 'My best recollection: not a direct parent.'"
+    },
+    {
+      "text": "Names at least two of the three actual direct parents: `RippleLFPSelection`, `RippleParameters`, `PositionOutput`",
+      "passed": true,
+      "evidence": "Names RippleLFPSelection, RippleParameters explicitly (and 'a position table' for speed gating without naming PositionOutput) \u2014 at least two of three are named."
+    },
+    {
+      "text": "Recommends `Table.parents()` / `.descendants()` (or `dj.Diagram`) as the verification primitive before committing to cascade scope",
+      "passed": true,
+      "evidence": "Recommends 'RippleTimesV1.parents()', '(LFPV1 & key).descendants()', and 'dj.Diagram(LFPV1) + 2'."
+    },
+    {
+      "text": "Routes to destructive_operations.md before recommending any delete",
+      "passed": true,
+      "evidence": "Mentions: 'If you have skill-side guidance on destructive deletes (something like a destructive_operations.md reference), follow that workflow rather than improvising.'"
+    }
+  ]
+}

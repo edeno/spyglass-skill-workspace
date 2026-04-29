@@ -1,0 +1,19 @@
+{
+  "eval_id": 55,
+  "eval_name": "classify-positionoutput-merge",
+  "prompt": "What kind of table is `PositionOutput`? It doesn't have a `populate()` and I can't figure out how a row gets in there.",
+  "stage": "table-understanding",
+  "tier": "table-classification",
+  "difficulty": "medium",
+  "required_substrings": [
+    "merge table",
+    "PositionOutput.TrodesPosV1",
+    "PositionOutput.DLCPosV1"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Explains that rows enter PositionOutput via insert into a part table (PositionOutput.TrodesPosV1 or PositionOutput.DLCPosV1), not via populate()",
+    "Names at least one valid downstream consumer pattern (e.g., merge_get_part(key).fetch1('KEY'))",
+    "Does not recommend PositionOutput.populate() or populate(PositionOutput, ...) as the entry point — explicitly contrasts with how rows actually arrive (insert into a part table)"
+  ]
+}

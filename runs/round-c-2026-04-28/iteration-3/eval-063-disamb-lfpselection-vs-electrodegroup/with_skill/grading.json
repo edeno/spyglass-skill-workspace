@@ -1,0 +1,31 @@
+{
+  "eval_id": 63,
+  "eval_name": "disamb-lfpselection-vs-electrodegroup",
+  "expectations": [
+    {
+      "text": "Response contains substring `create_lfp_electrode_group`.",
+      "passed": true,
+      "evidence": "Substring 'create_lfp_electrode_group' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPElectrodeGroup.LFPElectrode`.",
+      "passed": true,
+      "evidence": "Substring 'LFPElectrodeGroup.LFPElectrode' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPSelection.insert1`.",
+      "passed": true,
+      "evidence": "Substring 'LFPSelection.insert1' found in response.md"
+    },
+    {
+      "text": "Establishes ordering: electrode group must exist before LFPSelection.insert1 can succeed",
+      "passed": true,
+      "evidence": "Opens with 'LFPElectrodeGroup must exist before you can LFPSelection.insert1' and explains the FK error if the group is missing."
+    },
+    {
+      "text": "Explains the group is a reusable electrode bundle while the selection picks group + interval + filter for one populate run",
+      "passed": true,
+      "evidence": "'LFPElectrodeGroup = which channels (a reusable electrode bundle) ... LFPSelection = which channels × which time interval × which filter × which output rate (one row per populate run)'."
+    }
+  ]
+}

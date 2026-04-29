@@ -1,0 +1,31 @@
+{
+  "eval_id": 129,
+  "eval_name": "key-hygiene-custom-table-runtime-only",
+  "expectations": [
+    {
+      "text": "Response contains substring `heading.primary_key`.",
+      "passed": true,
+      "evidence": "Substring 'heading.primary_key' found in response.md"
+    },
+    {
+      "text": "States that `code_graph.py` cannot see tables defined outside `$SPYGLASS_SRC`",
+      "passed": true,
+      "evidence": "Says 'Don't search the upstream Spyglass repo for it; by your own description the table isn't there, so any source-graph / repo-grep tool scoped to Spyglass will come up empty.'"
+    },
+    {
+      "text": "Recommends runtime introspection through `db_graph.py` when available to the agent, or `MyLabRipplePostprocess.heading.primary_key` in the user's Python session; otherwise read the custom table's source definition directly",
+      "passed": true,
+      "evidence": "Path 1 recommends `MyLabRipplePostprocess.heading.primary_key`; Path 2 reads the lab package source definition; Path 3 queries the DB directly via `dj.FreeTable`. (Doesn't mention db_graph.py specifically since baseline lacks skill knowledge, but the user-Python and source paths are covered.)"
+    },
+    {
+      "text": "Does NOT guess the PK from the class name or assume it inherits `RippleTimesV1`'s shape",
+      "passed": true,
+      "evidence": "Says 'Don't assume it's identical to RippleTimesV1.primary_key just because it wraps it' and 'do not assume the PK is identical to RippleTimesV1's PK.'"
+    },
+    {
+      "text": "Treats this as a runtime-fact / custom-pipeline question, not a source-graph question",
+      "passed": true,
+      "evidence": "Recommends runtime `.heading.primary_key` first; explicitly says the fact 'is in your lab package and in the live DB, not in spyglass/.'"
+    }
+  ]
+}

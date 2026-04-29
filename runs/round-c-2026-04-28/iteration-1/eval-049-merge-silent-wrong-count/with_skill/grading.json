@@ -1,0 +1,56 @@
+{
+  "eval_id": 49,
+  "eval_name": "merge-silent-wrong-count",
+  "expectations": [
+    {
+      "text": "Response contains substring `merge_restrict`.",
+      "passed": true,
+      "evidence": "Substring 'merge_restrict' found in response.md"
+    },
+    {
+      "text": "Response contains substring `nwb_file_name`.",
+      "passed": true,
+      "evidence": "Substring 'nwb_file_name' found in response.md"
+    },
+    {
+      "text": "Response contains substring `DecodingOutput`.",
+      "passed": true,
+      "evidence": "Substring 'DecodingOutput' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `DB really is that full`.",
+      "passed": true,
+      "evidence": "Substring 'DB really is that full' absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `your DB has 2735`.",
+      "passed": true,
+      "evidence": "Substring 'your DB has 2735' absent in response.md"
+    },
+    {
+      "text": "Identifies that the 2735 is the full table — not the sessions, not a bug in the count",
+      "passed": true,
+      "evidence": "States 'The 2735 is the entire DecodingOutput table' and shows `len(DecodingOutput)` and the single-file restriction both equal 2735."
+    },
+    {
+      "text": "Explains the silent no-op: nwb_file_name is not on the merge master's heading, DataJoint drops it",
+      "passed": true,
+      "evidence": "Says 'DataJoint sees that nwb_file_name is not in the master's heading and silently drops the restriction. No error, no warning'."
+    },
+    {
+      "text": "Shows `merge_restrict` per-file as the correct shape (NOT `merge_get_part`, since the question is about counting not loading)",
+      "passed": true,
+      "evidence": "Provides `sum(len(DecodingOutput.merge_restrict({'nwb_file_name': f})) for f in files)` and warns 'Don't use merge_get_part here — it raises if the matching rows span more than one part/source'."
+    },
+    {
+      "text": "Mentions the five merge masters by name OR at least that this applies to any table with `merge_id` as its PK",
+      "passed": true,
+      "evidence": "Lists 'one of the five Spyglass merge masters (along with SpikeSortingOutput, LFPOutput, PositionOutput, LinearizedPositionOutput)'."
+    },
+    {
+      "text": "Does not propose `merge_get_part` for a counting task (that would raise on multi-source)",
+      "passed": true,
+      "evidence": "Explicitly says 'Don't use merge_get_part here — it raises if the matching rows span more than one part/source'."
+    }
+  ]
+}

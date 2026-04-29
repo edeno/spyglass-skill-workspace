@@ -1,0 +1,20 @@
+{
+  "eval_id": 118,
+  "eval_name": "counterfactual-decoding-bin-size",
+  "prompt": "If I change `DecodingParameters.position_bin_size` from 2 cm to 5 cm, what downstream rows change? I only care about the decoding posterior, not upstream.",
+  "stage": "parameter-understanding",
+  "tier": "counterfactual",
+  "difficulty": "hard",
+  "required_substrings": [
+    "DecodingParameters",
+    "ClusterlessDecodingV1",
+    "ClusterlessDecodingSelection"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Correctly identifies that ONLY the decoding output (`ClusterlessDecodingV1` / `SortedSpikesDecodingV1`) changes — spike sorting and position upstream are unaffected because they don't FK to `DecodingParameters`",
+    "Recommends inserting a NEW `DecodingParameters` row with a different `decoding_param_name` (e.g. `'bin5cm'`) and a fresh `ClusterlessDecodingSelection` + populate, rather than `update1()` on the existing row",
+    "Names the qualitative direction (coarser bins = fewer state bins = faster, lower spatial resolution) without misattributing the change to upstream pipelines",
+    "Notes that `UnitWaveformFeaturesGroup` and `PositionGroup` (referenced by the selection) are untouched — they're FK'd by the SELECTION, not by `DecodingParameters` directly"
+  ]
+}

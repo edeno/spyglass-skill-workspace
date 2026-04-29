@@ -1,0 +1,20 @@
+{
+  "eval_id": 54,
+  "eval_name": "classify-trodesposparams-vs-selection",
+  "prompt": "What's the difference between `TrodesPosParams` and `TrodesPosSelection`? Looking at both, they feel kind of similar and I can't tell which one I'm supposed to insert my parameter dict into.",
+  "stage": "table-understanding",
+  "tier": "table-classification",
+  "difficulty": "medium",
+  "required_substrings": [
+    "insert1",
+    "trodes_pos_params_name",
+    "TrodesPosParams",
+    "TrodesPosSelection"
+  ],
+  "forbidden_substrings": [],
+  "behavioral_checks": [
+    "Identifies TrodesPosParams as the parameter table (named, reusable param dict; insert once per param set)",
+    "Identifies TrodesPosSelection as the selection table (picks session + interval + params name for one populate run)",
+    "Does not claim TrodesPosParams and TrodesPosSelection are the same table or interchangeable"
+  ]
+}

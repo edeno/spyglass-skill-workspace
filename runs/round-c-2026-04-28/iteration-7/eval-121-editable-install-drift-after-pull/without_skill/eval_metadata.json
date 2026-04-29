@@ -1,0 +1,22 @@
+{
+  "eval_id": 121,
+  "eval_name": "editable-install-drift-after-pull",
+  "prompt": "just did `git pull` on my spyglass clone, now `from spyglass.decoding.v1.sorted_spikes import SortedSpikesDecodingV1` raises `ImportError: cannot import name 'SortedSpikesDecodingV1'`. didn't change anything on my end.",
+  "stage": "setup",
+  "tier": "environment-triage",
+  "difficulty": "medium",
+  "required_substrings": [
+    "pip install -e",
+    "editable",
+    "spyglass.__file__"
+  ],
+  "forbidden_substrings": [
+    "pip install spyglass-neuro from PyPI"
+  ],
+  "behavioral_checks": [
+    "Checks `spyglass.__file__` (or `pip show spyglass-neuro` editable status) BEFORE recommending anything destructive — distinguishes Shape A (site-packages shadowing) from Shape B (editable desync after pyproject.toml / setup.cfg bump)",
+    "Notes that a `git pull` that bumps `setup.cfg` / `pyproject.toml` can desync a previously editable install; re-running `pip install -e .` from the checkout refreshes the editable wrapper",
+    "Does NOT recommend `pip install spyglass-neuro` from PyPI as the fix — that creates the site-packages-shadowing problem if the user already had an editable checkout",
+    "Mentions kernel restart for Jupyter when reinstalling — Python caches imports across `pip install` so the running kernel won't pick up the new module otherwise"
+  ]
+}

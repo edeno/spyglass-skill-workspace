@@ -1,0 +1,91 @@
+{
+  "eval_id": 26,
+  "eval_name": "compound-full-session-pipeline",
+  "expectations": [
+    {
+      "text": "Response contains substring `insert_sessions`.",
+      "passed": true,
+      "evidence": "Substring 'insert_sessions' found in response.md"
+    },
+    {
+      "text": "Response contains substring `TrodesPosV1`.",
+      "passed": true,
+      "evidence": "Substring 'TrodesPosV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPV1`.",
+      "passed": true,
+      "evidence": "Substring 'LFPV1' found in response.md"
+    },
+    {
+      "text": "Response contains substring `05_Export`.",
+      "passed": true,
+      "evidence": "Substring '05_Export' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPElectrodeGroup`.",
+      "passed": true,
+      "evidence": "Substring 'LFPElectrodeGroup' found in response.md"
+    },
+    {
+      "text": "Response contains substring `Raw`.",
+      "passed": true,
+      "evidence": "Substring 'Raw' found in response.md"
+    },
+    {
+      "text": "Response contains substring `IntervalList`.",
+      "passed": true,
+      "evidence": "Substring 'IntervalList' found in response.md"
+    },
+    {
+      "text": "Response contains substring `FirFilterParameters`.",
+      "passed": true,
+      "evidence": "Substring 'FirFilterParameters' found in response.md"
+    },
+    {
+      "text": "Response contains substring `LFPSelection`.",
+      "passed": true,
+      "evidence": "Substring 'LFPSelection' found in response.md"
+    },
+    {
+      "text": "Response contains substring `TrodesPosParams`.",
+      "passed": true,
+      "evidence": "Substring 'TrodesPosParams' found in response.md"
+    },
+    {
+      "text": "Response contains substring `TrodesPosSelection`.",
+      "passed": true,
+      "evidence": "Substring 'TrodesPosSelection' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `j1620210710_.nwb').populate`.",
+      "passed": true,
+      "evidence": "Substring \"j1620210710_.nwb').populate\" absent in response.md"
+    },
+    {
+      "text": "Uses raw filename (no underscore) for insert_sessions",
+      "passed": true,
+      "evidence": "`insert_sessions('j1620210710.nwb')` (no underscore); explanatory comment 'Use the raw filename WITHOUT a trailing underscore'."
+    },
+    {
+      "text": "Walks through all four phases in order (ingest \u2192 position \u2192 LFP \u2192 export)",
+      "passed": true,
+      "evidence": "Phases 1 (Ingest), 2 (Trodes position), 3 (LFP sleep), 4 (Export) \u2014 in order."
+    },
+    {
+      "text": "Flags user-choice points (which electrodes, which interval/epoch, which params \u2014 and notably that '02_r1' is a run epoch while the user asked for LFP on the 'sleep epoch', so a separate interval must be picked for LFP)",
+      "passed": true,
+      "evidence": "Top caveat 'sleep epoch is a different interval from 02_r1'; >> CHOOSE markers throughout for electrodes, interval, group_name."
+    },
+    {
+      "text": "For the LFP step, pairs `filter_name='LFP 0-400 Hz'` with a `filter_sampling_rate` that MATCHES the Raw data's sampling rate \u2014 stock filters are registered in `FirFilterParameters` at fs=20000 and fs=30000 only (see `src/spyglass/common/common_filter.py`). The match is by equality (filter lookup), not by a Nyquist inequality. `target_sampling_rate` has schema default 1000 Hz (`src/spyglass/lfp/v1/lfp.py:40`) and need not be set explicitly. A response that invents a `filter_sampling_rate` not registered in FirFilterParameters, or claims the filter works at any `fs > 800 Hz`, is a miss.",
+      "passed": true,
+      "evidence": "Says 'stock Spyglass filters are registered in FirFilterParameters only at fs=20000 and fs=30000. It's a lookup, not a Nyquist check'; uses `filter_sampling_rate=int(raw_fs)` and notes target_sampling_rate default 1000 Hz."
+    },
+    {
+      "text": "For the LFP step, uses the v1 electrode-selection surface: `LFPElectrodeGroup.create_lfp_electrode_group(...)` (at `src/spyglass/lfp/lfp_electrode.py:29`) followed by `LFPSelection.insert1`. Does NOT suggest `set_lfp_electrodes()` \u2014 that is the v0 API on `common_ephys.LFPSelection` and has no v1 equivalent on the LFP v1 tables.",
+      "passed": true,
+      "evidence": "Uses `LFPElectrodeGroup.create_lfp_electrode_group` then `LFPSelection.insert1`; explicit 'NOT the v0 set_lfp_electrodes() method on common_ephys.LFPSelection'."
+    }
+  ]
+}

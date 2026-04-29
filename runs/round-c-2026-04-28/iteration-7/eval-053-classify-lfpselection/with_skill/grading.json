@@ -1,0 +1,47 @@
+{
+  "eval_id": 53,
+  "eval_name": "classify-lfpselection",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "required_substring: 'selection table'",
+      "passed": true,
+      "evidence": "found — 'selection table'"
+    },
+    {
+      "text": "required_substring: 'filter_name'",
+      "passed": true,
+      "evidence": "found — 'filter_name'"
+    },
+    {
+      "text": "required_substring: 'lfp_electrode_group_name'",
+      "passed": true,
+      "evidence": "found — 'lfp_electrode_group_name'"
+    },
+    {
+      "text": "required_substring: 'LFPSelection'",
+      "passed": true,
+      "evidence": "found — 'LFPSelection'"
+    },
+    {
+      "text": "required_substring: 'LFPV1'",
+      "passed": true,
+      "evidence": "found — 'LFPV1'"
+    },
+    {
+      "text": "behavioral_check: Distinguishes DataJoint tier (Manual) from Spyglass role (selection table — picks input for the paired Computed table)",
+      "passed": true,
+      "evidence": "Opens with 'DataJoint tier: Manual table' AND 'Spyglass role: Selection table (not a parameter table)' as two separate axes."
+    },
+    {
+      "text": "behavioral_check: Names LFPV1 as the Computed counterpart whose populate() consumes LFPSelection rows",
+      "passed": true,
+      "evidence": "'insert a key into LFPSelection, then call LFPV1.populate(key) to fill the corresponding Computed downstream row.' Table at end shows LFPV1 row as 'Output of populate() from LFPSelection'."
+    },
+    {
+      "text": "behavioral_check: Does not classify LFPSelection itself as Computed, Lookup, or Imported (LFPSelection is Manual; LFPV1 is the Computed counterpart, but the question is about LFPSelection)",
+      "passed": true,
+      "evidence": "LFPSelection is consistently classified as Manual (selection role); LFPV1 / others are clearly delineated as separate."
+    }
+  ]
+}

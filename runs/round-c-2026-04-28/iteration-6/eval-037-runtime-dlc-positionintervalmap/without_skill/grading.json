@@ -1,0 +1,42 @@
+{
+  "eval_id": 37,
+  "eval_name": "runtime-dlc-positionintervalmap",
+  "overall_passed": true,
+  "expectations": [
+    {
+      "text": "Response contains required substrings (PositionIntervalMap, convert_epoch_interval_name_to_position_interval_name, interval_list_name, PositionSource, RawPosition, IntervalList).",
+      "passed": true,
+      "evidence": "All required substrings present throughout response.md."
+    },
+    {
+      "text": "Notes that DLCPoseEstimation's make() already calls convert_epoch... with populate_missing=True",
+      "passed": true,
+      "evidence": "'Note that DLCPoseEstimation's make() already calls convert_epoch_interval_name_to_position_interval_name(..., populate_missing=True) under the hood, so the once-common advice ... doesn't help here'."
+    },
+    {
+      "text": "Restricts PositionIntervalMap by nwb_file_name + interval_list_name, NOT by epoch",
+      "passed": true,
+      "evidence": "'Restrict by the table's actual primary key — nwb_file_name and interval_list_name, which it inherits from IntervalList. The key is not epoch.'"
+    },
+    {
+      "text": "Walks at least three diagnostic layers",
+      "passed": true,
+      "evidence": "Three numbered diagnostic layers: 1 PositionIntervalMap inspection, 2 PositionSource/RawPosition/IntervalList check, 3 TaskEpoch ↔ IntervalList alignment."
+    },
+    {
+      "text": "Frames PositionSource / RawPosition as prerequisites, NOT as tables PositionIntervalMap queries directly",
+      "passed": true,
+      "evidence": "'PositionIntervalMap's make() doesn't query RawPosition directly. It walks IntervalList rows whose names are recognized as position-interval names ... check the upstreams as prerequisites — they're what put the recognizable interval rows on IntervalList during ingest'."
+    },
+    {
+      "text": "Treats empty/null PositionIntervalMap as a data-shape problem, not a populate_missing problem",
+      "passed": true,
+      "evidence": "'In the first two cases, the data shape is the problem; you can't fix it by re-running DLCPosV1.populate' and converter-rerun advice 'doesn't help here — that code path has already run'."
+    },
+    {
+      "text": "Does not tell user to re-run DLCPosV1.populate without first confirming upstream gap",
+      "passed": true,
+      "evidence": "Section 'Why just re-run DLCPosV1.populate is the wrong move': 'IndexError isn't transient ... Fix the upstream first ... then retry'."
+    }
+  ]
+}

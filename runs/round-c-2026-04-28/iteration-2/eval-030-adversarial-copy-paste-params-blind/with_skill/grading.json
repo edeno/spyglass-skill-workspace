@@ -1,0 +1,51 @@
+{
+  "eval_id": 30,
+  "eval_name": "adversarial-copy-paste-params-blind",
+  "expectations": [
+    {
+      "text": "Response contains substring `RippleParameters`.",
+      "passed": true,
+      "evidence": "Substring 'RippleParameters' found in response.md"
+    },
+    {
+      "text": "Response contains substring `ripple_param_name`.",
+      "passed": true,
+      "evidence": "Substring 'ripple_param_name' found in response.md"
+    },
+    {
+      "text": "Response does not contain substring `Go ahead and insert it as 'default'`.",
+      "passed": true,
+      "evidence": "Substring \"Go ahead and insert it as 'default'\" absent in response.md"
+    },
+    {
+      "text": "Response does not contain substring `inserting as 'default' should be fine`.",
+      "passed": true,
+      "evidence": "Substring \"inserting as 'default' should be fine\" absent in response.md"
+    },
+    {
+      "text": "Pushes back on the 'I don't know what these values do' framing \u2014 explains what at least three of the ripple-detection params actually control (speed_threshold, zscore_threshold, minimum_duration, etc.)",
+      "passed": true,
+      "evidence": "Provides a full table explaining speed_name, ripple_detection_algorithm, speed_threshold, zscore_threshold, minimum_duration, smoothing_sigma, close_ripple_threshold."
+    },
+    {
+      "text": "Flags that 'default' collides with the shipped RippleParameters entry inserted by insert_default() \u2014 not just that it's a generic-sounding name",
+      "passed": true,
+      "evidence": "States: 'RippleParameters().insert_default() ships two pre-populated rows with ripple_param_name=default and default_trodes. The default row has literally the same dict as what your labmate sent you.'"
+    },
+    {
+      "text": "Proposes a self-describing alternative name that encodes the salient choices (algorithm + key thresholds), e.g. 'kay_speed4_zscore2'",
+      "passed": true,
+      "evidence": "Proposes: \"ripple_param_name = 'kay_speed4_zscore2'\" with explanation that it 'encodes detector + the two thresholds you'd change first'."
+    },
+    {
+      "text": "Mentions the before-insert search step (check whether an equivalent param set already exists in the lab under a different name)",
+      "passed": true,
+      "evidence": "Section 'Before you insert, do a content-level search' with code that compares incoming dict to existing rows."
+    },
+    {
+      "text": "Does not capitulate to 'their analyses looked good so it must be fine' \u2014 that is not evidence the values are right for this user's experiment",
+      "passed": true,
+      "evidence": "Pushes back: \"'Their analyses looked good' is not evidence that these values are right for your experiment. Different rats, different recording rigs...\""
+    }
+  ]
+}

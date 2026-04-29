@@ -1,0 +1,24 @@
+{
+  "eval_id": 12,
+  "eval_name": "atomic-count-electrodes",
+  "stage": "pipeline-usage",
+  "tier": "atomic-read",
+  "difficulty": "easy",
+  "prompt": "How many Electrode rows does j1620210710_ have?",
+  "assertions": {
+    "required_substrings": [
+      "Electrode",
+      "len("
+    ],
+    "forbidden_substrings": [],
+    "behavioral_checks": [
+      "Uses len(relation) to count without fetching all rows",
+      "Does not fetch the full Electrode set just to take its length",
+      "Bonus: notes that each Electrode row is one recording contact (keyed by electrode_id within an ElectrodeGroup), so the count returns total contacts — not tetrodes/shanks/ElectrodeGroups (e.g., a 32-tetrode session yields 128 Electrode rows, not 32)"
+    ],
+    "required_substrings_exempt": [
+      "len("
+    ]
+  },
+  "expected_output": "`len(Electrode & {'nwb_file_name': 'j1620210710_.nwb'})` — use `len()` on the restricted relation rather than fetching all rows just to count."
+}
