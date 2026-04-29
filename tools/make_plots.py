@@ -1773,6 +1773,44 @@ def write_top_skill_wins_csv(
 # ---------------------------------------------------------------------------
 
 
+def _classify_eval_failure_mode(batch: int, eval_id: int) -> str:
+    """Inspect with_skill grading.json to label a failed eval's dominant failure mode.
+
+    Returns one of:
+    - "rubric"   — most failed expectations are required_substring /
+                   forbidden_substring (literal-token strictness)
+    - "content"  — most failed expectations are behavioral_check
+                   (LLM-judge said the answer's substance was wrong)
+    - "mixed"    — even split or grading.json missing
+    The label is heuristic, not a verdict — use it to filter, not to grade.
+    """
+    for d in (WORKSPACE / f"iteration-{batch}").glob(f"eval-{eval_id:03d}-*"):
+        gp = d / "with_skill" / "grading.json"
+        if not gp.is_file():
+            continue
+        try:
+            grading = json.loads(gp.read_text())
+        except (json.JSONDecodeError, OSError):
+            continue
+        n_subs = n_beh = 0
+        for e in grading.get("expectations", []):
+            if e.get("passed"):
+                continue
+            text = e.get("text", "")
+            if text.startswith(("required_substring:", "forbidden_substring:")):
+                n_subs += 1
+            elif text.startswith("behavioral_check:"):
+                n_beh += 1
+        if n_subs == 0 and n_beh == 0:
+            return "mixed"
+        if n_subs > n_beh:
+            return "rubric"
+        if n_beh > n_subs:
+            return "content"
+        return "mixed"
+    return "mixed"
+
+
 def write_reference_effectiveness_csv(
     records: list[dict] | None, per_eval: list[dict]
 ) -> None:
@@ -1780,11 +1818,18 @@ def write_reference_effectiveness_csv(
 
     Distinguishes "reference exists but is ineffective" (loaded but eval still
     failed) from "reference not discovered" (eval failed AND ref not loaded).
+
+    The `failed_modes` column (n_rubric / n_content / n_mixed) deflates apparent
+    weakness: a reference flagged as "low pass rate" may simply be loaded by
+    evals whose rubrics rely on literal substrings the agent didn't happen to
+    cite. Use `failed_modes` to separate "needs reference content fix" (high
+    n_content) from "rubric strictness made the ref look weak" (high n_rubric).
     """
     if records is None:
         return
     pass_by_eval: dict[int, bool] = {r["eval_id"]: bool(r["ws_pass"]) for r in per_eval}
     name_by_eval: dict[int, str] = {r["eval_id"]: r["eval_name"] for r in per_eval}
+    batch_by_eval: dict[int, int] = {r["eval_id"]: r["batch"] for r in per_eval}
 
     # ws_loads_by_eval[ref] = set of eval_ids whose ws transcripts opened it.
     ws_loads_by_eval: dict[str, set[int]] = defaultdict(set)
@@ -1794,18 +1839,37 @@ def write_reference_effectiveness_csv(
         for ref in r["ref_opens"]:
             ws_loads_by_eval[ref].add(r["eval_id"])
 
-    rows = ["reference,ws_evals_loaded,ws_pass_when_loaded,ws_fail_when_loaded,pass_rate_when_loaded,failed_evals_sample"]
+    # Cache failure-mode classification — many refs share the same failed evals.
+    failure_mode_cache: dict[int, str] = {}
+
+    def get_mode(eid: int) -> str:
+        if eid not in failure_mode_cache:
+            failure_mode_cache[eid] = _classify_eval_failure_mode(
+                batch_by_eval.get(eid, 0), eid
+            )
+        return failure_mode_cache[eid]
+
+    rows = ["reference,ws_evals_loaded,ws_pass_when_loaded,ws_fail_when_loaded,pass_rate_when_loaded,failed_modes,failed_evals_sample"]
     payload = []
     for ref, eids in ws_loads_by_eval.items():
         passed = sum(1 for eid in eids if pass_by_eval.get(eid, False))
         failed = len(eids) - passed
         rate = 100 * passed / len(eids) if eids else 0.0
-        failed_examples = sorted(
-            (eid for eid in eids if not pass_by_eval.get(eid, False)),
-            key=lambda e: name_by_eval.get(e, ""),
-        )[:5]
-        sample = ";".join(f"{eid}:{name_by_eval.get(eid, '?')}" for eid in failed_examples)
-        rows.append(f"{ref},{len(eids)},{passed},{failed},{rate:.1f},\"{sample}\"")
+        failed_eids = [eid for eid in eids if not pass_by_eval.get(eid, False)]
+        mode_counts = Counter(get_mode(eid) for eid in failed_eids)
+        modes_str = (
+            f"rubric={mode_counts.get('rubric', 0)};"
+            f"content={mode_counts.get('content', 0)};"
+            f"mixed={mode_counts.get('mixed', 0)}"
+        )
+        failed_examples = sorted(failed_eids, key=lambda e: name_by_eval.get(e, ""))[:5]
+        sample = ";".join(
+            f"{eid}:{name_by_eval.get(eid, '?')}[{get_mode(eid)}]"
+            for eid in failed_examples
+        )
+        rows.append(
+            f"{ref},{len(eids)},{passed},{failed},{rate:.1f},{modes_str},\"{sample}\""
+        )
         payload.append((ref, len(eids), passed, failed, rate))
     (OUT / "reference_effectiveness.csv").write_text("\n".join(rows) + "\n")
 
