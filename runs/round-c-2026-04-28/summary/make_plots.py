@@ -19,7 +19,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from collections import defaultdict
+import re
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -93,11 +94,22 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# Resolved at module load (or via main()) — make_plots.py is small enough that
-# this top-level resolution is fine. EVALS_PATH is consumed by load_eval_categories().
-_args = parse_args()
-REPO = find_skill_root(_args.skill_root)
-EVALS_PATH = REPO / "skills" / "spyglass" / "evals" / "evals.json"
+# Resolved by main() (or by configure_skill_root() if a caller imports this
+# module). Module-level resolution would consume the importer's argv and would
+# raise SystemExit if skill-root can't be found, both unfriendly for notebook
+# / test imports.
+EVALS_PATH: Path | None = None
+
+
+def configure_skill_root(skill_root: Path | None = None) -> None:
+    """Resolve the skill repo and set EVALS_PATH. Called from main().
+
+    Importers that want to call individual plot functions can call this
+    directly (passing an explicit path) instead of going through main().
+    """
+    global EVALS_PATH
+    repo = find_skill_root(skill_root)
+    EVALS_PATH = repo / "skills" / "spyglass" / "evals" / "evals.json"
 
 WONG = {
     "ws": "#0072B2",
@@ -130,6 +142,10 @@ def load_benchmarks() -> dict[int, dict]:
 
 def load_eval_categories() -> dict[int, dict[str, str]]:
     """Map eval_id -> {stage, tier, difficulty}."""
+    if EVALS_PATH is None:
+        raise RuntimeError(
+            "EVALS_PATH not set. Call configure_skill_root() (or main()) first."
+        )
     evals = json.loads(EVALS_PATH.read_text())["evals"]
     return {
         e["id"]: {
@@ -1009,8 +1025,6 @@ def plot_reference_utilization() -> None:
     To refresh the snapshot from a live session, see snapshot_transcripts.py
     in this directory.
     """
-    from collections import Counter, defaultdict
-
     snapshot_dir = OUT / "transcripts_snapshot"
     if not snapshot_dir.exists() or not any(snapshot_dir.iterdir()):
         print(
@@ -1117,8 +1131,6 @@ def _is_script_execution(cmd: str, script: str) -> bool:
     as executions. This prevents a measurement bug where a `grep validate_skill.py
     src.py` was being recorded as an invocation of the validator.
     """
-    import re
-
     # Allow a path prefix before the script, e.g. skills/spyglass/scripts/code_graph.py.
     pat = rf"(?:^|[\s|;&])(?:(?:python3?|bash|sh)\s+\S*{re.escape(script)}|\./\S*{re.escape(script)})\b"
     return re.search(pat, cmd) is not None
@@ -1131,8 +1143,6 @@ def plot_script_utilization() -> None:
     filename — see _is_script_execution), plus Read tool calls that opened the
     script source. Reads from transcripts_snapshot/.
     """
-    from collections import Counter, defaultdict
-
     snapshot_dir = OUT / "transcripts_snapshot"
     if not snapshot_dir.exists() or not any(snapshot_dir.iterdir()):
         print(f"Skipping script utilization plot: snapshot dir empty at {snapshot_dir}")
@@ -1321,6 +1331,8 @@ def write_per_category_csv() -> None:
 
 
 def main() -> None:
+    args = parse_args()
+    configure_skill_root(args.skill_root)
     benchmarks = load_benchmarks()
     plot_per_batch_pass_rate(benchmarks)
     plot_delta_per_batch(benchmarks)
