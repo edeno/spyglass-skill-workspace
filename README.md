@@ -1,8 +1,42 @@
 # spyglass-skill-workspace
 
-Eval sweep artifacts for [edeno/spyglass-skill](https://github.com/edeno/spyglass-skill). Each sweep is a per-run directory under `runs/<run-id>/` with narrative, per-batch grading, an analysis bundle, and (for sweeps that ran on Claude Code) a transcript snapshot. Run-agnostic analysis scripts live at the repo root under `tools/`.
+Eval sweep artifacts for [edeno/spyglass-skill](https://github.com/edeno/spyglass-skill). Each sweep measures whether the Spyglass skill helps an LLM agent answer Spyglass questions correctly — it dispatches each eval prompt twice (with the skill loaded vs without), grades both, and bundles the per-batch artifacts plus a cross-batch narrative under `runs/<run-id>/`. Run-agnostic analysis scripts live at the repo root under `tools/`.
 
 This repo is intentionally separate from `spyglass-skill` because eval sweeps are large (~20 MB / ~1300 files per sweep) and scale with sweep count. Decoupling keeps the skill repo's clone size small while preserving full reproducibility for any sweep.
+
+## Quick start
+
+You're a new user. Pick what you want to do:
+
+**See the round-C results.** Read [`runs/round-c-2026-04-28/summary/SUMMARY.md`](runs/round-c-2026-04-28/summary/SUMMARY.md) — it cites every headline number with links to the figures.
+
+**Cite a number from round-C.** Open [`runs/round-c-2026-04-28/summary/cumulative_summary.json`](runs/round-c-2026-04-28/summary/cumulative_summary.json) for the headline ws/bs/Δ; [`batch_summary.csv`](runs/round-c-2026-04-28/summary/batch_summary.csv) for per-batch numbers; [`top_skill_wins.csv`](runs/round-c-2026-04-28/summary/top_skill_wins.csv) for per-eval Δ rankings; [`transcript_stats.json`](runs/round-c-2026-04-28/summary/transcript_stats.json) for tool-call totals and contamination counts.
+
+**Regenerate figures from scratch.** Clone this repo and `spyglass-skill` as siblings (see "Sibling-clone convention" below), then:
+
+```bash
+uv run --with matplotlib --with numpy python3 tools/make_plots.py \
+    --run runs/round-c-2026-04-28/
+```
+
+All 12 PNGs + 4 CSVs + 3 JSONs regenerate to `runs/round-c-2026-04-28/summary/`.
+
+**Run a fresh sweep (round-D).** See "Adding a new sweep" below for the dispatch → snapshot → analyze → write-up flow.
+
+## Glossary
+
+Terms used throughout SUMMARY.md / BATCHES.md / findings.md:
+
+- **with_skill / ws** vs **without_skill / bs (baseline)** — the two conditions each eval is dispatched under.
+- **eval** — a single prompt + grading rubric in `skills/spyglass/evals/evals.json`.
+- **batch / iteration** — a stratified group of evals dispatched together (round-C had 7 batches of ~14-30 evals each).
+- **expectation** — one rubric criterion that an eval's response must satisfy. Each eval has 5-15 expectations.
+- **behavioral check** — an LLM-judge expectation (vs an exact-substring expectation).
+- **full pass / evals_full_pass** — eval where ALL expectations passed.
+- **expectation pass rate** — fraction of individual expectations that passed (more granular than full pass).
+- **stage / tier / difficulty** — categorical metadata on each eval (`evals.json`); used to slice the results.
+- **transcript** — JSONL log of a single subagent's tool calls during one dispatch. Snapshotted from the live Claude Code session that ran the sweep.
+- **agent_map** — `iteration-N/.agent_map.json` mapping subagent IDs to their (eval_dir, condition); lets the analysis scripts join transcripts back to evals.
 
 ## Layout
 
@@ -105,12 +139,32 @@ See `runs/round-c-2026-04-28/run.json` for the canonical example.
 
 ## Adding a new sweep
 
-1. Create `runs/<run-id>/` with `iteration-N/` subdirs and dispatch the eval subagents (orchestrator-side; see `spyglass-skill`'s `skills/spyglass/evals/dispatch_prompts.md` for the canonical prompt templates).
-2. After dispatch, run `python3 tools/snapshot_transcripts.py --run runs/<run-id>/` while the live session's tasks dir still exists.
-3. Run `python3 tools/make_plots.py --run runs/<run-id>/` once `benchmark.json` is aggregated for each batch.
-4. Write `BATCHES.md`, `findings.md`, `summary/SUMMARY.md` as the qualitative narrative.
-5. Fill in `run.json` with the metadata, including the optional `batches` block for per-batch figure labels.
-6. Commit and push.
+End-to-end flow for round-D / round-E / etc:
+
+1. **Dispatch.** Create `runs/<run-id>/iteration-N/` and dispatch the eval subagents from a Claude Code session rooted at the `spyglass-skill` repo (orchestrator-side; the canonical prompt templates live in `skills/spyglass/evals/dispatch_prompts.md`). Each batch produces:
+   - `iteration-N/eval-NNN-<name>/{with_skill,without_skill}/{eval_metadata.json,grading.json,timing.json,outputs/response.md}`
+   - `iteration-N/.agent_map.json` (orchestrator-written: agent_id → eval-dir/condition)
+   - `iteration-N/benchmark.json` (per-batch aggregated stats)
+   - `iteration-N/grader_summary.md`
+2. **Snapshot transcripts — TIME-CRITICAL.** Run while the same Claude Code session is still active:
+
+   ```bash
+   python3 tools/snapshot_transcripts.py --run runs/<run-id>/
+   ```
+
+   The harness wipes `/private/tmp/claude-<uid>/<workspace-hash>/` on session change or reboot, and there is **no recovery path** afterward. The script reports expected vs found transcript counts and warns loudly if any mapped agent IDs are missing on disk. If you forget this step, the per-reference and per-script utilization plots cannot be reproduced — you'd need to re-dispatch.
+
+3. **Generate figures and exports.**
+
+   ```bash
+   uv run --with matplotlib --with numpy python3 tools/make_plots.py \
+       --run runs/<run-id>/
+   ```
+
+   Writes 12 PNGs + 4 CSVs + 3 JSONs to `runs/<run-id>/summary/`. Idempotent — re-running produces byte-identical outputs.
+4. **Author narrative.** Write `BATCHES.md` (per-batch ledger), `findings.md` (cross-batch narrative), and `summary/SUMMARY.md` (analysis + recommendations). Cite numbers directly from the JSON/CSV exports rather than reading them off the figures — every headline number in round-c's SUMMARY.md is in `summary/cumulative_summary.json`, `batch_summary.csv`, `top_skill_wins.csv`, or `transcript_stats.json`.
+5. **Fill `run.json`.** Include `skill_commit_at_sweep_start/end`, `spyglass_src_commit`, `n_evals_run`, `headline_results`, contamination notes, and the optional `batches` block for per-batch figure labels.
+6. **Commit and push.**
 
 ## Why a separate repo
 
