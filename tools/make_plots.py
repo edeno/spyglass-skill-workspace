@@ -1594,6 +1594,55 @@ def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
     (OUT / "batch_summary.csv").write_text("\n".join(rows) + "\n")
 
 
+def _build_spend_by_outcome(per_eval: list[dict]) -> dict:
+    """Aggregate per-eval extra ws tokens by 2x2 outcome (both_pass, skill_only,
+    baseline_only, both_fail).
+
+    Per-eval timing.json reads are tolerant of missing files; evals without
+    both ws and bs token counts are skipped. The result exposes which outcome
+    bucket the skill's extra spend concentrates on — round-c showed 54% of
+    extra tokens go to evals baseline already passes, suggesting a
+    'do I need the skill on this prompt?' gate could roughly halve cost.
+    """
+    timing = load_per_eval_timing()
+    buckets: dict[str, list[int]] = {
+        "both_pass": [], "skill_only": [], "baseline_only": [], "both_fail": []
+    }
+    for r in per_eval:
+        ws_tok = timing.get((r["batch"], r["eval_id"], "with_skill"))
+        bs_tok = timing.get((r["batch"], r["eval_id"], "without_skill"))
+        if ws_tok is None or bs_tok is None:
+            continue
+        if r["ws_pass"] and r["bs_pass"]: bucket = "both_pass"
+        elif r["ws_pass"]: bucket = "skill_only"
+        elif r["bs_pass"]: bucket = "baseline_only"
+        else: bucket = "both_fail"
+        buckets[bucket].append(ws_tok - bs_tok)
+
+    total_extra = sum(sum(v) for v in buckets.values())
+    out: dict = {}
+    for k, vs in buckets.items():
+        if not vs:
+            out[k] = {"n": 0, "mean_extra_tokens": 0, "total_extra_tokens": 0, "share_of_total_extra": 0.0}
+            continue
+        s = sum(vs)
+        out[k] = {
+            "n": len(vs),
+            "mean_extra_tokens": round(sum(vs) / len(vs)),
+            "total_extra_tokens": s,
+            "share_of_total_extra": round(100 * s / total_extra, 1) if total_extra else 0.0,
+        }
+    out["note"] = (
+        "Where the skill's extra-token spend lands. A high share on "
+        "'both_pass' means the skill is paying for verification of evals "
+        "baseline would have answered correctly without help — a candidate "
+        "for a routing gate. Tokens are per-eval timing.json totals; "
+        "evals with missing timing.json (e.g. round-c batch 3 partial) are "
+        "skipped."
+    )
+    return out
+
+
 def _exact_mcnemar_p(b: int, c: int) -> float:
     """Two-sided exact-binomial McNemar p-value for paired binary outcomes.
 
@@ -1658,6 +1707,7 @@ def write_cumulative_summary_json(
             "both_fail": both_fail,
             "note": "Per-eval cross-tab. skill_only + baseline_only = discordant pairs that drive the McNemar test below.",
         },
+        "spend_by_outcome": _build_spend_by_outcome(per_eval),
         "significance": {
             "test": "McNemar (exact, two-sided)",
             "discordant_skill_only": skill_only,
@@ -2064,7 +2114,12 @@ def write_outcome_by_category_csv(
         if r["bs_pass"]: return "baseline_only"
         return "both_fail"
 
-    rows = ["category_kind,category,n_evals,both_pass,skill_only,baseline_only,both_fail"]
+    # skill_rescue_rate = skill_only / (skill_only + baseline_only + both_fail).
+    # The fraction of evals NOT solved by baseline that the skill uniquely
+    # rescues. A 100% rate means: anywhere bs fails in this category, the
+    # skill always saves it. A 25% rate means: even when given the skill,
+    # the agent co-fails on most bs failures — the category is hard for both.
+    rows = ["category_kind,category,n_evals,both_pass,skill_only,baseline_only,both_fail,skill_rescue_rate_pct"]
     plot_data = {}
     for kind in ("stage", "tier"):
         agg: dict[str, Counter] = defaultdict(Counter)
@@ -2074,9 +2129,13 @@ def write_outcome_by_category_csv(
             agg[c]["__total"] += 1
         plot_data[kind] = agg
         for c, ctr in sorted(agg.items(), key=lambda x: -x[1]["__total"]):
+            unrescued = ctr["skill_only"] + ctr["baseline_only"] + ctr["both_fail"]
+            rescue = (
+                round(100 * ctr["skill_only"] / unrescued, 1) if unrescued else 0.0
+            )
             rows.append(
                 f"{kind},{c},{ctr['__total']},{ctr['both_pass']},"
-                f"{ctr['skill_only']},{ctr['baseline_only']},{ctr['both_fail']}"
+                f"{ctr['skill_only']},{ctr['baseline_only']},{ctr['both_fail']},{rescue}"
             )
     (OUT / "outcome_by_category.csv").write_text("\n".join(rows) + "\n")
 
