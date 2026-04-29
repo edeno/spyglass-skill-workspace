@@ -10,7 +10,7 @@ You're a new user. Pick what you want to do:
 
 **See the round-C results.** Read [`runs/round-c-2026-04-28/summary/SUMMARY.md`](runs/round-c-2026-04-28/summary/SUMMARY.md) — it cites every headline number with links to the figures.
 
-**Cite a number from round-C.** Open [`runs/round-c-2026-04-28/summary/cumulative_summary.json`](runs/round-c-2026-04-28/summary/cumulative_summary.json) for the headline ws/bs/Δ; [`batch_summary.csv`](runs/round-c-2026-04-28/summary/batch_summary.csv) for per-batch numbers; [`top_skill_wins.csv`](runs/round-c-2026-04-28/summary/top_skill_wins.csv) for per-eval Δ rankings; [`transcript_stats.json`](runs/round-c-2026-04-28/summary/transcript_stats.json) for tool-call totals and contamination counts.
+**Cite a number from round-C.** Open [`cumulative_summary.json`](runs/round-c-2026-04-28/summary/cumulative_summary.json) for the headline ws/bs/Δ + McNemar p-value + outcome cross-tab; [`batch_summary.csv`](runs/round-c-2026-04-28/summary/batch_summary.csv) for per-batch numbers (full-eval, expectations, behavioral, tokens, duration); [`stage_x_difficulty.csv`](runs/round-c-2026-04-28/summary/stage_x_difficulty.csv) for cells of plot 08's heatmap; [`top_skill_wins.csv`](runs/round-c-2026-04-28/summary/top_skill_wins.csv) for per-eval Δ rankings; [`per_eval_routing.csv`](runs/round-c-2026-04-28/summary/per_eval_routing.csv) for "what did the agent reach for on this eval" diagnostics; [`transcript_stats.json`](runs/round-c-2026-04-28/summary/transcript_stats.json) for tool-call totals, error counts, source-assistance, contamination.
 
 **Regenerate figures from scratch.** Clone this repo and `spyglass-skill` as siblings (see "Sibling-clone convention" below), then:
 
@@ -62,12 +62,14 @@ runs/
         ├── SUMMARY.md                 final analysis + recommendations
         ├── 01..12_*.png               12 figures
         ├── category_breakdown.csv     per stage/tier/difficulty: ws/bs/Δ pass counts
-        ├── batch_summary.csv          per-batch row covering BATCHES.md's plan table
+        ├── batch_summary.csv          per-batch row: full-eval, expectation, behavioral, tokens, duration
+        ├── stage_x_difficulty.csv     flat plot-08 matrix: ws/bs/Δ per (stage, difficulty) cell
         ├── top_skill_wins.csv         per-eval Δ-pp ranking, sorted desc
-        ├── cumulative_summary.json    headline ws/bs/Δ across all batches
+        ├── per_eval_routing.csv       per-eval × per-condition: pass, refs opened, scripts run, errors
+        ├── cumulative_summary.json    headline ws/bs/Δ + outcome cross-tab + McNemar p-value
         ├── ref_utilization.json       per-reference open count (transcript-level)
         ├── script_utilization.json    per-bundled-script execution + source-read counts
-        ├── transcript_stats.json      tool-call totals, baseline contamination, SKILL.md activation
+        ├── transcript_stats.json      tool-call totals (incl errors), source-assistance, SKILL.md activation
         └── transcripts_snapshot/      *.jsonl per-subagent transcripts (~14 MB per sweep)
 ```
 

@@ -21,5 +21,19 @@
     "full_pass_pp": 21.54,
     "expectation_pp": 9.11,
     "tokens_total": 8353588
+  },
+  "outcomes": {
+    "both_pass": 81,
+    "skill_only": 30,
+    "baseline_only": 2,
+    "both_fail": 17,
+    "note": "Per-eval cross-tab. skill_only + baseline_only = discordant pairs that drive the McNemar test below."
+  },
+  "significance": {
+    "test": "McNemar (exact, two-sided)",
+    "discordant_skill_only": 30,
+    "discordant_baseline_only": 2,
+    "p_value": 2.4633482098579407e-07,
+    "note": "Pairs each eval's ws and bs outcomes. p < 0.05 means the +full_pass_pp delta is unlikely under H0 (skill has no effect). Computed with stdlib math.comb; no scipy needed."
   }
 }

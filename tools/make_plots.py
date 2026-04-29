@@ -36,6 +36,7 @@ import argparse
 import json
 import re
 from collections import Counter, defaultdict
+from math import comb
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -1451,11 +1452,21 @@ def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
     """Per-batch row covering everything cited in BATCHES.md and §"Headline" tables.
 
     One row per batch with: full-eval pass counts and rates per condition,
-    expectation pass rates, total/mean tokens per condition, mean wall-clock
-    per condition, plus the ws-bs deltas. Lets the round-D author cite any
+    expectation pass counts (substring + behavioral combined), behavioral-only
+    pass counts (the LLM-judge subset that's more sensitive than the full
+    binary rubric), total/mean tokens per condition, mean wall-clock per
+    condition, plus all the ws-bs deltas. Lets the round-D author cite any
     per-batch number without opening a PNG.
     """
-    rows = ["batch_id,label,n_evals,ws_full_pass,ws_full_rate,bs_full_pass,bs_full_rate,delta_full_pp,ws_exp_pass,ws_exp_total,ws_exp_rate,bs_exp_pass,bs_exp_total,bs_exp_rate,delta_exp_pp,ws_tokens_total,bs_tokens_total,ws_tokens_mean,bs_tokens_mean,ws_duration_mean_s,bs_duration_mean_s"]
+    rows = [
+        "batch_id,label,n_evals,"
+        "ws_full_pass,ws_full_rate,bs_full_pass,bs_full_rate,delta_full_pp,"
+        "ws_exp_pass,ws_exp_total,ws_exp_rate,"
+        "bs_exp_pass,bs_exp_total,bs_exp_rate,delta_exp_pp,"
+        "ws_behavioral_pass,bs_behavioral_pass,behavioral_total,delta_behavioral_pp,"
+        "ws_tokens_total,bs_tokens_total,ws_tokens_mean,bs_tokens_mean,"
+        "ws_duration_mean_s,bs_duration_mean_s"
+    ]
     for b in BATCH_ORDER:
         cfg = benchmarks[b]["configurations"]
         ws = cfg["with_skill"]
@@ -1465,6 +1476,12 @@ def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
         bs_full_rate = 100 * bs["evals_full_pass"] / n
         ws_exp_rate = 100 * ws["expectations_passed"] / ws["expectations_total"]
         bs_exp_rate = 100 * bs["expectations_passed"] / bs["expectations_total"]
+        ws_b_p, ws_b_t, bs_b_p, bs_b_t = collect_behavioral(b)
+        ws_b_rate = 100 * ws_b_p / ws_b_t if ws_b_t else 0.0
+        bs_b_rate = 100 * bs_b_p / bs_b_t if bs_b_t else 0.0
+        # ws_b_t and bs_b_t are equal in well-formed batches (same eval, same
+        # rubric), so we report a single behavioral_total.
+        b_total = ws_b_t
         # Replace newlines in the label so the CSV stays one-line-per-row.
         label = BATCH_LABELS[b].replace("\n", " ")
         rows.append(
@@ -1475,6 +1492,7 @@ def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
             f"{ws['expectations_passed']},{ws['expectations_total']},{ws_exp_rate:.1f},"
             f"{bs['expectations_passed']},{bs['expectations_total']},{bs_exp_rate:.1f},"
             f"{ws_exp_rate - bs_exp_rate:.1f},"
+            f"{ws_b_p},{bs_b_p},{b_total},{ws_b_rate - bs_b_rate:.1f},"
             f"{ws['tokens_total']},{bs['tokens_total']},"
             f"{ws['tokens_mean']:.1f},{bs['tokens_mean']:.1f},"
             f"{ws['duration_mean_s']:.2f},{bs['duration_mean_s']:.2f}"
@@ -1482,7 +1500,24 @@ def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
     (OUT / "batch_summary.csv").write_text("\n".join(rows) + "\n")
 
 
-def write_cumulative_summary_json(benchmarks: dict[int, dict]) -> None:
+def _exact_mcnemar_p(b: int, c: int) -> float:
+    """Two-sided exact-binomial McNemar p-value for paired binary outcomes.
+
+    Counts discordant pairs only: b = ws-pass-only, c = bs-pass-only.
+    Under H0 each discordant pair is 50/50, so the count of (ws-only) is
+    Binomial(b+c, 0.5). Stdlib-only — no scipy needed.
+    """
+    n = b + c
+    if n == 0:
+        return 1.0
+    k = min(b, c)
+    one_sided = sum(comb(n, i) for i in range(k + 1)) / 2**n
+    return min(1.0, 2 * one_sided)
+
+
+def write_cumulative_summary_json(
+    benchmarks: dict[int, dict], per_eval: list[dict]
+) -> None:
     """Headline cumulative numbers — the SUMMARY.md headline table in JSON."""
     totals = summarize_benchmarks(benchmarks)
     ws, bs = totals["ws"], totals["bs"]
@@ -1491,6 +1526,11 @@ def write_cumulative_summary_json(benchmarks: dict[int, dict]) -> None:
     ws_exp_p, ws_exp_t = ws["exp_p"], ws["exp_t"]
     bs_exp_p, bs_exp_t = bs["exp_p"], bs["exp_t"]
     ws_tokens, bs_tokens = ws["tokens"], bs["tokens"]
+
+    both_pass = sum(1 for r in per_eval if r["ws_pass"] and r["bs_pass"])
+    skill_only = sum(1 for r in per_eval if r["ws_pass"] and not r["bs_pass"])
+    bs_only = sum(1 for r in per_eval if r["bs_pass"] and not r["ws_pass"])
+    both_fail = sum(1 for r in per_eval if not r["ws_pass"] and not r["bs_pass"])
     payload = {
         "n_evals": n_evals,
         "n_batches": len(BATCH_ORDER),
@@ -1517,8 +1557,123 @@ def write_cumulative_summary_json(benchmarks: dict[int, dict]) -> None:
             ),
             "tokens_total": ws_tokens + bs_tokens,
         },
+        "outcomes": {
+            "both_pass": both_pass,
+            "skill_only": skill_only,
+            "baseline_only": bs_only,
+            "both_fail": both_fail,
+            "note": "Per-eval cross-tab. skill_only + baseline_only = discordant pairs that drive the McNemar test below.",
+        },
+        "significance": {
+            "test": "McNemar (exact, two-sided)",
+            "discordant_skill_only": skill_only,
+            "discordant_baseline_only": bs_only,
+            "p_value": _exact_mcnemar_p(skill_only, bs_only),
+            "note": "Pairs each eval's ws and bs outcomes. p < 0.05 means the +full_pass_pp delta is unlikely under H0 (skill has no effect). Computed with stdlib math.comb; no scipy needed.",
+        },
     }
     (OUT / "cumulative_summary.json").write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def write_stage_x_difficulty_csv(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
+    """Flat CSV of plot 08's stage × difficulty heatmap cells.
+
+    One row per (stage, difficulty) combination present in the eval set,
+    with ws/bs/n/Δ. Lets the SUMMARY.md author cite specific cells (e.g.
+    "hard pipeline-authoring: +50pp on 4 evals") without reading them off
+    the heatmap.
+    """
+    cell: dict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0, 0])
+    for r in per_eval:
+        cat = cats.get(r["eval_id"], {})
+        s = cat.get("stage", "unknown")
+        d = cat.get("difficulty", "unknown")
+        cell[(s, d)][0] += int(r["ws_pass"])
+        cell[(s, d)][1] += int(r["bs_pass"])
+        cell[(s, d)][2] += 1
+    rows = ["stage,difficulty,n_evals,ws_pass,bs_pass,delta_pp"]
+    # Sort by total skill lift desc within each stage, then by stage name
+    # so the CSV reads top-down like the heatmap (high-lift stages first).
+    by_stage_lift: dict[str, int] = defaultdict(int)
+    for (s, _), (ws_p, bs_p, _) in cell.items():
+        by_stage_lift[s] += ws_p - bs_p
+    diff_rank = {"easy": 0, "medium": 1, "hard": 2}
+    sorted_keys = sorted(
+        cell.keys(),
+        key=lambda k: (-by_stage_lift[k[0]], k[0], diff_rank.get(k[1], 99)),
+    )
+    for s, d in sorted_keys:
+        ws_p, bs_p, n = cell[(s, d)]
+        delta = 100 * (ws_p - bs_p) / n if n else 0.0
+        rows.append(f"{s},{d},{n},{ws_p},{bs_p},{delta:.1f}")
+    (OUT / "stage_x_difficulty.csv").write_text("\n".join(rows) + "\n")
+
+
+def write_per_eval_routing_csv(
+    cats: dict[int, dict[str, str]],
+    per_eval: list[dict],
+    records: list[dict] | None,
+) -> None:
+    """Per-eval × per-condition routing record.
+
+    For each (eval_id, condition) joins the pass/fail outcome with what the
+    transcript shows the agent actually reached for: top references opened,
+    bundled scripts executed, tool-call counts, error count. The most
+    actionable diagnostic for skill maintenance — when an eval fails,
+    "what did the agent reach for?" is the immediate next question.
+
+    Skipped entirely if no transcripts are available (records is None).
+    """
+    if records is None:
+        return
+    by_key: dict[tuple[int, int, str], dict] = {}
+    for r in records:
+        key = (r["batch"], r["eval_id"], r["condition"])
+        # If multiple transcripts exist for the same key (retries),
+        # union the routing signals — the question is "did the agent
+        # ever reach for this?", not "which retry attempt did so".
+        cur = by_key.setdefault(
+            key,
+            {
+                "ref_opens": Counter(),
+                "script_executions": Counter(),
+                "n_read": 0,
+                "n_bash": 0,
+                "n_errors": 0,
+            },
+        )
+        cur["ref_opens"].update(r["ref_opens"])
+        cur["script_executions"].update(r["script_executions"])
+        cur["n_read"] += r["n_read_calls"]
+        cur["n_bash"] += r["n_bash_calls"]
+        cur["n_errors"] += r["n_tool_errors"]
+
+    pass_by_key = {(r["batch"], r["eval_id"]): r for r in per_eval}
+    rows = ["batch,eval_id,eval_name,stage,difficulty,condition,full_pass,n_read,n_bash,n_errors,refs_opened,scripts_run"]
+    for (batch, eid, cond), agg in sorted(by_key.items()):
+        per = pass_by_key.get((batch, eid))
+        if per is None:
+            continue
+        cat = cats.get(eid, {})
+        passed = (
+            int(per["ws_pass"]) if cond == "with_skill" else int(per["bs_pass"])
+        )
+        # Sort and join refs/scripts for stable CSV output.
+        refs = ";".join(
+            f"{ref}({n})" for ref, n in sorted(agg["ref_opens"].items())
+        )
+        scripts = ";".join(
+            f"{s}({n})" for s, n in sorted(agg["script_executions"].items())
+        )
+        rows.append(
+            f"{batch},{eid},{per['eval_name']},"
+            f"{cat.get('stage', 'unknown')},{cat.get('difficulty', 'unknown')},"
+            f"{cond},{passed},{agg['n_read']},{agg['n_bash']},{agg['n_errors']},"
+            f"\"{refs}\",\"{scripts}\""
+        )
+    (OUT / "per_eval_routing.csv").write_text("\n".join(rows) + "\n")
 
 
 def write_top_skill_wins_csv(
@@ -1585,6 +1740,7 @@ def main() -> None:
     plot_top_skill_wins(cats, per_eval)
 
     snapshot_dir = OUT / "transcripts_snapshot"
+    records: list[dict] | None = None
     if snapshot_dir.exists() and any(snapshot_dir.iterdir()):
         agent_to_run = build_agent_to_run()
         records = parse_transcripts(snapshot_dir, agent_to_run)
@@ -1596,8 +1752,10 @@ def main() -> None:
 
     write_per_category_csv(cats, per_eval)
     write_batch_summary_csv(benchmarks)
-    write_cumulative_summary_json(benchmarks)
+    write_cumulative_summary_json(benchmarks, per_eval)
     write_top_skill_wins_csv(cats, per_eval)
+    write_stage_x_difficulty_csv(cats, per_eval)
+    write_per_eval_routing_csv(cats, per_eval, records)
     print("Wrote plots + CSV/JSON exports to", OUT)
 
 
