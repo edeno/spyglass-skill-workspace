@@ -1,5 +1,5 @@
-resource,kind,n_labeled_evals,expected_called,expected_not_called,unexpected_called,unexpected_not_called,precision,recall,false_positive_rate,failed_expected_not_called,failed_expected_called,passed_unexpected_called
-code_graph.py,script,15,6,5,0,4,100.0,54.5,0.0,2,0,0
-db_graph.py,script,15,0,1,0,14,0.0,0.0,0.0,0,0,0
-scrub_dj_config.py,script,15,0,1,0,14,0.0,0.0,0.0,0,0,0
-verify_spyglass_env.py,script,15,0,1,0,14,0.0,0.0,0.0,0,0,0
+resource,kind,n_labeled_evals,expected_called,expected_not_called,optional_called,optional_not_called,unexpected_called,unexpected_not_called,precision,recall,false_positive_rate,failed_expected_not_called,failed_expected_called,passed_unexpected_called
+code_graph.py,script,15,6,5,0,0,0,4,100.0,54.5,0.0,2,0,0
+db_graph.py,script,15,0,1,0,0,0,14,0.0,0.0,0.0,0,0,0
+scrub_dj_config.py,script,15,0,1,0,0,0,14,0.0,0.0,0.0,0,0,0
+verify_spyglass_env.py,script,15,0,1,0,0,0,14,0.0,0.0,0.0,0,0,0

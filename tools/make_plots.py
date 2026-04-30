@@ -5,10 +5,10 @@ figures + the category CSV under `<run>/summary/` (or `--out`).
 
 Reads `benchmark.json` from each `iteration-N/` under the run, plus the
 eval source metadata from the spyglass-skill repo's
-`skills/spyglass/evals/evals.json`. Produces twelve figures (per-batch,
-cumulative, by-category, by-difficulty, per-eval, reference and script
-utilization) plus `category_breakdown.csv`, `ref_utilization.json`, and
-`script_utilization.json`.
+`skills/spyglass/evals/evals.json`. Produces the summary figures plus
+decision-oriented CSV/JSON outputs for headline performance, batch health,
+category/difficulty slices, cost, routing, utilization, and fix-priority
+triage.
 
 The set of batches (`BATCH_ORDER`) is auto-discovered from
 `<run>/iteration-*` dirs. Per-batch labels (`BATCH_LABELS`) come from
@@ -33,6 +33,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import re
 from collections import Counter, defaultdict
@@ -62,6 +64,28 @@ WONG = {
     "neutral": "#999999",
     "both_pass": "#56B4E9",
     "both_fail": "#666666",
+}
+
+# Skip-gate candidates are category-level signals, not single-eval decisions.
+# These conservative thresholds require a small cohort with strong baseline
+# behavior and little or no skill rescue before flagging a category.
+SKIP_GATE_MIN_EVALS = 3
+SKIP_GATE_STRONG_BASELINE_PASS_RATE = 90.0
+SKIP_GATE_HIGH_BASELINE_PASS_RATE = 80.0
+SKIP_GATE_LOW_RESCUE_RATE = 10.0
+SKIP_GATE_TOTAL_EXTRA_TOKEN_FLOOR = 100_000
+
+# Per-eval both-pass rows above this cost are worth inspecting, but they are
+# not skip-gate candidates by themselves.
+EXPENSIVE_BOTH_PASS_EXTRA_TOKEN_FLOOR = 20_000
+
+FIX_PRIORITY_ACTION_ORDER = {
+    "investigate_regression": 0,
+    "fix_script_routing": 1,
+    "fix_reference_routing": 2,
+    "fix_template_or_reference_content": 3,
+    "expensive_both_pass": 4,
+    "": 5,
 }
 
 
@@ -206,8 +230,8 @@ def load_expected_refs() -> dict[int, dict[str, list[str]]]:
     """Read optional `expected_refs` annotations from evals.json.
 
     Schema (per eval): {"required": [...], "optional": [...], "distractor": [...]}.
-    Evals without the field are absent from the returned map. Round-D
-    maintainers can label evals incrementally; the reference-expected-vs-used
+    Evals without the field are absent from the returned map. Maintainers
+    can label evals incrementally; the reference-expected-vs-used
     analysis only runs against labeled evals.
     """
     evals = json.loads(EVALS_PATH.read_text())["evals"]
@@ -244,6 +268,39 @@ def load_expected_scripts() -> dict[int, dict[str, list[str]]]:
             "distractor": list(script_block.get("distractor", [])),
         }
     return out
+
+
+def _write_csv(path: Path, fieldnames: list[str], rows: list[dict]) -> None:
+    """Write CSV rows with stable field order and robust quoting."""
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=fieldnames, lineterminator="\n")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow(row)
+    path.write_text(buf.getvalue())
+
+
+def _join_items(items) -> str:
+    """Stable semicolon-delimited cell for list-like CSV fields."""
+    return ";".join(sorted(str(x) for x in items))
+
+
+def _outcome_label(r: dict) -> str:
+    """2x2 ws/bs outcome label for a per-eval result row."""
+    if r["ws_pass"] and r["bs_pass"]:
+        return "both_pass"
+    if r["ws_pass"]:
+        return "skill_only"
+    if r["bs_pass"]:
+        return "baseline_only"
+    return "both_fail"
+
+
+def count_outcomes(rows: list[dict]) -> Counter:
+    """Shared outcome counter used by category/cost/fix-priority writers."""
+    ctr = Counter(_outcome_label(r) for r in rows)
+    ctr["__total"] = len(rows)
+    return ctr
 
 
 def load_eval_categories() -> dict[int, dict[str, str]]:
@@ -1550,7 +1607,7 @@ def write_per_category_csv(
     cats: dict[int, dict[str, str]], per_eval: list[dict]
 ) -> None:
     """Side artifact: detailed numbers behind the category plot."""
-    out_lines = ["category_kind,category,n_evals,ws_pass,bs_pass,delta_pp"]
+    rows = []
     for kind in ("stage", "tier", "difficulty"):
         agg: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
         for r in per_eval:
@@ -1560,8 +1617,21 @@ def write_per_category_csv(
             agg[c][2] += int(r["bs_pass"])
         for c, (n, w, b) in sorted(agg.items(), key=lambda x: -x[1][0]):
             d = 100 * (w - b) / n
-            out_lines.append(f"{kind},{c},{n},{w},{b},{d:.1f}")
-    (OUT / "category_breakdown.csv").write_text("\n".join(out_lines) + "\n")
+            rows.append(
+                {
+                    "category_kind": kind,
+                    "category": c,
+                    "n_evals": n,
+                    "ws_pass": w,
+                    "bs_pass": b,
+                    "delta_pp": f"{d:.1f}",
+                }
+            )
+    _write_csv(
+        OUT / "category_breakdown.csv",
+        ["category_kind", "category", "n_evals", "ws_pass", "bs_pass", "delta_pp"],
+        rows,
+    )
 
 
 def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
@@ -1571,18 +1641,10 @@ def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
     expectation pass counts (substring + behavioral combined), behavioral-only
     pass counts (the LLM-judge subset that's more sensitive than the full
     binary rubric), total/mean tokens per condition, mean wall-clock per
-    condition, plus all the ws-bs deltas. Lets the round-D author cite any
+    condition, plus all the ws-bs deltas. Lets the summary author cite any
     per-batch number without opening a PNG.
     """
-    rows = [
-        "batch_id,label,n_evals,"
-        "ws_full_pass,ws_full_rate,bs_full_pass,bs_full_rate,delta_full_pp,"
-        "ws_exp_pass,ws_exp_total,ws_exp_rate,"
-        "bs_exp_pass,bs_exp_total,bs_exp_rate,delta_exp_pp,"
-        "ws_behavioral_pass,bs_behavioral_pass,behavioral_total,delta_behavioral_pp,"
-        "ws_tokens_total,bs_tokens_total,ws_tokens_mean,bs_tokens_mean,"
-        "ws_duration_mean_s,bs_duration_mean_s"
-    ]
+    rows = []
     for b in BATCH_ORDER:
         cfg = benchmarks[b]["configurations"]
         ws = cfg["with_skill"]
@@ -1601,19 +1663,65 @@ def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
         # Replace newlines in the label so the CSV stays one-line-per-row.
         label = BATCH_LABELS[b].replace("\n", " ")
         rows.append(
-            f"{b},\"{label}\",{n},"
-            f"{ws['evals_full_pass']},{ws_full_rate:.1f},"
-            f"{bs['evals_full_pass']},{bs_full_rate:.1f},"
-            f"{ws_full_rate - bs_full_rate:.1f},"
-            f"{ws['expectations_passed']},{ws['expectations_total']},{ws_exp_rate:.1f},"
-            f"{bs['expectations_passed']},{bs['expectations_total']},{bs_exp_rate:.1f},"
-            f"{ws_exp_rate - bs_exp_rate:.1f},"
-            f"{ws_b_p},{bs_b_p},{b_total},{ws_b_rate - bs_b_rate:.1f},"
-            f"{ws['tokens_total']},{bs['tokens_total']},"
-            f"{ws['tokens_mean']:.1f},{bs['tokens_mean']:.1f},"
-            f"{ws['duration_mean_s']:.2f},{bs['duration_mean_s']:.2f}"
+            {
+                "batch_id": b,
+                "label": label,
+                "n_evals": n,
+                "ws_full_pass": ws["evals_full_pass"],
+                "ws_full_rate": f"{ws_full_rate:.1f}",
+                "bs_full_pass": bs["evals_full_pass"],
+                "bs_full_rate": f"{bs_full_rate:.1f}",
+                "delta_full_pp": f"{ws_full_rate - bs_full_rate:.1f}",
+                "ws_exp_pass": ws["expectations_passed"],
+                "ws_exp_total": ws["expectations_total"],
+                "ws_exp_rate": f"{ws_exp_rate:.1f}",
+                "bs_exp_pass": bs["expectations_passed"],
+                "bs_exp_total": bs["expectations_total"],
+                "bs_exp_rate": f"{bs_exp_rate:.1f}",
+                "delta_exp_pp": f"{ws_exp_rate - bs_exp_rate:.1f}",
+                "ws_behavioral_pass": ws_b_p,
+                "bs_behavioral_pass": bs_b_p,
+                "behavioral_total": b_total,
+                "delta_behavioral_pp": f"{ws_b_rate - bs_b_rate:.1f}",
+                "ws_tokens_total": ws["tokens_total"],
+                "bs_tokens_total": bs["tokens_total"],
+                "ws_tokens_mean": f"{ws['tokens_mean']:.1f}",
+                "bs_tokens_mean": f"{bs['tokens_mean']:.1f}",
+                "ws_duration_mean_s": f"{ws['duration_mean_s']:.2f}",
+                "bs_duration_mean_s": f"{bs['duration_mean_s']:.2f}",
+            }
         )
-    (OUT / "batch_summary.csv").write_text("\n".join(rows) + "\n")
+    _write_csv(
+        OUT / "batch_summary.csv",
+        [
+            "batch_id",
+            "label",
+            "n_evals",
+            "ws_full_pass",
+            "ws_full_rate",
+            "bs_full_pass",
+            "bs_full_rate",
+            "delta_full_pp",
+            "ws_exp_pass",
+            "ws_exp_total",
+            "ws_exp_rate",
+            "bs_exp_pass",
+            "bs_exp_total",
+            "bs_exp_rate",
+            "delta_exp_pp",
+            "ws_behavioral_pass",
+            "bs_behavioral_pass",
+            "behavioral_total",
+            "delta_behavioral_pp",
+            "ws_tokens_total",
+            "bs_tokens_total",
+            "ws_tokens_mean",
+            "bs_tokens_mean",
+            "ws_duration_mean_s",
+            "bs_duration_mean_s",
+        ],
+        rows,
+    )
 
 
 def _build_spend_by_outcome(per_eval: list[dict]) -> dict:
@@ -1635,11 +1743,7 @@ def _build_spend_by_outcome(per_eval: list[dict]) -> dict:
         bs_tok = timing.get((r["batch"], r["eval_id"], "without_skill"))
         if ws_tok is None or bs_tok is None:
             continue
-        if r["ws_pass"] and r["bs_pass"]: bucket = "both_pass"
-        elif r["ws_pass"]: bucket = "skill_only"
-        elif r["bs_pass"]: bucket = "baseline_only"
-        else: bucket = "both_fail"
-        buckets[bucket].append(ws_tok - bs_tok)
+        buckets[_outcome_label(r)].append(ws_tok - bs_tok)
 
     total_extra = sum(sum(v) for v in buckets.values())
     out: dict = {}
@@ -1759,7 +1863,7 @@ def write_stage_x_difficulty_csv(
         cell[(s, d)][0] += int(r["ws_pass"])
         cell[(s, d)][1] += int(r["bs_pass"])
         cell[(s, d)][2] += 1
-    rows = ["stage,difficulty,n_evals,ws_pass,bs_pass,delta_pp"]
+    rows = []
     # Sort by total skill lift desc within each stage, then by stage name
     # so the CSV reads top-down like the heatmap (high-lift stages first).
     by_stage_lift: dict[str, int] = defaultdict(int)
@@ -1773,8 +1877,21 @@ def write_stage_x_difficulty_csv(
     for s, d in sorted_keys:
         ws_p, bs_p, n = cell[(s, d)]
         delta = 100 * (ws_p - bs_p) / n if n else 0.0
-        rows.append(f"{s},{d},{n},{ws_p},{bs_p},{delta:.1f}")
-    (OUT / "stage_x_difficulty.csv").write_text("\n".join(rows) + "\n")
+        rows.append(
+            {
+                "stage": s,
+                "difficulty": d,
+                "n_evals": n,
+                "ws_pass": ws_p,
+                "bs_pass": bs_p,
+                "delta_pp": f"{delta:.1f}",
+            }
+        )
+    _write_csv(
+        OUT / "stage_x_difficulty.csv",
+        ["stage", "difficulty", "n_evals", "ws_pass", "bs_pass", "delta_pp"],
+        rows,
+    )
 
 
 def write_per_eval_routing_csv(
@@ -1817,7 +1934,7 @@ def write_per_eval_routing_csv(
         cur["n_errors"] += r["n_tool_errors"]
 
     pass_by_key = {(r["batch"], r["eval_id"]): r for r in per_eval}
-    rows = ["batch,eval_id,eval_name,stage,difficulty,condition,full_pass,n_read,n_bash,n_errors,refs_opened,scripts_run"]
+    rows = []
     for (batch, eid, cond), agg in sorted(by_key.items()):
         per = pass_by_key.get((batch, eid))
         if per is None:
@@ -1827,19 +1944,44 @@ def write_per_eval_routing_csv(
             int(per["ws_pass"]) if cond == "with_skill" else int(per["bs_pass"])
         )
         # Sort and join refs/scripts for stable CSV output.
-        refs = ";".join(
-            f"{ref}({n})" for ref, n in sorted(agg["ref_opens"].items())
-        )
+        refs = ";".join(f"{ref}({n})" for ref, n in sorted(agg["ref_opens"].items()))
         scripts = ";".join(
             f"{s}({n})" for s, n in sorted(agg["script_executions"].items())
         )
         rows.append(
-            f"{batch},{eid},{per['eval_name']},"
-            f"{cat.get('stage', 'unknown')},{cat.get('difficulty', 'unknown')},"
-            f"{cond},{passed},{agg['n_read']},{agg['n_bash']},{agg['n_errors']},"
-            f"\"{refs}\",\"{scripts}\""
+            {
+                "batch": batch,
+                "eval_id": eid,
+                "eval_name": per["eval_name"],
+                "stage": cat.get("stage", "unknown"),
+                "difficulty": cat.get("difficulty", "unknown"),
+                "condition": cond,
+                "full_pass": passed,
+                "n_read": agg["n_read"],
+                "n_bash": agg["n_bash"],
+                "n_errors": agg["n_errors"],
+                "refs_opened": refs,
+                "scripts_run": scripts,
+            }
         )
-    (OUT / "per_eval_routing.csv").write_text("\n".join(rows) + "\n")
+    _write_csv(
+        OUT / "per_eval_routing.csv",
+        [
+            "batch",
+            "eval_id",
+            "eval_name",
+            "stage",
+            "difficulty",
+            "condition",
+            "full_pass",
+            "n_read",
+            "n_bash",
+            "n_errors",
+            "refs_opened",
+            "scripts_run",
+        ],
+        rows,
+    )
 
 
 def write_top_skill_wins_csv(
@@ -1853,7 +1995,7 @@ def write_top_skill_wins_csv(
     any) at the bottom.
     """
 
-    rows = ["rank,eval_id,eval_name,batch,stage,tier,difficulty,ws_pass,bs_pass,ws_exp_rate,bs_exp_rate,delta_pp"]
+    rows = []
     items = []
     for r in per_eval:
         if r["ws_exp_t"] == 0:
@@ -1880,14 +2022,43 @@ def write_top_skill_wins_csv(
     for rank, item in enumerate(items, start=1):
         delta, eid, name, batch, stage, tier, diff, wsp, bsp, wsr, bsr = item
         rows.append(
-            f"{rank},{eid},{name},{batch},{stage},{tier},{diff},{wsp},{bsp},"
-            f"{wsr:.1f},{bsr:.1f},{delta:.1f}"
+            {
+                "rank": rank,
+                "eval_id": eid,
+                "eval_name": name,
+                "batch": batch,
+                "stage": stage,
+                "tier": tier,
+                "difficulty": diff,
+                "ws_pass": wsp,
+                "bs_pass": bsp,
+                "ws_exp_rate": f"{wsr:.1f}",
+                "bs_exp_rate": f"{bsr:.1f}",
+                "delta_pp": f"{delta:.1f}",
+            }
         )
-    (OUT / "top_skill_wins.csv").write_text("\n".join(rows) + "\n")
+    _write_csv(
+        OUT / "top_skill_wins.csv",
+        [
+            "rank",
+            "eval_id",
+            "eval_name",
+            "batch",
+            "stage",
+            "tier",
+            "difficulty",
+            "ws_pass",
+            "bs_pass",
+            "ws_exp_rate",
+            "bs_exp_rate",
+            "delta_pp",
+        ],
+        rows,
+    )
 
 
 # ---------------------------------------------------------------------------
-# Round-D actionable summaries — answer "what should we change?" not "did it
+# Actionable maintenance summaries — answer "what should we change?" not "did it
 # win?". Five fully-automated analyses + two scaffolds for human-labeled data.
 # ---------------------------------------------------------------------------
 
@@ -1972,7 +2143,7 @@ def write_reference_effectiveness_csv(
 
     diff_score = {"easy": 1, "medium": 2, "hard": 3, "unknown": 2}
 
-    rows = ["reference,ws_evals_loaded,ws_pass_when_loaded,ws_fail_when_loaded,pass_rate_when_loaded,avg_difficulty_when_loaded,failed_modes,failed_evals_sample"]
+    rows = []
     payload = []
     for ref, eids in ws_loads_by_eval.items():
         passed = sum(1 for eid in eids if pass_by_eval.get(eid, False))
@@ -2000,10 +2171,32 @@ def write_reference_effectiveness_csv(
             for eid in failed_examples
         )
         rows.append(
-            f"{ref},{len(eids)},{passed},{failed},{rate:.1f},{avg_diff:.2f},{modes_str},\"{sample}\""
+            {
+                "reference": ref,
+                "ws_evals_loaded": len(eids),
+                "ws_pass_when_loaded": passed,
+                "ws_fail_when_loaded": failed,
+                "pass_rate_when_loaded": f"{rate:.1f}",
+                "avg_difficulty_when_loaded": f"{avg_diff:.2f}",
+                "failed_modes": modes_str,
+                "failed_evals_sample": sample,
+            }
         )
         payload.append((ref, len(eids), passed, failed, rate))
-    (OUT / "reference_effectiveness.csv").write_text("\n".join(rows) + "\n")
+    _write_csv(
+        OUT / "reference_effectiveness.csv",
+        [
+            "reference",
+            "ws_evals_loaded",
+            "ws_pass_when_loaded",
+            "ws_fail_when_loaded",
+            "pass_rate_when_loaded",
+            "avg_difficulty_when_loaded",
+            "failed_modes",
+            "failed_evals_sample",
+        ],
+        rows,
+    )
 
     # Plot 13: bar chart sorted by load count, color by pass rate.
     if not payload:
@@ -2057,7 +2250,7 @@ def write_cost_effectiveness_csv(
     and high-value interventions (skill cheap and unlocking the answer).
     Skips evals whose ws or bs timing is missing from the run.
     """
-    rows = ["batch,eval_id,eval_name,stage,tier,difficulty,ws_tokens,bs_tokens,extra_tokens,exp_delta_pp,both_pass,skill_only,baseline_only,both_fail"]
+    rows = []
     points = []
     for r in per_eval:
         ws_tok = timing.get((r["batch"], r["eval_id"], "with_skill"))
@@ -2069,16 +2262,46 @@ def write_cost_effectiveness_csv(
         delta = ws_pct - bs_pct
         cat = cats.get(r["eval_id"], {})
         rows.append(
-            f"{r['batch']},{r['eval_id']},{r['eval_name']},"
-            f"{cat.get('stage', 'unknown')},{cat.get('tier', 'unknown')},{cat.get('difficulty', 'unknown')},"
-            f"{ws_tok},{bs_tok},{ws_tok - bs_tok},{delta:.1f},"
-            f"{int(r['ws_pass'] and r['bs_pass'])},{int(r['ws_pass'] and not r['bs_pass'])},"
-            f"{int(r['bs_pass'] and not r['ws_pass'])},{int(not r['ws_pass'] and not r['bs_pass'])}"
+            {
+                "batch": r["batch"],
+                "eval_id": r["eval_id"],
+                "eval_name": r["eval_name"],
+                "stage": cat.get("stage", "unknown"),
+                "tier": cat.get("tier", "unknown"),
+                "difficulty": cat.get("difficulty", "unknown"),
+                "ws_tokens": ws_tok,
+                "bs_tokens": bs_tok,
+                "extra_tokens": ws_tok - bs_tok,
+                "exp_delta_pp": f"{delta:.1f}",
+                "both_pass": int(r["ws_pass"] and r["bs_pass"]),
+                "skill_only": int(r["ws_pass"] and not r["bs_pass"]),
+                "baseline_only": int(r["bs_pass"] and not r["ws_pass"]),
+                "both_fail": int(not r["ws_pass"] and not r["bs_pass"]),
+            }
         )
         points.append(
             (ws_tok - bs_tok, delta, cat.get("stage", "unknown"), r["eval_id"])
         )
-    (OUT / "cost_effectiveness_per_eval.csv").write_text("\n".join(rows) + "\n")
+    _write_csv(
+        OUT / "cost_effectiveness_per_eval.csv",
+        [
+            "batch",
+            "eval_id",
+            "eval_name",
+            "stage",
+            "tier",
+            "difficulty",
+            "ws_tokens",
+            "bs_tokens",
+            "extra_tokens",
+            "exp_delta_pp",
+            "both_pass",
+            "skill_only",
+            "baseline_only",
+            "both_fail",
+        ],
+        rows,
+    )
 
     if not points:
         return
@@ -2130,25 +2353,19 @@ def write_outcome_by_category_csv(
     baseline_only, both_fail). Tells you where the skill is uniquely helpful
     vs where the eval remains hard for everyone.
     """
-    def outcome_of(r: dict) -> str:
-        if r["ws_pass"] and r["bs_pass"]: return "both_pass"
-        if r["ws_pass"]: return "skill_only"
-        if r["bs_pass"]: return "baseline_only"
-        return "both_fail"
-
     # skill_rescue_rate = skill_only / (skill_only + baseline_only + both_fail).
     # The fraction of evals NOT solved by baseline that the skill uniquely
     # rescues. A 100% rate means: anywhere bs fails in this category, the
     # skill always saves it. A 25% rate means: even when given the skill,
     # the agent co-fails on most bs failures — the category is hard for both.
-    rows = ["category_kind,category,n_evals,both_pass,skill_only,baseline_only,both_fail,skill_rescue_rate_pct"]
+    rows = []
     plot_data = {}
     for kind in ("stage", "tier"):
-        agg: dict[str, Counter] = defaultdict(Counter)
+        grouped: dict[str, list[dict]] = defaultdict(list)
         for r in per_eval:
             c = cats.get(r["eval_id"], {}).get(kind, "unknown")
-            agg[c][outcome_of(r)] += 1
-            agg[c]["__total"] += 1
+            grouped[c].append(r)
+        agg = {c: count_outcomes(vs) for c, vs in grouped.items()}
         plot_data[kind] = agg
         for c, ctr in sorted(agg.items(), key=lambda x: -x[1]["__total"]):
             unrescued = ctr["skill_only"] + ctr["baseline_only"] + ctr["both_fail"]
@@ -2156,10 +2373,31 @@ def write_outcome_by_category_csv(
                 round(100 * ctr["skill_only"] / unrescued, 1) if unrescued else 0.0
             )
             rows.append(
-                f"{kind},{c},{ctr['__total']},{ctr['both_pass']},"
-                f"{ctr['skill_only']},{ctr['baseline_only']},{ctr['both_fail']},{rescue}"
+                {
+                    "category_kind": kind,
+                    "category": c,
+                    "n_evals": ctr["__total"],
+                    "both_pass": ctr["both_pass"],
+                    "skill_only": ctr["skill_only"],
+                    "baseline_only": ctr["baseline_only"],
+                    "both_fail": ctr["both_fail"],
+                    "skill_rescue_rate_pct": rescue,
+                }
             )
-    (OUT / "outcome_by_category.csv").write_text("\n".join(rows) + "\n")
+    _write_csv(
+        OUT / "outcome_by_category.csv",
+        [
+            "category_kind",
+            "category",
+            "n_evals",
+            "both_pass",
+            "skill_only",
+            "baseline_only",
+            "both_fail",
+            "skill_rescue_rate_pct",
+        ],
+        rows,
+    )
 
     # Plot 15: stacked bars per stage (skill-only is the "where the skill earned its keep" signal).
     stage_agg = plot_data["stage"]
@@ -2286,11 +2524,11 @@ def write_headroom_evals_csv(
     Adversarial-tier both-fails are usually intended (the eval tests that the
     agent refuses, so a passing response is a refusal — both conditions
     refusing is a measurement-success-but-rubric-fail). The remaining
-    both-fail set is round-D's biggest improvement headroom: improvements
+    both-fail set is the next refactor's biggest improvement headroom: improvements
     here move neither ws nor bs from the prior sweep, so any movement is new
     correctness gained.
     """
-    rows = ["batch,eval_id,eval_name,stage,tier,difficulty,ws_exp_rate,bs_exp_rate"]
+    rows = []
     n_total = 0
     for r in per_eval:
         if r["ws_pass"] or r["bs_pass"]:
@@ -2302,11 +2540,31 @@ def write_headroom_evals_csv(
         ws_pct = 100 * r["ws_exp_p"] / r["ws_exp_t"] if r["ws_exp_t"] else 0.0
         bs_pct = 100 * r["bs_exp_p"] / r["bs_exp_t"] if r["bs_exp_t"] else 0.0
         rows.append(
-            f"{r['batch']},{r['eval_id']},{r['eval_name']},"
-            f"{cat.get('stage', 'unknown')},{cat.get('tier', 'unknown')},{cat.get('difficulty', 'unknown')},"
-            f"{ws_pct:.1f},{bs_pct:.1f}"
+            {
+                "batch": r["batch"],
+                "eval_id": r["eval_id"],
+                "eval_name": r["eval_name"],
+                "stage": cat.get("stage", "unknown"),
+                "tier": cat.get("tier", "unknown"),
+                "difficulty": cat.get("difficulty", "unknown"),
+                "ws_exp_rate": f"{ws_pct:.1f}",
+                "bs_exp_rate": f"{bs_pct:.1f}",
+            }
         )
-    (OUT / "headroom_evals.csv").write_text("\n".join(rows) + "\n")
+    _write_csv(
+        OUT / "headroom_evals.csv",
+        [
+            "batch",
+            "eval_id",
+            "eval_name",
+            "stage",
+            "tier",
+            "difficulty",
+            "ws_exp_rate",
+            "bs_exp_rate",
+        ],
+        rows,
+    )
 
 
 def write_eval_coverage_csv(cats: dict[int, dict[str, str]]) -> None:
@@ -2314,10 +2572,11 @@ def write_eval_coverage_csv(cats: dict[int, dict[str, str]]) -> None:
     by_pair: Counter = Counter()
     for c in cats.values():
         by_pair[(c.get("stage", "unknown"), c.get("tier", "unknown"))] += 1
-    rows = ["stage,tier,n_evals"]
-    for (s, t), n in sorted(by_pair.items(), key=lambda x: (-x[1], x[0], x[1])):
-        rows.append(f"{s},{t},{n}")
-    (OUT / "eval_coverage.csv").write_text("\n".join(rows) + "\n")
+    rows = [
+        {"stage": s, "tier": t, "n_evals": n}
+        for (s, t), n in sorted(by_pair.items(), key=lambda x: (-x[1], x[0], x[1]))
+    ]
+    _write_csv(OUT / "eval_coverage.csv", ["stage", "tier", "n_evals"], rows)
 
     # Plot 17: heatmap of stage × tier counts.
     stages = sorted({s for s, _ in by_pair})
@@ -2343,7 +2602,7 @@ def write_eval_coverage_csv(cats: dict[int, dict[str, str]]) -> None:
                         color="white" if n > matrix.max() / 2 else "black")
     fig.colorbar(im, ax=ax, shrink=0.6, label="eval count")
     setup_axes(ax, "Eval coverage by stage × tier — where is the suite under-/over-testing?")
-    fig.suptitle("Round-D should add evals to under-covered cells", fontsize=11, y=1.02)
+    fig.suptitle("Future sweeps should add evals to under-covered cells", fontsize=11, y=1.02)
     fig.savefig(OUT / "17_eval_coverage_map.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
 
@@ -2354,7 +2613,7 @@ def write_failure_taxonomy_stub_csv(
     """Auto-generated stub for human annotation of with_skill failures.
 
     For each ws-failed eval, writes a row with empty `failure_type` and
-    `notes` columns. Round-D maintainers can fill these in manually
+    `notes` columns. Maintainers can fill these in manually
     (suggested values: wrong_factual, omitted_step, over_skeptical,
     wrong_tool, right_ref_no_verify, rubric_friction, eval_issue) and
     plot 18 will then aggregate them. Existing rows are preserved across
@@ -2363,24 +2622,46 @@ def write_failure_taxonomy_stub_csv(
     target = OUT / "failure_taxonomy.csv"
     existing: dict[int, dict[str, str]] = {}
     if target.is_file():
-        for line in target.read_text().splitlines()[1:]:
-            parts = [p.strip().strip('"') for p in line.split(",")]
-            if len(parts) >= 8 and parts[1].isdigit():
-                existing[int(parts[1])] = {"failure_type": parts[6], "notes": parts[7]}
+        for row in csv.DictReader(io.StringIO(target.read_text())):
+            eid = row.get("eval_id", "")
+            if eid.isdigit():
+                existing[int(eid)] = {
+                    "failure_type": row.get("failure_type", ""),
+                    "notes": row.get("notes", ""),
+                }
 
-    rows = ["batch,eval_id,eval_name,stage,tier,difficulty,failure_type,notes"]
+    rows = []
     for r in per_eval:
         if r["ws_pass"]:
             continue
         cat = cats.get(r["eval_id"], {})
         prior = existing.get(r["eval_id"], {"failure_type": "", "notes": ""})
-        notes = prior["notes"].replace(",", ";").replace('"', "'")
         rows.append(
-            f"{r['batch']},{r['eval_id']},{r['eval_name']},"
-            f"{cat.get('stage', 'unknown')},{cat.get('tier', 'unknown')},{cat.get('difficulty', 'unknown')},"
-            f"{prior['failure_type']},\"{notes}\""
+            {
+                "batch": r["batch"],
+                "eval_id": r["eval_id"],
+                "eval_name": r["eval_name"],
+                "stage": cat.get("stage", "unknown"),
+                "tier": cat.get("tier", "unknown"),
+                "difficulty": cat.get("difficulty", "unknown"),
+                "failure_type": prior["failure_type"],
+                "notes": prior["notes"],
+            }
         )
-    target.write_text("\n".join(rows) + "\n")
+    _write_csv(
+        target,
+        [
+            "batch",
+            "eval_id",
+            "eval_name",
+            "stage",
+            "tier",
+            "difficulty",
+            "failure_type",
+            "notes",
+        ],
+        rows,
+    )
 
     # Plot 18: only render if any annotations exist.
     types = [r for r in existing.values() if r["failure_type"]]
@@ -2448,13 +2729,31 @@ def write_reference_expected_used_csv(
                 else:
                     t["missed"] += 1
 
-    rows = ["reference,status,expected_count,used_count,missed_count,used_pass_rate"]
+    rows = []
     for (ref, status), t in sorted(tally.items()):
         rate = 100 * t["passed_when_used"] / t["used"] if t["used"] else 0.0
         rows.append(
-            f"{ref},{status},{t['expected']},{t['used']},{t['missed']},{rate:.1f}"
+            {
+                "reference": ref,
+                "status": status,
+                "expected_count": t["expected"],
+                "used_count": t["used"],
+                "missed_count": t["missed"],
+                "used_pass_rate": f"{rate:.1f}",
+            }
         )
-    (OUT / "reference_expected_used.csv").write_text("\n".join(rows) + "\n")
+    _write_csv(
+        OUT / "reference_expected_used.csv",
+        [
+            "reference",
+            "status",
+            "expected_count",
+            "used_count",
+            "missed_count",
+            "used_pass_rate",
+        ],
+        rows,
+    )
 
     # Plot 19: heatmap of (reference × status) discoverability if any annotations.
     refs = sorted({r for r, _ in tally})
@@ -2495,9 +2794,14 @@ def write_reference_expected_used_csv(
     plt.close(fig)
 
 
-def _expected_positive(blocks: dict[str, list[str]]) -> set[str]:
+def _expected_required(blocks: dict[str, list[str]]) -> set[str]:
     """Resources that should count as expected-positive for a confusion matrix."""
-    return set(blocks.get("required", [])) | set(blocks.get("optional", []))
+    return set(blocks.get("required", []))
+
+
+def _expected_optional(blocks: dict[str, list[str]]) -> set[str]:
+    """Resources that are useful but should not create false negatives."""
+    return set(blocks.get("optional", []))
 
 
 def _expected_negative(blocks: dict[str, list[str]]) -> set[str]:
@@ -2515,9 +2819,10 @@ def write_expected_call_confusion(
     """Write called-vs-expected confusion matrices for references or scripts.
 
     The unit of analysis is a labeled eval-resource pair in the with_skill
-    condition. Required and optional resources are positives. Distractors and
-    unlabeled resources are negatives. For scripts, "called" means executed via
-    Bash; source-only reads do not count.
+    condition. Required resources are positives. Distractors and unlabeled
+    resources are negatives. Optional resources are tracked separately but do
+    not affect precision/recall. For scripts, "called" means executed via Bash;
+    source-only reads do not count.
     """
     if not expected or records is None:
         return
@@ -2539,7 +2844,8 @@ def write_expected_call_confusion(
     labeled_evals = sorted(expected)
     universe = set()
     for eid in labeled_evals:
-        universe |= _expected_positive(expected[eid])
+        universe |= _expected_required(expected[eid])
+        universe |= _expected_optional(expected[eid])
         universe |= _expected_negative(expected[eid])
         universe |= observed_by_eval.get(eid, set())
     if kind == "script":
@@ -2554,6 +2860,8 @@ def write_expected_call_confusion(
             "expected_not_called": 0,
             "unexpected_called": 0,
             "unexpected_not_called": 0,
+            "optional_called": 0,
+            "optional_not_called": 0,
             "failed_expected_not_called": 0,
             "failed_expected_called": 0,
             "passed_unexpected_called": 0,
@@ -2562,8 +2870,9 @@ def write_expected_call_confusion(
     }
 
     for eid in labeled_evals:
-        positives = _expected_positive(expected[eid])
-        negatives = set(universe) - positives
+        positives = _expected_required(expected[eid])
+        optional = _expected_optional(expected[eid])
+        negatives = set(universe) - positives - optional
         called = observed_by_eval.get(eid, set())
         passed = pass_by_eval.get(eid, False)
         for resource in positives:
@@ -2575,6 +2884,11 @@ def write_expected_call_confusion(
                 per_resource[resource]["expected_not_called"] += 1
                 if not passed:
                     per_resource[resource]["failed_expected_not_called"] += 1
+        for resource in optional:
+            if resource in called:
+                per_resource[resource]["optional_called"] += 1
+            else:
+                per_resource[resource]["optional_not_called"] += 1
         for resource in negatives:
             if resource in called:
                 per_resource[resource]["unexpected_called"] += 1
@@ -2583,14 +2897,7 @@ def write_expected_call_confusion(
             else:
                 per_resource[resource]["unexpected_not_called"] += 1
 
-    rows = [
-        (
-            "resource,kind,n_labeled_evals,expected_called,expected_not_called,"
-            "unexpected_called,unexpected_not_called,precision,recall,"
-            "false_positive_rate,failed_expected_not_called,failed_expected_called,"
-            "passed_unexpected_called"
-        )
-    ]
+    rows = []
     totals = Counter()
     for resource, counts in per_resource.items():
         tp = counts["expected_called"]
@@ -2601,11 +2908,23 @@ def write_expected_call_confusion(
         recall = 100 * tp / (tp + fn) if tp + fn else 0.0
         fpr = 100 * fp / (fp + tn) if fp + tn else 0.0
         rows.append(
-            f"{resource},{kind},{len(labeled_evals)},{tp},{fn},{fp},{tn},"
-            f"{precision:.1f},{recall:.1f},{fpr:.1f},"
-            f"{counts['failed_expected_not_called']},"
-            f"{counts['failed_expected_called']},"
-            f"{counts['passed_unexpected_called']}"
+            {
+                "resource": resource,
+                "kind": kind,
+                "n_labeled_evals": len(labeled_evals),
+                "expected_called": tp,
+                "expected_not_called": fn,
+                "optional_called": counts["optional_called"],
+                "optional_not_called": counts["optional_not_called"],
+                "unexpected_called": fp,
+                "unexpected_not_called": tn,
+                "precision": f"{precision:.1f}",
+                "recall": f"{recall:.1f}",
+                "false_positive_rate": f"{fpr:.1f}",
+                "failed_expected_not_called": counts["failed_expected_not_called"],
+                "failed_expected_called": counts["failed_expected_called"],
+                "passed_unexpected_called": counts["passed_unexpected_called"],
+            }
         )
         totals.update(
             {
@@ -2615,7 +2934,27 @@ def write_expected_call_confusion(
                 "unexpected_not_called": tn,
             }
         )
-    (OUT / f"{kind}_call_confusion.csv").write_text("\n".join(rows) + "\n")
+    _write_csv(
+        OUT / f"{kind}_call_confusion.csv",
+        [
+            "resource",
+            "kind",
+            "n_labeled_evals",
+            "expected_called",
+            "expected_not_called",
+            "optional_called",
+            "optional_not_called",
+            "unexpected_called",
+            "unexpected_not_called",
+            "precision",
+            "recall",
+            "false_positive_rate",
+            "failed_expected_not_called",
+            "failed_expected_called",
+            "passed_unexpected_called",
+        ],
+        rows,
+    )
 
     matrix = np.array(
         [
@@ -2668,6 +3007,541 @@ def write_expected_call_confusion(
     plt.close(fig)
 
 
+def _observed_resources_by_eval(
+    records: list[dict] | None, kind: str
+) -> dict[int, set[str]]:
+    """Map eval_id to refs opened or scripts executed in with_skill transcripts."""
+    observed: dict[int, set[str]] = defaultdict(set)
+    if records is None:
+        return observed
+    for r in records:
+        if r["condition"] != "with_skill":
+            continue
+        if kind == "reference":
+            observed[r["eval_id"]].update(
+                ref for ref in r["ref_opens"] if ref != "SKILL.md"
+            )
+        elif kind == "script":
+            observed[r["eval_id"]].update(r["script_executions"])
+        else:
+            raise ValueError(f"unknown resource kind: {kind}")
+    return observed
+
+
+def write_expected_by_eval_csv(
+    *,
+    per_eval: list[dict],
+    observed: dict[int, set[str]] | None,
+    expected: dict[int, dict[str, list[str]]],
+    kind: str,
+) -> None:
+    """Per-eval expected-vs-observed routing table.
+
+    This is the actionable companion to the aggregate confusion matrix: it says
+    exactly which evals missed a required ref/script, which optional resources
+    were used, and which distractors were called/opened.
+    """
+    if not expected or observed is None:
+        return
+
+    by_eval = {r["eval_id"]: r for r in per_eval}
+    rows = []
+    for eid in sorted(expected):
+        r = by_eval.get(eid, {})
+        block = expected[eid]
+        required = _expected_required(block)
+        optional = _expected_optional(block)
+        distractor = _expected_negative(block)
+        called = observed.get(eid, set())
+        rows.append(
+            {
+                "eval_id": eid,
+                "batch": r.get("batch", ""),
+                "eval_name": r.get("eval_name", ""),
+                "ws_pass": int(bool(r.get("ws_pass", False))),
+                "bs_pass": int(bool(r.get("bs_pass", False))),
+                "required": _join_items(required),
+                "called_required": _join_items(required & called),
+                "missed_required": _join_items(required - called),
+                "optional": _join_items(optional),
+                "optional_called": _join_items(optional & called),
+                "optional_not_called": _join_items(optional - called),
+                "distractor": _join_items(distractor),
+                "distractor_called": _join_items(distractor & called),
+                "observed_unlabeled": _join_items(called - required - optional - distractor),
+            }
+        )
+
+    _write_csv(
+        OUT / f"{kind}_expected_by_eval.csv",
+        [
+            "eval_id",
+            "batch",
+            "eval_name",
+            "ws_pass",
+            "bs_pass",
+            "required",
+            "called_required",
+            "missed_required",
+            "optional",
+            "optional_called",
+            "optional_not_called",
+            "distractor",
+            "distractor_called",
+            "observed_unlabeled",
+        ],
+        rows,
+    )
+
+
+def write_routing_failure_views(
+    *,
+    per_eval: list[dict],
+    refs_by_eval: dict[int, set[str]] | None,
+    scripts_by_eval: dict[int, set[str]] | None,
+    expected_refs: dict[int, dict[str, list[str]]],
+    expected_scripts: dict[int, dict[str, list[str]]],
+) -> None:
+    """Classify ws failures as routing misses or loaded-but-not-synthesized."""
+    if not expected_refs and not expected_scripts:
+        return
+    if refs_by_eval is None or scripts_by_eval is None:
+        return
+
+    rows = []
+    for r in sorted(per_eval, key=lambda x: (x["batch"], x["eval_id"])):
+        if r["ws_pass"]:
+            continue
+        eid = r["eval_id"]
+        req_refs = _expected_required(expected_refs.get(eid, {}))
+        req_scripts = _expected_required(expected_scripts.get(eid, {}))
+        called_refs = refs_by_eval.get(eid, set())
+        called_scripts = scripts_by_eval.get(eid, set())
+        missed_refs = req_refs - called_refs
+        missed_scripts = req_scripts - called_scripts
+        diagnosis = (
+            "routing_miss"
+            if missed_refs or missed_scripts
+            else "loaded_required_but_failed"
+        )
+        rows.append(
+            {
+                "eval_id": eid,
+                "batch": r["batch"],
+                "eval_name": r["eval_name"],
+                "bs_pass": int(bool(r["bs_pass"])),
+                "outcome": _outcome_label(r),
+                "diagnosis": diagnosis,
+                "required_refs": _join_items(req_refs),
+                "called_refs": _join_items(called_refs),
+                "missed_required_refs": _join_items(missed_refs),
+                "required_scripts": _join_items(req_scripts),
+                "called_scripts": _join_items(called_scripts),
+                "missed_required_scripts": _join_items(missed_scripts),
+            }
+        )
+
+    fields = [
+        "eval_id",
+        "batch",
+        "eval_name",
+        "bs_pass",
+        "outcome",
+        "diagnosis",
+        "required_refs",
+        "called_refs",
+        "missed_required_refs",
+        "required_scripts",
+        "called_scripts",
+        "missed_required_scripts",
+    ]
+    _write_csv(OUT / "routing_diagnosis.csv", fields, rows)
+
+
+def write_cost_by_outcome_csv(per_eval: list[dict]) -> None:
+    """Flat CSV for the spend-by-outcome block in cumulative_summary.json."""
+    spend = _build_spend_by_outcome(per_eval)
+    rows = []
+    for outcome in ("both_pass", "skill_only", "baseline_only", "both_fail"):
+        v = spend[outcome]
+        rows.append(
+            {
+                "outcome": outcome,
+                "n": v["n"],
+                "mean_extra_tokens": v["mean_extra_tokens"],
+                "total_extra_tokens": v["total_extra_tokens"],
+                "share_of_total_extra": v["share_of_total_extra"],
+            }
+        )
+    _write_csv(
+        OUT / "cost_by_outcome.csv",
+        [
+            "outcome",
+            "n",
+            "mean_extra_tokens",
+            "total_extra_tokens",
+            "share_of_total_extra",
+        ],
+        rows,
+    )
+
+
+def write_skip_gate_candidates_csv(
+    cats: dict[int, dict[str, str]],
+    per_eval: list[dict],
+    timing: dict[tuple[int, int, str], int],
+) -> None:
+    """Find categories where baseline is already strong and skill spend is high.
+
+    Thresholds live in module-level constants so future rounds can tune the
+    policy without hunting magic numbers in the writer body.
+    """
+    rows = []
+    for kind in ("stage", "tier", "difficulty"):
+        grouped: dict[str, list[dict]] = defaultdict(list)
+        for r in per_eval:
+            grouped[cats.get(r["eval_id"], {}).get(kind, "unknown")].append(r)
+        for category, vals in grouped.items():
+            n = len(vals)
+            outcomes = count_outcomes(vals)
+            bs_pass = outcomes["both_pass"] + outcomes["baseline_only"]
+            ws_pass = outcomes["both_pass"] + outcomes["skill_only"]
+            skill_only = outcomes["skill_only"]
+            baseline_only = outcomes["baseline_only"]
+            both_fail = outcomes["both_fail"]
+            extras = []
+            for r in vals:
+                ws_tok = timing.get((r["batch"], r["eval_id"], "with_skill"))
+                bs_tok = timing.get((r["batch"], r["eval_id"], "without_skill"))
+                if ws_tok is not None and bs_tok is not None:
+                    extras.append(ws_tok - bs_tok)
+            bs_rate = 100 * bs_pass / n if n else 0.0
+            ws_rate = 100 * ws_pass / n if n else 0.0
+            unrescued = skill_only + baseline_only + both_fail
+            rescue_rate = (
+                100 * skill_only / unrescued
+                if unrescued
+                else 0.0
+            )
+            candidate_reason = ""
+            if (
+                n >= SKIP_GATE_MIN_EVALS
+                and bs_rate >= SKIP_GATE_STRONG_BASELINE_PASS_RATE
+                and skill_only == 0
+            ):
+                candidate_reason = "baseline_strong_no_rescues"
+            elif (
+                n >= SKIP_GATE_MIN_EVALS
+                and bs_rate >= SKIP_GATE_HIGH_BASELINE_PASS_RATE
+                and rescue_rate <= SKIP_GATE_LOW_RESCUE_RATE
+                and sum(extras) > SKIP_GATE_TOTAL_EXTRA_TOKEN_FLOOR
+            ):
+                candidate_reason = "high_cost_low_rescue"
+            rows.append(
+                {
+                    "category_kind": kind,
+                    "category": category,
+                    "n_evals": n,
+                    "ws_pass_rate": f"{ws_rate:.1f}",
+                    "bs_pass_rate": f"{bs_rate:.1f}",
+                    "skill_only": skill_only,
+                    "baseline_only": baseline_only,
+                    "rescue_rate": f"{rescue_rate:.1f}",
+                    "total_extra_tokens": sum(extras),
+                    "mean_extra_tokens": round(sum(extras) / len(extras)) if extras else "",
+                    "candidate_reason": candidate_reason,
+                }
+            )
+    rows.sort(
+        key=lambda r: (
+            r["candidate_reason"] == "",
+            -int(r["total_extra_tokens"]),
+            r["category_kind"],
+            r["category"],
+        )
+    )
+    _write_csv(
+        OUT / "skip_gate_candidates.csv",
+        [
+            "category_kind",
+            "category",
+            "n_evals",
+            "ws_pass_rate",
+            "bs_pass_rate",
+            "skill_only",
+            "baseline_only",
+            "rescue_rate",
+            "total_extra_tokens",
+            "mean_extra_tokens",
+            "candidate_reason",
+        ],
+        rows,
+    )
+
+
+def write_ws_regressions_csv(
+    cats: dict[int, dict[str, str]], per_eval: list[dict]
+) -> None:
+    """Evals where with_skill underperforms baseline at full-pass or expectation level."""
+    rows = []
+    for r in sorted(per_eval, key=lambda x: (x["batch"], x["eval_id"])):
+        ws_pct = 100 * r["ws_exp_p"] / r["ws_exp_t"] if r["ws_exp_t"] else 0.0
+        bs_pct = 100 * r["bs_exp_p"] / r["bs_exp_t"] if r["bs_exp_t"] else 0.0
+        full_regression = bool(r["bs_pass"] and not r["ws_pass"])
+        expectation_regression = ws_pct < bs_pct
+        if not full_regression and not expectation_regression:
+            continue
+        cat = cats.get(r["eval_id"], {})
+        rows.append(
+            {
+                "batch": r["batch"],
+                "eval_id": r["eval_id"],
+                "eval_name": r["eval_name"],
+                "stage": cat.get("stage", "unknown"),
+                "tier": cat.get("tier", "unknown"),
+                "difficulty": cat.get("difficulty", "unknown"),
+                "ws_pass": int(bool(r["ws_pass"])),
+                "bs_pass": int(bool(r["bs_pass"])),
+                "ws_expectation_rate": f"{ws_pct:.1f}",
+                "bs_expectation_rate": f"{bs_pct:.1f}",
+                "delta_expectation_pp": f"{ws_pct - bs_pct:.1f}",
+                "full_pass_regression": int(full_regression),
+                "expectation_regression": int(expectation_regression),
+            }
+        )
+    _write_csv(
+        OUT / "ws_regressions.csv",
+        [
+            "batch",
+            "eval_id",
+            "eval_name",
+            "stage",
+            "tier",
+            "difficulty",
+            "ws_pass",
+            "bs_pass",
+            "ws_expectation_rate",
+            "bs_expectation_rate",
+            "delta_expectation_pp",
+            "full_pass_regression",
+            "expectation_regression",
+        ],
+        rows,
+    )
+
+
+def write_fix_priority_csv(
+    *,
+    cats: dict[int, dict[str, str]],
+    per_eval: list[dict],
+    refs_by_eval: dict[int, set[str]] | None,
+    scripts_by_eval: dict[int, set[str]] | None,
+    expected_refs: dict[int, dict[str, list[str]]],
+    expected_scripts: dict[int, dict[str, list[str]]],
+    timing: dict[tuple[int, int, str], int],
+) -> None:
+    """Decision table for next skill edits.
+
+    Sort order puts direct fixes first: regressions, missed-script routing,
+    missed-reference routing, and loaded-but-failed synthesis/content. Expensive
+    both-pass rows follow as cost inspections, then idle rows with no likely
+    action.
+    """
+    refs_by_eval = refs_by_eval or {}
+    scripts_by_eval = scripts_by_eval or {}
+    rows = []
+    for r in sorted(per_eval, key=lambda x: (x["batch"], x["eval_id"])):
+        ws_pct = 100 * r["ws_exp_p"] / r["ws_exp_t"] if r["ws_exp_t"] else 0.0
+        bs_pct = 100 * r["bs_exp_p"] / r["bs_exp_t"] if r["bs_exp_t"] else 0.0
+        ws_tok = timing.get((r["batch"], r["eval_id"], "with_skill"))
+        bs_tok = timing.get((r["batch"], r["eval_id"], "without_skill"))
+        req_refs = _expected_required(expected_refs.get(r["eval_id"], {}))
+        req_scripts = _expected_required(expected_scripts.get(r["eval_id"], {}))
+        missed_refs = req_refs - refs_by_eval.get(r["eval_id"], set())
+        missed_scripts = req_scripts - scripts_by_eval.get(r["eval_id"], set())
+        outcome = _outcome_label(r)
+        extra_tokens_known = ws_tok is not None and bs_tok is not None
+        extra_tokens = (ws_tok - bs_tok) if extra_tokens_known else 0
+        if outcome == "baseline_only":
+            likely_action = "investigate_regression"
+        elif not r["ws_pass"] and missed_scripts:
+            likely_action = "fix_script_routing"
+        elif not r["ws_pass"] and missed_refs:
+            likely_action = "fix_reference_routing"
+        elif not r["ws_pass"]:
+            likely_action = "fix_template_or_reference_content"
+        elif outcome == "both_pass" and extra_tokens > EXPENSIVE_BOTH_PASS_EXTRA_TOKEN_FLOOR:
+            likely_action = "expensive_both_pass"
+        else:
+            likely_action = ""
+        cat = cats.get(r["eval_id"], {})
+        rows.append(
+            {
+                "batch": r["batch"],
+                "eval_id": r["eval_id"],
+                "eval_name": r["eval_name"],
+                "stage": cat.get("stage", "unknown"),
+                "tier": cat.get("tier", "unknown"),
+                "difficulty": cat.get("difficulty", "unknown"),
+                "outcome": outcome,
+                "ws_expectation_rate": f"{ws_pct:.1f}",
+                "bs_expectation_rate": f"{bs_pct:.1f}",
+                "delta_expectation_pp": f"{ws_pct - bs_pct:.1f}",
+                "extra_tokens_known": int(extra_tokens_known),
+                "extra_tokens": extra_tokens,
+                "missed_required_refs": _join_items(missed_refs),
+                "missed_required_scripts": _join_items(missed_scripts),
+                "likely_action": likely_action,
+            }
+        )
+    rows.sort(
+        key=lambda r: (
+            FIX_PRIORITY_ACTION_ORDER.get(r["likely_action"], 99),
+            r["batch"],
+            r["eval_id"],
+        )
+    )
+    _write_csv(
+        OUT / "fix_priority.csv",
+        [
+            "batch",
+            "eval_id",
+            "eval_name",
+            "stage",
+            "tier",
+            "difficulty",
+            "outcome",
+            "ws_expectation_rate",
+            "bs_expectation_rate",
+            "delta_expectation_pp",
+            "extra_tokens_known",
+            "extra_tokens",
+            "missed_required_refs",
+            "missed_required_scripts",
+            "likely_action",
+        ],
+        rows,
+    )
+    action_rows = [r for r in rows if r["likely_action"]]
+    if not action_rows:
+        return
+    counts = Counter(r["likely_action"] for r in action_rows)
+    labels = sorted(counts, key=lambda a: FIX_PRIORITY_ACTION_ORDER.get(a, 99))
+    values = [counts[label] for label in labels]
+    fig, ax = plt.subplots(figsize=(9, 4.8), constrained_layout=True)
+    colors = [
+        WONG["delta_neg"] if label == "investigate_regression"
+        else WONG["delta_pos"] if label.startswith("fix_")
+        else WONG["neutral"]
+        for label in labels
+    ]
+    bars = ax.barh(np.arange(len(labels)), values, color=colors, edgecolor="white")
+    for bar, value in zip(bars, values):
+        ax.text(
+            bar.get_width() + 0.2,
+            bar.get_y() + bar.get_height() / 2,
+            str(value),
+            va="center",
+            fontsize=10,
+        )
+    ax.set_yticks(np.arange(len(labels)))
+    ax.set_yticklabels(labels, fontsize=10, family="monospace")
+    ax.invert_yaxis()
+    ax.set_xlabel("# evals", fontsize=10)
+    setup_axes(ax, "Fix-priority actions — what should the next refactor inspect first?")
+    ax.grid(axis="x", alpha=0.3, linestyle=":")
+    fig.savefig(OUT / "22_fix_priority_actions.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_summary_manifest_json() -> None:
+    """Document output purpose and priority so plots are not over-interpreted.
+
+    New outputs intentionally fall back to appendix classification, but the
+    manifest marks those entries with `classification_source=fallback` and
+    prints their filenames so maintainers can promote them deliberately.
+    """
+    overrides = {
+        "01_per_batch_pass_rate.png": ("batch_health", "secondary", "Operational batch health, not a general category conclusion."),
+        "02_delta_per_batch.png": ("batch_health", "secondary", "Per-batch skill lift for spotting run or batch anomalies."),
+        "03_per_eval_outcomes.png": ("headline", "secondary", "Per-eval outcome strip for visual scan of wins/regressions."),
+        "04_cost_per_batch.png": ("batch_health", "secondary", "Batch-level token and duration profile."),
+        "05_cumulative_summary.png": ("headline", "primary", "Headline ws/bs full-pass, expectation, and token totals."),
+        "06_by_category.png": ("category", "secondary", "Pass-rate view by stage/tier."),
+        "07_by_difficulty.png": ("category", "secondary", "Skill value by eval difficulty."),
+        "08_difficulty_x_stage_heatmap.png": ("coverage", "secondary", "Stage x difficulty performance and coverage map."),
+        "09_per_eval_scatter.png": ("headline", "secondary", "Per-eval ws vs bs expectation-rate scatter."),
+        "10_top_skill_wins.png": ("headline", "secondary", "Largest per-eval skill wins by expectation delta."),
+        "11_reference_utilization.png": ("utilization", "appendix", "Raw reference open counts; use routing outputs for expected-vs-called analysis."),
+        "12_script_utilization.png": ("utilization", "appendix", "Raw bundled-script executions/source-reads; use script confusion for routing analysis."),
+        "13_reference_effectiveness.png": ("utilization", "appendix", "Reference loads vs pass-rate-when-loaded; confounded by eval difficulty."),
+        "14_cost_effectiveness_scatter.png": ("cost", "primary", "Per-eval extra tokens vs expectation delta."),
+        "15_outcome_by_category.png": ("category", "primary", "Where the skill uniquely helps, regresses, or still fails by stage/tier."),
+        "16_baseline_source_split.png": ("headline", "secondary", "Whether skill value is source-delivery vs workflow/routing."),
+        "17_eval_coverage_map.png": ("coverage", "secondary", "Stage x tier eval-count map for future eval-set design."),
+        "19_reference_expected_used.png": ("routing", "secondary", "Reference expected-vs-opened heatmap by required/optional/distractor status."),
+        "20_reference_call_confusion.png": ("routing", "primary", "Required reference opened vs missed; optional references are neutral."),
+        "21_script_call_confusion.png": ("routing", "primary", "Required bundled script executed vs missed."),
+        "22_fix_priority_actions.png": ("fix_priority", "primary", "Likely-action distribution from fix_priority.csv."),
+        "SUMMARY.md": ("headline", "primary", "Human-authored narrative summary and recommendations."),
+        "baseline_source_split.json": ("headline", "secondary", "Machine-readable source-delivery vs workflow/routing split."),
+        "batch_summary.csv": ("batch_health", "secondary", "Per-batch full-pass, expectation, behavioral, token, and duration metrics."),
+        "category_breakdown.csv": ("category", "secondary", "Pass-rate counts by stage/tier/difficulty."),
+        "cost_by_outcome.csv": ("cost", "primary", "Extra ws tokens split by both-pass / skill-only / baseline-only / both-fail."),
+        "cost_effectiveness_per_eval.csv": ("cost", "primary", "Per-eval cost-effectiveness data."),
+        "cumulative_summary.json": ("headline", "primary", "Machine-readable headline totals, outcome cross-tab, spend by outcome, and McNemar test."),
+        "eval_coverage.csv": ("coverage", "secondary", "Stage x tier eval-count matrix."),
+        "failure_taxonomy.csv": ("fix_priority", "secondary", "Manual annotation stub for ws-failed eval failure modes."),
+        "fix_priority.csv": ("fix_priority", "primary", "Combined next-action table with outcome, cost, and routing misses."),
+        "headroom_evals.csv": ("fix_priority", "primary", "Failed or weak evals where skill edits may still improve outcomes."),
+        "outcome_by_category.csv": ("category", "primary", "CSV behind the outcome-by-category plot."),
+        "per_eval_routing.csv": ("routing", "secondary", "Per-eval refs opened, scripts run, source touches, and tool errors."),
+        "ref_utilization.json": ("utilization", "appendix", "Raw per-reference transcript open counts."),
+        "reference_call_confusion.csv": ("routing", "primary", "Reference expected-vs-opened confusion matrix."),
+        "reference_effectiveness.csv": ("utilization", "appendix", "Per-reference loads and pass-rate-when-loaded."),
+        "reference_expected_by_eval.csv": ("routing", "primary", "Per-eval reference routing diagnosis."),
+        "reference_expected_used.csv": ("routing", "secondary", "Per-reference expected/opened/pass-rate table by status."),
+        "routing_diagnosis.csv": ("routing", "primary", "Canonical ws-failure routing-vs-synthesis diagnosis table."),
+        "script_call_confusion.csv": ("routing", "primary", "Bundled-script expected-vs-executed confusion matrix."),
+        "script_expected_by_eval.csv": ("routing", "primary", "Per-eval bundled-script routing diagnosis."),
+        "script_utilization.json": ("utilization", "appendix", "Raw bundled-script execution and source-read counts."),
+        "skip_gate_candidates.csv": ("cost", "primary", "High-cost categories where baseline already performs strongly."),
+        "stage_x_difficulty.csv": ("coverage", "secondary", "Flat data behind the stage x difficulty heatmap."),
+        "summary_manifest.json": ("headline", "primary", "Output family/priority/purpose index."),
+        "top_skill_wins.csv": ("headline", "secondary", "Per-eval expectation-delta ranking."),
+        "transcript_stats.json": ("utilization", "appendix", "Tool-call totals, source assistance, contamination, and activation metrics."),
+        "ws_regressions.csv": ("fix_priority", "primary", "Full-pass or expectation-level regressions against baseline."),
+    }
+    manifest = []
+    filenames = {p.name for p in OUT.iterdir() if p.is_file()}
+    filenames.add("summary_manifest.json")
+    fallback_files = []
+    for filename in sorted(filenames):
+        if filename in overrides:
+            family, priority, purpose = overrides[filename]
+            classification_source = "override"
+        else:
+            family, priority, purpose = (
+                "appendix",
+                "appendix",
+                "Generated summary artifact not yet classified.",
+            )
+            classification_source = "fallback"
+            fallback_files.append(filename)
+        manifest.append(
+            {
+                "filename": filename,
+                "family": family,
+                "priority": priority,
+                "purpose": purpose,
+                "classification_source": classification_source,
+            }
+        )
+    (OUT / "summary_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    if fallback_files:
+        print("Manifest fallback classifications:", ", ".join(sorted(fallback_files)))
+
+
 def main() -> None:
     args = parse_args()
     configure_run(args.run, args.out)
@@ -2705,13 +3579,18 @@ def main() -> None:
     write_stage_x_difficulty_csv(cats, per_eval)
     write_per_eval_routing_csv(cats, per_eval, records)
 
-    # Round-D actionable summaries — "what should we change?" outputs.
+    # Actionable maintenance summaries — "what should we change?" outputs.
     timing = load_per_eval_timing()
     expected_refs = load_expected_refs()
     expected_scripts = load_expected_scripts()
+    refs_by_eval = _observed_resources_by_eval(records, "reference") if records else None
+    scripts_by_eval = _observed_resources_by_eval(records, "script") if records else None
     write_reference_effectiveness_csv(records, per_eval, cats)
     write_cost_effectiveness_csv(cats, per_eval, timing)
+    write_cost_by_outcome_csv(per_eval)
+    write_skip_gate_candidates_csv(cats, per_eval, timing)
     write_outcome_by_category_csv(cats, per_eval)
+    write_ws_regressions_csv(cats, per_eval)
     write_baseline_source_split_json(per_eval, records)
     write_eval_coverage_csv(cats)
     write_headroom_evals_csv(cats, per_eval)
@@ -2729,6 +3608,35 @@ def main() -> None:
         expected=expected_scripts,
         kind="script",
     )
+    write_expected_by_eval_csv(
+        per_eval=per_eval,
+        observed=refs_by_eval,
+        expected=expected_refs,
+        kind="reference",
+    )
+    write_expected_by_eval_csv(
+        per_eval=per_eval,
+        observed=scripts_by_eval,
+        expected=expected_scripts,
+        kind="script",
+    )
+    write_routing_failure_views(
+        per_eval=per_eval,
+        refs_by_eval=refs_by_eval,
+        scripts_by_eval=scripts_by_eval,
+        expected_refs=expected_refs,
+        expected_scripts=expected_scripts,
+    )
+    write_fix_priority_csv(
+        cats=cats,
+        per_eval=per_eval,
+        refs_by_eval=refs_by_eval,
+        scripts_by_eval=scripts_by_eval,
+        expected_refs=expected_refs,
+        expected_scripts=expected_scripts,
+        timing=timing,
+    )
+    write_summary_manifest_json()
     print("Wrote plots + CSV/JSON exports to", OUT)
 
 

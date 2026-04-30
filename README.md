@@ -12,11 +12,11 @@ You're a new user. Pick what you want to do:
 
 **Cite a number from round-C.** Open [`cumulative_summary.json`](runs/round-c-2026-04-28/summary/cumulative_summary.json) for the headline ws/bs/Δ + McNemar p-value + outcome cross-tab; [`batch_summary.csv`](runs/round-c-2026-04-28/summary/batch_summary.csv) for per-batch numbers; [`stage_x_difficulty.csv`](runs/round-c-2026-04-28/summary/stage_x_difficulty.csv) for cells of plot 08's heatmap; [`top_skill_wins.csv`](runs/round-c-2026-04-28/summary/top_skill_wins.csv) for per-eval Δ rankings; [`per_eval_routing.csv`](runs/round-c-2026-04-28/summary/per_eval_routing.csv) for "what did the agent reach for on this eval"; [`transcript_stats.json`](runs/round-c-2026-04-28/summary/transcript_stats.json) for tool-call totals, error counts, source-assistance, contamination.
 
-**Decide what to change in round-D.** Five "what should we change?" outputs (per-eval and per-reference rather than per-batch): [`reference_effectiveness.csv`](runs/round-c-2026-04-28/summary/reference_effectiveness.csv) — does loading a given reference correlate with passing? [`cost_effectiveness_per_eval.csv`](runs/round-c-2026-04-28/summary/cost_effectiveness_per_eval.csv) — which evals' extra ws tokens didn't pay off? [`outcome_by_category.csv`](runs/round-c-2026-04-28/summary/outcome_by_category.csv) — where does the skill uniquely help vs where everything still fails? [`baseline_source_split.json`](runs/round-c-2026-04-28/summary/baseline_source_split.json) — three-way split testing whether the skill's value is source-delivery or routing/workflow. [`eval_coverage.csv`](runs/round-c-2026-04-28/summary/eval_coverage.csv) — under-tested stage × tier cells.
+**Decide what to change next.** Start with [`fix_priority.csv`](runs/round-c-2026-04-28/summary/fix_priority.csv) and [`22_fix_priority_actions.png`](runs/round-c-2026-04-28/summary/22_fix_priority_actions.png) for the combined next-action view, [`headroom_evals.csv`](runs/round-c-2026-04-28/summary/headroom_evals.csv) for failed/weak evals, [`outcome_by_category.csv`](runs/round-c-2026-04-28/summary/outcome_by_category.csv) for where the skill uniquely helps vs where everything still fails, and [`cost_effectiveness_per_eval.csv`](runs/round-c-2026-04-28/summary/cost_effectiveness_per_eval.csv) / [`cost_by_outcome.csv`](runs/round-c-2026-04-28/summary/cost_by_outcome.csv) for token spend. Use [`routing_diagnosis.csv`](runs/round-c-2026-04-28/summary/routing_diagnosis.csv) as the canonical routing-vs-synthesis split for ws failures. [`baseline_source_split.json`](runs/round-c-2026-04-28/summary/baseline_source_split.json) tests whether the skill's value is source-delivery or routing/workflow. [`eval_coverage.csv`](runs/round-c-2026-04-28/summary/eval_coverage.csv) flags under-tested stage × tier cells.
 
-**Annotate failure modes by hand (round-D).** [`failure_taxonomy.csv`](runs/round-c-2026-04-28/summary/failure_taxonomy.csv) is auto-generated as a stub with one row per ws-failed eval. Fill in the `failure_type` column (suggested values: `wrong_factual`, `omitted_step`, `over_skeptical`, `wrong_tool`, `right_ref_no_verify`, `rubric_friction`, `eval_issue`) and re-run `make_plots.py` — plot 18 will render the distribution. Existing annotations are preserved across re-runs.
+**Annotate failure modes by hand.** [`failure_taxonomy.csv`](runs/round-c-2026-04-28/summary/failure_taxonomy.csv) is auto-generated as a stub with one row per ws-failed eval. Fill in the `failure_type` column (suggested values: `wrong_factual`, `omitted_step`, `over_skeptical`, `wrong_tool`, `right_ref_no_verify`, `rubric_friction`, `eval_issue`) and re-run `make_plots.py` — plot 18 will render the distribution. Existing annotations are preserved across re-runs.
 
-**Annotate expected references per eval (round-D).** Add an `expected_refs` block per eval in `skills/spyglass/evals/evals.json`:
+**Annotate expected references per eval.** Add an `expected_refs` block per eval in `skills/spyglass/evals/evals.json`:
 
 ```json
 {"id": 100, "expected_refs": {"required": ["decoding_pipeline.md"], "optional": ["common_tables.md"], "distractor": ["spyglassmixin_methods.md"]}}
@@ -34,9 +34,18 @@ annotations:
 
 `make_plots.py` renders `reference_call_confusion.csv`,
 `script_call_confusion.csv`, and plots 20/21 when annotations exist. The unit
-is a with_skill eval-resource pair: required/optional entries are positives,
-distractors and unlabeled resources are negatives, and scripts count as
-"called" only when executed via Bash, not merely source-read.
+is a with_skill eval-resource pair: `required` entries are positives,
+`distractor` entries and unlabeled resources are negatives, and `optional`
+entries are tracked but neutral. Scripts count as "called" only when executed
+via Bash, not merely source-read.
+
+**Read outputs by decision family.** [`summary_manifest.json`](runs/round-c-2026-04-28/summary/summary_manifest.json)
+labels each output as `primary`, `secondary`, or `appendix`. Treat headline,
+outcome-by-category, cost-effectiveness, routing, and fix-priority outputs as
+primary evidence. Treat batch plots as run-health diagnostics, difficulty and
+coverage plots as secondary structure, and raw reference/script utilization as
+appendix/debug evidence. Reference/script routing metrics measure whether the
+agent reached for the expected resource; they do not replace grading.
 
 **Regenerate figures from scratch.** Clone this repo and `spyglass-skill` as siblings (see "Sibling-clone convention" below), then:
 
@@ -45,9 +54,9 @@ uv run --with matplotlib --with numpy python3 tools/make_plots.py \
     --run runs/round-c-2026-04-28/
 ```
 
-All 12 PNGs + 4 CSVs + 3 JSONs regenerate to `runs/round-c-2026-04-28/summary/`.
+All summary PNG/CSV/JSON outputs regenerate to `runs/round-c-2026-04-28/summary/`.
 
-**Run a fresh sweep (round-D).** See "Adding a new sweep" below for the dispatch → snapshot → analyze → write-up flow.
+**Run a fresh sweep.** See "Adding a new sweep" below for the dispatch → snapshot → analyze → write-up flow.
 
 ## Glossary
 
@@ -96,10 +105,19 @@ runs/
         ├── cost_effectiveness_per_eval.csv  per-eval: extra ws tokens vs expectation Δ
         ├── outcome_by_category.csv    per stage/tier outcome cross-tab (both/ws-only/bs-only/none)
         ├── eval_coverage.csv          stage × tier eval-count matrix
-        ├── failure_taxonomy.csv       auto-stub of ws-failed evals; round-D maintainer fills failure_type
+        ├── failure_taxonomy.csv       auto-stub of ws-failed evals; maintainer fills failure_type
         ├── reference_expected_used.csv  optional: rendered if evals.json has `expected_refs` annotations
         ├── reference_call_confusion.csv optional: expected-vs-called matrix if `expected_refs` exists
         ├── script_call_confusion.csv  optional: expected-vs-called matrix if `expected_scripts` exists
+        ├── reference_expected_by_eval.csv optional: per-eval expected-vs-opened reference table
+        ├── script_expected_by_eval.csv optional: per-eval expected-vs-executed script table
+        ├── routing_diagnosis.csv       optional: canonical ws-failure routing-vs-synthesis diagnosis
+        ├── cost_by_outcome.csv        extra ws tokens split by both-pass / skill-only / bs-only / both-fail
+        ├── skip_gate_candidates.csv   high-cost categories where baseline already performs strongly
+        ├── ws_regressions.csv         full-pass or expectation-level regressions vs baseline
+        ├── fix_priority.csv           combined next-action table: outcome, cost, routing misses
+        ├── 22_fix_priority_actions.png likely-action distribution from fix_priority.csv
+        ├── summary_manifest.json      output family/priority/purpose index
         ├── cumulative_summary.json    headline ws/bs/Δ + outcome cross-tab + McNemar p-value
         ├── baseline_source_split.json 3-way split: bs-no-source / bs-source / ws full-pass rates
         ├── ref_utilization.json       per-reference open count (transcript-level)
@@ -176,7 +194,7 @@ See `runs/round-c-2026-04-28/run.json` for the canonical example.
 
 ## Adding a new sweep
 
-End-to-end flow for round-D / round-E / etc:
+End-to-end flow for each new sweep:
 
 1. **Dispatch.** Create `runs/<run-id>/iteration-N/` and dispatch the eval subagents from a Claude Code session rooted at the `spyglass-skill` repo (orchestrator-side; the canonical prompt templates live in `skills/spyglass/evals/dispatch_prompts.md`). Each batch produces:
    - `iteration-N/eval-NNN-<name>/{with_skill,without_skill}/{eval_metadata.json,grading.json,timing.json,outputs/response.md}`
@@ -205,7 +223,7 @@ End-to-end flow for round-D / round-E / etc:
 
 ## Why a separate repo
 
-The round-C 130-eval sweep added ~21 MB to spyglass-skill's git history, doubling its clone size. With expected sweeps every ~3 months (round-D in May, round-E in August, etc.), the skill repo's clone size would grow without bound, making it unpleasant to clone for users who only want the skill.
+The round-C 130-eval sweep added ~21 MB to spyglass-skill's git history, doubling its clone size. With recurring sweeps every few months, the skill repo's clone size would grow without bound, making it unpleasant to clone for users who only want the skill.
 
 Decoupling to this repo means:
 - `spyglass-skill` stays small for users.
