@@ -1,4 +1,31 @@
-.ruff_cache/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.python-version
+.venv/
+venv/
+env/
+
+# Tool caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local agent/editor state
+.claude/
+.codex/
+.vscode/
+.idea/
+
+# Generated staging directories from tools/make_plots.py
+runs/**/summary/.data_tmp/
+runs/**/summary/.figures_tmp/
+runs/**/summary/.INDEX.tmp
+
+# OS/editor noise
 .DS_Store
+*.swp
+*.swo
