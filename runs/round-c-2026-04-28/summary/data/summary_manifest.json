@@ -1,0 +1,359 @@
+[
+  {
+    "filename": "INDEX.md",
+    "family": "headline",
+    "priority": "primary",
+    "purpose": "Generated guide to summary outputs grouped by priority.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "SUMMARY.md",
+    "family": "headline",
+    "priority": "primary",
+    "purpose": "Human-authored narrative summary and recommendations.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/baseline_source_split.json",
+    "family": "headline",
+    "priority": "secondary",
+    "purpose": "Machine-readable source-delivery vs workflow/routing split.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/batch_summary.csv",
+    "family": "batch_health",
+    "priority": "secondary",
+    "purpose": "Per-batch full-pass, expectation, behavioral, token, and duration metrics.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/category_breakdown.csv",
+    "family": "category",
+    "priority": "secondary",
+    "purpose": "Pass-rate counts by stage/tier/difficulty.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/cost_by_outcome.csv",
+    "family": "cost",
+    "priority": "primary",
+    "purpose": "Extra ws tokens split by both-pass / skill-only / baseline-only / both-fail.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/cost_effectiveness_per_eval.csv",
+    "family": "cost",
+    "priority": "primary",
+    "purpose": "Per-eval cost-effectiveness data.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/cumulative_summary.json",
+    "family": "headline",
+    "priority": "primary",
+    "purpose": "Machine-readable headline totals, outcome cross-tab, spend by outcome, and McNemar test.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/eval_coverage.csv",
+    "family": "coverage",
+    "priority": "secondary",
+    "purpose": "Stage x tier eval-count matrix.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/failure_taxonomy.csv",
+    "family": "fix_priority",
+    "priority": "secondary",
+    "purpose": "Manual annotation stub for ws-failed eval failure modes.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/fix_priority.csv",
+    "family": "fix_priority",
+    "priority": "primary",
+    "purpose": "Combined next-action table with outcome, cost, and routing misses.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/headroom_evals.csv",
+    "family": "fix_priority",
+    "priority": "primary",
+    "purpose": "Failed or weak evals where skill edits may still improve outcomes.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/outcome_by_category.csv",
+    "family": "category",
+    "priority": "primary",
+    "purpose": "CSV behind the outcome-by-category plot.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/per_eval_routing.csv",
+    "family": "routing",
+    "priority": "secondary",
+    "purpose": "Per-eval refs opened, scripts run, source touches, and tool errors.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/ref_utilization.json",
+    "family": "utilization",
+    "priority": "appendix",
+    "purpose": "Raw per-reference transcript open counts.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/reference_call_confusion.csv",
+    "family": "routing",
+    "priority": "primary",
+    "purpose": "Reference expected-vs-opened confusion matrix.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/reference_effectiveness.csv",
+    "family": "utilization",
+    "priority": "appendix",
+    "purpose": "Per-reference loads and pass-rate-when-loaded.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/reference_expected_by_eval.csv",
+    "family": "routing",
+    "priority": "primary",
+    "purpose": "Per-eval reference routing diagnosis.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/reference_expected_used.csv",
+    "family": "routing",
+    "priority": "secondary",
+    "purpose": "Per-reference expected/opened/pass-rate table by status.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/routing_diagnosis.csv",
+    "family": "routing",
+    "priority": "primary",
+    "purpose": "Canonical ws-failure routing-vs-synthesis diagnosis table.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/script_call_confusion.csv",
+    "family": "routing",
+    "priority": "primary",
+    "purpose": "Bundled-script expected-vs-executed confusion matrix.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/script_expected_by_eval.csv",
+    "family": "routing",
+    "priority": "primary",
+    "purpose": "Per-eval bundled-script routing diagnosis.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/script_utilization.json",
+    "family": "utilization",
+    "priority": "appendix",
+    "purpose": "Raw bundled-script execution and source-read counts.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/skip_gate_candidates.csv",
+    "family": "cost",
+    "priority": "primary",
+    "purpose": "High-cost categories where baseline already performs strongly.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/stage_x_difficulty.csv",
+    "family": "coverage",
+    "priority": "secondary",
+    "purpose": "Flat data behind the stage x difficulty heatmap.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/summary_manifest.json",
+    "family": "headline",
+    "priority": "primary",
+    "purpose": "Output family/priority/purpose index.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/top_skill_wins.csv",
+    "family": "headline",
+    "priority": "secondary",
+    "purpose": "Per-eval expectation-delta ranking.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/transcript_stats.json",
+    "family": "utilization",
+    "priority": "appendix",
+    "purpose": "Tool-call totals, source assistance, contamination, and activation metrics.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "data/ws_regressions.csv",
+    "family": "fix_priority",
+    "priority": "primary",
+    "purpose": "Full-pass or expectation-level regressions against baseline.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/01_per_batch_pass_rate.png",
+    "family": "batch_health",
+    "priority": "secondary",
+    "purpose": "Operational batch health, not a general category conclusion.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/02_delta_per_batch.png",
+    "family": "batch_health",
+    "priority": "secondary",
+    "purpose": "Per-batch skill lift for spotting run or batch anomalies.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/03_per_eval_outcomes.png",
+    "family": "headline",
+    "priority": "secondary",
+    "purpose": "Per-eval outcome strip for visual scan of wins/regressions.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/04_cost_per_batch.png",
+    "family": "batch_health",
+    "priority": "secondary",
+    "purpose": "Batch-level token and duration profile.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/05_cumulative_summary.png",
+    "family": "headline",
+    "priority": "primary",
+    "purpose": "Headline ws/bs full-pass, expectation, and token totals.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/06_by_category.png",
+    "family": "category",
+    "priority": "secondary",
+    "purpose": "Pass-rate view by stage/tier.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/07_by_difficulty.png",
+    "family": "category",
+    "priority": "secondary",
+    "purpose": "Skill value by eval difficulty.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/08_difficulty_x_stage_heatmap.png",
+    "family": "coverage",
+    "priority": "secondary",
+    "purpose": "Stage x difficulty performance and coverage map.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/09_per_eval_scatter.png",
+    "family": "headline",
+    "priority": "secondary",
+    "purpose": "Per-eval ws vs bs expectation-rate scatter.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/10_top_skill_wins.png",
+    "family": "headline",
+    "priority": "secondary",
+    "purpose": "Largest per-eval skill wins by expectation delta.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/11_reference_utilization.png",
+    "family": "utilization",
+    "priority": "appendix",
+    "purpose": "Raw reference open counts; use routing outputs for expected-vs-called analysis.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/12_script_utilization.png",
+    "family": "utilization",
+    "priority": "appendix",
+    "purpose": "Raw bundled-script executions/source-reads; use script confusion for routing analysis.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/13_reference_effectiveness.png",
+    "family": "utilization",
+    "priority": "appendix",
+    "purpose": "Reference loads vs pass-rate-when-loaded; confounded by eval difficulty.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/14_cost_effectiveness_scatter.png",
+    "family": "cost",
+    "priority": "primary",
+    "purpose": "Per-eval extra tokens vs expectation delta.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/15_outcome_by_category.png",
+    "family": "category",
+    "priority": "primary",
+    "purpose": "Where the skill uniquely helps, regresses, or still fails by stage/tier.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/16_baseline_source_split.png",
+    "family": "headline",
+    "priority": "secondary",
+    "purpose": "Whether skill value is source-delivery vs workflow/routing.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/17_eval_coverage_map.png",
+    "family": "coverage",
+    "priority": "secondary",
+    "purpose": "Stage x tier eval-count map for future eval-set design.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/18_failure_taxonomy.png",
+    "family": "fix_priority",
+    "priority": "secondary",
+    "purpose": "Manual failure-type distribution; placeholder until failure_taxonomy.csv is annotated.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/19_reference_expected_used.png",
+    "family": "routing",
+    "priority": "secondary",
+    "purpose": "Reference expected-vs-opened heatmap by required/optional/distractor status.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/20_reference_call_confusion.png",
+    "family": "routing",
+    "priority": "primary",
+    "purpose": "Required reference opened vs missed; optional references are neutral.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/21_script_call_confusion.png",
+    "family": "routing",
+    "priority": "primary",
+    "purpose": "Required bundled script executed vs missed.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/22_fix_priority_actions.png",
+    "family": "fix_priority",
+    "priority": "primary",
+    "purpose": "Likely-action distribution from fix_priority.csv.",
+    "classification_source": "override"
+  }
+]

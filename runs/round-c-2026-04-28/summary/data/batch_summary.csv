@@ -1,4 +1,4 @@
-batch_id,label,n_evals,ws_full_pass,ws_full_rate,bs_full_pass,bs_full_rate,delta_full_pp,ws_exp_pass,ws_exp_total,ws_exp_rate,bs_exp_pass,bs_exp_total,bs_exp_rate,delta_exp_pp,ws_behavioral_pass,bs_behavioral_pass,behavioral_total,delta_behavioral_pp,ws_tokens_total,bs_tokens_total,ws_tokens_mean,bs_tokens_mean,ws_duration_mean_s,bs_duration_mean_s
+batch_id,label,n_evals,ws_full_pass,ws_full_rate,bs_full_pass,bs_full_rate,delta_full_pp,ws_exp_pass,ws_exp_total,ws_expectation_rate,bs_exp_pass,bs_exp_total,bs_expectation_rate,delta_expectation_pp,ws_behavioral_pass,bs_behavioral_pass,behavioral_total,delta_behavioral_pp,ws_tokens_total,bs_tokens_total,ws_tokens_mean,bs_tokens_mean,ws_duration_mean_s,bs_duration_mean_s
 1,B1 key hygiene + merge,14,14,100.0,11,78.6,21.4,107,107,100.0,99,107,92.5,7.5,0,0,0,0.0,606652,403575,43332.3,28826.8,64.29,66.40
 2,B2 hallucination,20,20,100.0,17,85.0,15.0,142,142,100.0,134,142,94.4,5.6,0,0,0,0.0,843173,528576,42158.7,26428.8,73.21,56.43
 3,B3 pipeline-use 1,20,20,100.0,20,100.0,0.0,194,194,100.0,194,194,100.0,0.0,0,0,0,0.0,534155,347131,44512.9,26702.4,80.65,50.00

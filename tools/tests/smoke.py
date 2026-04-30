@@ -2,7 +2,7 @@
 
 Run with the same environment used for plotting, for example:
 
-    uv run --with matplotlib --with numpy python3 tools/_smoketest.py
+    uv run --with matplotlib --with numpy python3 tools/tests/smoke.py
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def write_json(path: Path, payload: dict) -> None:
@@ -166,29 +166,29 @@ def main() -> None:
 
         required = [
             "INDEX.md",
-            "summary_manifest.json",
-            "18_failure_taxonomy.png",
-            "fix_priority.csv",
-            "routing_diagnosis.csv",
-            "reference_expected_by_eval.csv",
-            "script_expected_by_eval.csv",
-            "reference_call_confusion.csv",
-            "script_call_confusion.csv",
-            "per_eval_routing.csv",
+            "data/summary_manifest.json",
+            "figures/18_failure_taxonomy.png",
+            "data/fix_priority.csv",
+            "data/routing_diagnosis.csv",
+            "data/reference_expected_by_eval.csv",
+            "data/script_expected_by_eval.csv",
+            "data/reference_call_confusion.csv",
+            "data/script_call_confusion.csv",
+            "data/per_eval_routing.csv",
         ]
         missing = [name for name in required if not (out / name).exists()]
         if missing:
             raise AssertionError(f"missing outputs: {missing}")
 
-        with (out / "fix_priority.csv").open() as f:
+        with (out / "data/fix_priority.csv").open() as f:
             header = next(csv.reader(f))
         expected_prefix = ["eval_id", "batch", "eval_name", "stage", "tier", "difficulty"]
         if header[:6] != expected_prefix:
             raise AssertionError(f"bad fix_priority prefix: {header[:6]}")
 
-        manifest = json.loads((out / "summary_manifest.json").read_text())
+        manifest = json.loads((out / "data/summary_manifest.json").read_text())
         manifest_files = {row["filename"] for row in manifest}
-        if "INDEX.md" not in manifest_files or "18_failure_taxonomy.png" not in manifest_files:
+        if "INDEX.md" not in manifest_files or "figures/18_failure_taxonomy.png" not in manifest_files:
             raise AssertionError("manifest missing generated index or plot 18")
 
     print("smoketest passed")
