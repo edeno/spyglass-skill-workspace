@@ -2,7 +2,7 @@
 
 Run with the same environment used for plotting, for example:
 
-    uv run --with matplotlib --with numpy python3 tools/tests/smoke.py
+    uv run python3 tools/tests/smoke.py
 """
 
 from __future__ import annotations

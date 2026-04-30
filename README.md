@@ -51,7 +51,7 @@ agent reached for the expected resource; they do not replace grading.
 **Regenerate figures from scratch.** Clone this repo and `spyglass-skill` as siblings (see "Sibling-clone convention" below), then:
 
 ```bash
-uv run --with matplotlib --with numpy python3 tools/make_plots.py \
+uv run python3 tools/make_plots.py \
     --run runs/round-c-2026-04-28/
 ```
 
@@ -136,24 +136,24 @@ Resolution order: `--skill-root` → `SPYGLASS_SKILL` → sibling-clone default.
 The scripts in `tools/` are run-agnostic — pass `--run <run-dir>` to point them at a specific sweep:
 
 ```bash
-# Regenerate all figures + CSV + JSONs for round-C (only matplotlib + numpy needed)
-uv run --with matplotlib --with numpy python3 tools/make_plots.py \
+# Regenerate all figures + CSV + JSONs for round-C
+uv run python3 tools/make_plots.py \
     --run runs/round-c-2026-04-28/
 
 # Same for any other run
-uv run --with matplotlib --with numpy python3 tools/make_plots.py \
+uv run python3 tools/make_plots.py \
     --run runs/round-d-2026-07-XX/
 
 # Refresh transcripts_snapshot from a live Claude Code session
 # (only useful if the live session's tasks dir still exists)
-python3 tools/snapshot_transcripts.py --run runs/<run-id>/
+uv run python3 tools/snapshot_transcripts.py --run runs/<run-id>/
 
 # Override skill-root if the sibling-clone default doesn't apply
-python3 tools/make_plots.py --run runs/<run-id>/ \
+uv run python3 tools/make_plots.py --run runs/<run-id>/ \
     --skill-root /custom/path/to/spyglass-skill
 
 # Synthetic tools smoke test
-uv run --with matplotlib --with numpy python3 tools/tests/smoke.py
+uv run python3 tools/tests/smoke.py
 ```
 
 `make_plots.py` is idempotent for the CSV/JSON data outputs. PNG bytes can differ across matplotlib versions, so compare figures visually when the plotting environment changes.
@@ -170,6 +170,27 @@ uv run --with matplotlib --with numpy python3 tools/tests/smoke.py
 ```
 
 Missing entries fall back to `f"B{i}"`, so a fresh sweep can be plotted before labels are authored.
+
+### Partial sweeps
+
+Partial sweeps are supported. `make_plots.py` discovers whichever
+`iteration-N/` directories exist and counts only the evals present in their
+`benchmark.json` files. This makes it safe to analyze a smaller dry run before a
+full sweep, as long as each included eval has both `with_skill` and
+`without_skill` grading outputs.
+
+For reproducibility, copy the current eval catalog into the run before the first
+analysis pass:
+
+```bash
+cp ../spyglass-skill/skills/spyglass/evals/evals.json runs/<run-id>/evals_snapshot.json
+uv run python3 tools/make_plots.py --run runs/<run-id>/
+```
+
+If transcripts have not been snapshotted yet, transcript-derived plots and
+routing/utilization tables are skipped or limited. Run
+`uv run python3 tools/snapshot_transcripts.py --run runs/<run-id>/` while the
+dispatch session is still active if you need reference/script utilization.
 
 ## Per-run metadata
 
@@ -195,7 +216,7 @@ End-to-end flow for each new sweep:
 2. **Snapshot transcripts — TIME-CRITICAL.** Run while the same Claude Code session is still active:
 
    ```bash
-   python3 tools/snapshot_transcripts.py --run runs/<run-id>/
+   uv run python3 tools/snapshot_transcripts.py --run runs/<run-id>/
    ```
 
    The harness wipes `/private/tmp/claude-<uid>/<workspace-hash>/` on session change or reboot, and there is **no recovery path** afterward. The script reports expected vs found transcript counts and warns loudly if any mapped agent IDs are missing on disk. If you forget this step, the per-reference and per-script utilization plots cannot be reproduced — you'd need to re-dispatch.
@@ -203,7 +224,7 @@ End-to-end flow for each new sweep:
 3. **Generate figures and exports.**
 
    ```bash
-   uv run --with matplotlib --with numpy python3 tools/make_plots.py \
+   uv run python3 tools/make_plots.py \
        --run runs/<run-id>/
    ```
 
