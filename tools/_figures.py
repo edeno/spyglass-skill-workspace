@@ -8,10 +8,9 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 from _aggregations import delta_color, summarize_benchmarks
-from _schemas import EvalCategories, PerEvalResult, TranscriptRecord, WONG
-from _transcripts import TRACKED_SCRIPTS, TRACKED_SCRIPT_ROLES, write_transcript_stats
+from _schemas import WONG, EvalCategories, PerEvalResult, TranscriptRecord
+from _transcripts import TRACKED_SCRIPT_ROLES, TRACKED_SCRIPTS, write_transcript_stats
 
 _UNCONFIGURED = Path("/__not_configured__")
 OUT: Path = _UNCONFIGURED
@@ -96,7 +95,7 @@ def plot_per_batch_pass_rate(benchmarks: dict[int, dict]) -> None:
         n_evals.append(cfg["with_skill"]["n_runs"])
     ax.bar(x - width / 2, ws_rates, width, label="with skill", color=WONG["ws"])
     ax.bar(x + width / 2, bs_rates, width, label="baseline", color=WONG["bs"])
-    for i, (ws_r, bs_r) in enumerate(zip(ws_rates, bs_rates)):
+    for i, (ws_r, bs_r) in enumerate(zip(ws_rates, bs_rates, strict=True)):
         ax.text(
             i - width / 2,
             ws_r + 1.5,
@@ -170,7 +169,7 @@ def plot_delta_per_batch(benchmarks: dict[int, dict]) -> None:
     ]:
         colors = [delta_color(d) for d in deltas]
         bars = ax.bar(x, deltas, color=colors, width=0.7)
-        for bar, d in zip(bars, deltas):
+        for bar, d in zip(bars, deltas, strict=True):
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
                 d + (0.6 if d >= 0 else -1.5),
@@ -368,7 +367,7 @@ def plot_by_category(
         labels = [r[0] for r in rows]
         ws_rates = [100 * r[1] / r[2] for r in rows]
         bs_rates = [100 * r[3] / r[4] for r in rows]
-        deltas = [w - b for w, b in zip(ws_rates, bs_rates)]
+        deltas = [w - b for w, b in zip(ws_rates, bs_rates, strict=True)]
         counts = [r[2] for r in rows]
 
         y = np.arange(len(rows))
@@ -407,7 +406,7 @@ def plot_by_category(
 
         ax.set_yticks(y)
         ax.set_yticklabels(
-            [f"{lab}  (n={n})" for lab, n in zip(labels, counts)], fontsize=10
+            [f"{lab}  (n={n})" for lab, n in zip(labels, counts, strict=True)], fontsize=10
         )
         ax.set_xlim(0, 130)
         ax.set_xticks([0, 25, 50, 75, 100])
@@ -453,7 +452,7 @@ def plot_by_difficulty(
     counts = [agg[d][1] for d in diff_order]
     axes[0].bar(x - width / 2, ws_rates, width, label="with skill", color=WONG["ws"])
     axes[0].bar(x + width / 2, bs_rates, width, label="baseline", color=WONG["bs"])
-    for i, (ws_r, bs_r) in enumerate(zip(ws_rates, bs_rates)):
+    for i, (ws_r, bs_r) in enumerate(zip(ws_rates, bs_rates, strict=True)):
         axes[0].text(
             i - width / 2,
             ws_r + 1.5,
@@ -475,7 +474,7 @@ def plot_by_difficulty(
         )
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(
-        [f"{d}\n(n={n})" for d, n in zip(diff_order, counts)], fontsize=10
+        [f"{d}\n(n={n})" for d, n in zip(diff_order, counts, strict=True)], fontsize=10
     )
     axes[0].set_ylim(-15, 115)
     axes[0].set_yticks(np.arange(0, 101, 20))
@@ -507,7 +506,7 @@ def plot_by_difficulty(
         bottom = bottom + np.array(vals)
     axes[1].set_xticks(x)
     axes[1].set_xticklabels(
-        [f"{d}\n(n={n})" for d, n in zip(diff_order, counts)], fontsize=10
+        [f"{d}\n(n={n})" for d, n in zip(diff_order, counts, strict=True)], fontsize=10
     )
     setup_axes(axes[1], "Outcome breakdown by difficulty", ylabel="number of evals")
     axes[1].legend(

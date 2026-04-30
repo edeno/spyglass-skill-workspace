@@ -7,9 +7,17 @@ figures under `<run>/summary/figures/` and CSV/JSON data under `<run>/summary/da
 from __future__ import annotations
 
 import argparse
-import shutil
 from pathlib import Path
 
+from _eval_io import (
+    load_batch_labels,
+    load_benchmarks,
+    load_eval_categories,
+    load_expected_refs,
+    load_expected_scripts,
+    load_per_eval_results,
+    load_per_eval_timing,
+)
 from _figures import (
     configure_figures,
     plot_by_category,
@@ -25,22 +33,12 @@ from _figures import (
     plot_tokens_and_duration,
     plot_top_skill_wins,
 )
-
-from _eval_io import (
-    load_batch_labels,
-    load_benchmarks,
-    load_eval_categories,
-    load_expected_refs,
-    load_expected_scripts,
-    load_per_eval_results,
-    load_per_eval_timing,
-)
-from _transcripts import build_agent_to_run, configure_transcripts, parse_transcripts
 from _schemas import TranscriptRecord
+from _transcripts import build_agent_to_run, configure_transcripts, parse_transcripts
 from _util import discover_iterations, find_skill_root
 from _writers import (
-    observed_resources_by_eval,
     configure_writers,
+    observed_resources_by_eval,
     unlink_outputs,
     write_baseline_source_split_json,
     write_batch_summary_csv,
@@ -66,7 +64,6 @@ from _writers import (
     write_ws_regressions_csv,
 )
 
-
 _UNCONFIGURED = Path("/__not_configured__")
 OUT: Path = _UNCONFIGURED
 WORKSPACE: Path = _UNCONFIGURED
@@ -76,32 +73,12 @@ BATCH_LABELS: dict[int, str] = {}
 
 
 
-def migrate_legacy_summary_outputs(out_dir: Path) -> None:
-    """Move old root-level generated outputs into data/ and figures/."""
-    data_dir = out_dir / "data"
-    figures_dir = out_dir / "figures"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    figures_dir.mkdir(parents=True, exist_ok=True)
-    for path in list(out_dir.iterdir()):
-        if not path.is_file() or path.name in {"INDEX.md", "SUMMARY.md"}:
-            continue
-        if path.suffix == ".png":
-            target = figures_dir / path.name
-        elif path.suffix in {".csv", ".json"}:
-            target = data_dir / path.name
-        else:
-            continue
-        if not target.exists():
-            shutil.move(str(path), str(target))
-
-
 def configure_run(run_dir: Path, out_dir: Path | None = None) -> None:
     """Populate the run-scoped module globals and configure submodules."""
     global OUT, WORKSPACE, BATCH_ORDER, BATCH_LABELS
     WORKSPACE = run_dir.resolve()
     OUT = (out_dir or WORKSPACE / "summary").resolve()
     OUT.mkdir(parents=True, exist_ok=True)
-    migrate_legacy_summary_outputs(OUT)
     BATCH_ORDER = discover_iterations(WORKSPACE)
     if not BATCH_ORDER:
         raise SystemExit(f"No iteration-N/ dirs found under {WORKSPACE}")
@@ -138,8 +115,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Directory holding snapshotted subagent transcripts. Defaults to "
-            "<run>/transcripts_snapshot/, with a fallback to the legacy "
-            "<run>/summary/transcripts_snapshot/ location."
+            "<run>/transcripts_snapshot/."
         ),
     )
     parser.add_argument(
@@ -178,16 +154,7 @@ def main() -> None:
     if args.snapshot_dir:
         snapshot_dir = args.snapshot_dir.resolve()
     else:
-        snapshot_dir = WORKSPACE / "transcripts_snapshot"
-        legacy_snapshot_dir = WORKSPACE / "summary" / "transcripts_snapshot"
-        if not snapshot_dir.exists() and legacy_snapshot_dir.exists():
-            snapshot_dir.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(legacy_snapshot_dir), str(snapshot_dir))
-            print(
-                "Migrated legacy transcript snapshot location: "
-                f"{legacy_snapshot_dir} -> {snapshot_dir}"
-            )
-        snapshot_dir = snapshot_dir.resolve()
+        snapshot_dir = (WORKSPACE / "transcripts_snapshot").resolve()
     records: list[TranscriptRecord] | None = None
     if snapshot_dir.exists() and any(snapshot_dir.iterdir()):
         agent_to_run = build_agent_to_run()

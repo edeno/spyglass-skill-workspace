@@ -10,20 +10,18 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 from _aggregations import (
     build_spend_by_outcome,
     count_outcomes,
     exact_mcnemar_p,
-    outcome_label as _outcome_label,
     summarize_benchmarks,
+)
+from _aggregations import (
+    outcome_label as _outcome_label,
 )
 from _figures import setup_axes
 from _schemas import (
     EVAL_METADATA_COLUMNS,
-    EvalCategories,
-    ExpectedResourceBlock,
-    ExpectedResources,
     EXPENSIVE_BOTH_PASS_EXTRA_TOKEN_FLOOR,
     FIX_PRIORITY_ACTION_ORDER,
     MANIFEST_OVERRIDES,
@@ -32,11 +30,14 @@ from _schemas import (
     SKIP_GATE_MIN_EVALS,
     SKIP_GATE_STRONG_BASELINE_PASS_RATE,
     SKIP_GATE_TOTAL_EXTRA_TOKEN_FLOOR,
+    WONG,
+    EvalCategories,
+    ExpectedResourceBlock,
+    ExpectedResources,
     PerEvalResult,
     TranscriptRecord,
-    WONG,
 )
-from _transcripts import TRACKED_SCRIPTS, TRACKED_SCRIPT_ROLES
+from _transcripts import TRACKED_SCRIPT_ROLES, TRACKED_SCRIPTS
 
 _UNCONFIGURED = Path("/__not_configured__")
 OUT: Path = _UNCONFIGURED
@@ -665,7 +666,7 @@ def write_reference_effectiveness_csv(
     cmap = plt.cm.RdYlGn
     bars = ax.barh(y, loads, color=[cmap(r / 100) for r in rates], edgecolor="white")
     for i, (bar, rate, n_pass, n_fail) in enumerate(
-        zip(bars, rates, [p[2] for p in payload], [p[3] for p in payload])
+        zip(bars, rates, [p[2] for p in payload], [p[3] for p in payload], strict=True)
     ):
         ax.text(
             bar.get_width() + 0.4,
@@ -758,7 +759,7 @@ def write_cost_effectiveness_csv(
     fig, ax = plt.subplots(figsize=(10, 7), constrained_layout=True)
     stages = sorted({p[2] for p in points})
     palette = plt.cm.tab20(np.linspace(0, 1, len(stages)))
-    for stage, color in zip(stages, palette):
+    for stage, color in zip(stages, palette, strict=True):
         xs = [p[0] / 1000 for p in points if p[2] == stage]
         ys = [p[1] for p in points if p[2] == stage]
         ax.scatter(xs, ys, label=stage, color=color, s=50, alpha=0.7, edgecolors="white", linewidths=0.5)
@@ -877,7 +878,7 @@ def write_outcome_by_category_csv(
                 )
         bottom = bottom + np.array(vals)
     ax.set_yticks(y)
-    ax.set_yticklabels([f"{lab}  (n={s[1]['__total']})" for lab, s in zip(labels, sorted_stages)], fontsize=10)
+    ax.set_yticklabels([f"{lab}  (n={s[1]['__total']})" for lab, s in zip(labels, sorted_stages, strict=True)], fontsize=10)
     ax.invert_yaxis()
     ax.set_xlabel("number of evals", fontsize=10)
     setup_axes(ax, "Outcome by stage — where did the skill uniquely help?")
@@ -946,7 +947,7 @@ def write_baseline_source_split_json(
     x = np.arange(len(groups))
     rates = [g[1]["full_pass_rate"] for g in groups]
     bars = ax.bar(x, rates, color=[WONG["bs"], WONG["neutral"], WONG["ws"]], edgecolor="white", width=0.6)
-    for bar, (_, g) in zip(bars, groups):
+    for bar, (_, g) in zip(bars, groups, strict=True):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             g["full_pass_rate"] + 1.5,
@@ -1132,7 +1133,7 @@ def write_failure_taxonomy_stub_csv(
     labels = [t for t, _ in sorted_types]
     counts = [n for _, n in sorted_types]
     bars = ax.barh(np.arange(len(labels)), counts, color=WONG["delta_neg"], edgecolor="white")
-    for bar, n in zip(bars, counts):
+    for bar, n in zip(bars, counts, strict=True):
         ax.text(bar.get_width() + 0.2, bar.get_y() + bar.get_height() / 2,
                 str(n), va="center", fontsize=10, fontweight="bold")
     ax.set_yticks(np.arange(len(labels)))
@@ -1903,7 +1904,7 @@ def write_fix_priority_csv(
         for label in labels
     ]
     bars = ax.barh(np.arange(len(labels)), values, color=colors, edgecolor="white")
-    for bar, value in zip(bars, values):
+    for bar, value in zip(bars, values, strict=True):
         ax.text(
             bar.get_width() + 0.2,
             bar.get_y() + bar.get_height() / 2,

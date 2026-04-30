@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections import Counter
 from math import comb
 
-from _schemas import PerEvalResult, WONG
+from _schemas import WONG, PerEvalResult
+
 
 def delta_color(d: float) -> str:
     """WONG palette entry for a per-batch / per-category delta."""
