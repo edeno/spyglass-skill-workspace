@@ -24,6 +24,20 @@ You're a new user. Pick what you want to do:
 
 `make_plots.py` will then render `reference_expected_used.csv` plus plot 19 — separating routing failures (expected ref not opened) from reference weakness (opened but answer still failed) from overuse (distractor opened) from eval mismatch (expected ref not needed). Skipped if no eval has the field.
 
+**Annotate expected references/scripts for confusion matrices.** The same
+`required` / `optional` / `distractor` shape also supports bundled-script
+annotations:
+
+```json
+{"id": 29, "expected_scripts": {"required": ["code_graph.py"], "optional": [], "distractor": ["db_graph.py"]}}
+```
+
+`make_plots.py` renders `reference_call_confusion.csv`,
+`script_call_confusion.csv`, and plots 20/21 when annotations exist. The unit
+is a with_skill eval-resource pair: required/optional entries are positives,
+distractors and unlabeled resources are negatives, and scripts count as
+"called" only when executed via Bash, not merely source-read.
+
 **Regenerate figures from scratch.** Clone this repo and `spyglass-skill` as siblings (see "Sibling-clone convention" below), then:
 
 ```bash
@@ -84,6 +98,8 @@ runs/
         ├── eval_coverage.csv          stage × tier eval-count matrix
         ├── failure_taxonomy.csv       auto-stub of ws-failed evals; round-D maintainer fills failure_type
         ├── reference_expected_used.csv  optional: rendered if evals.json has `expected_refs` annotations
+        ├── reference_call_confusion.csv optional: expected-vs-called matrix if `expected_refs` exists
+        ├── script_call_confusion.csv  optional: expected-vs-called matrix if `expected_scripts` exists
         ├── cumulative_summary.json    headline ws/bs/Δ + outcome cross-tab + McNemar p-value
         ├── baseline_source_split.json 3-way split: bs-no-source / bs-source / ws full-pass rates
         ├── ref_utilization.json       per-reference open count (transcript-level)

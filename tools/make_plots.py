@@ -224,6 +224,28 @@ def load_expected_refs() -> dict[int, dict[str, list[str]]]:
     return out
 
 
+def load_expected_scripts() -> dict[int, dict[str, list[str]]]:
+    """Read optional `expected_scripts` annotations from evals.json.
+
+    Schema mirrors `expected_refs`:
+    {"required": [...], "optional": [...], "distractor": [...]}. Script names
+    are filenames such as `code_graph.py`; "called" means executed via Bash,
+    not merely source-read.
+    """
+    evals = json.loads(EVALS_PATH.read_text())["evals"]
+    out: dict[int, dict[str, list[str]]] = {}
+    for e in evals:
+        script_block = e.get("expected_scripts")
+        if not isinstance(script_block, dict):
+            continue
+        out[e["id"]] = {
+            "required": list(script_block.get("required", [])),
+            "optional": list(script_block.get("optional", [])),
+            "distractor": list(script_block.get("distractor", [])),
+        }
+    return out
+
+
 def load_eval_categories() -> dict[int, dict[str, str]]:
     """Map eval_id -> {stage, tier, difficulty}.
 
@@ -2473,6 +2495,179 @@ def write_reference_expected_used_csv(
     plt.close(fig)
 
 
+def _expected_positive(blocks: dict[str, list[str]]) -> set[str]:
+    """Resources that should count as expected-positive for a confusion matrix."""
+    return set(blocks.get("required", [])) | set(blocks.get("optional", []))
+
+
+def _expected_negative(blocks: dict[str, list[str]]) -> set[str]:
+    """Resources explicitly labeled as should-not-call distractors."""
+    return set(blocks.get("distractor", []))
+
+
+def write_expected_call_confusion(
+    *,
+    per_eval: list[dict],
+    records: list[dict] | None,
+    expected: dict[int, dict[str, list[str]]],
+    kind: str,
+) -> None:
+    """Write called-vs-expected confusion matrices for references or scripts.
+
+    The unit of analysis is a labeled eval-resource pair in the with_skill
+    condition. Required and optional resources are positives. Distractors and
+    unlabeled resources are negatives. For scripts, "called" means executed via
+    Bash; source-only reads do not count.
+    """
+    if not expected or records is None:
+        return
+
+    pass_by_eval: dict[int, bool] = {r["eval_id"]: bool(r["ws_pass"]) for r in per_eval}
+    observed_by_eval: dict[int, set[str]] = defaultdict(set)
+    for r in records:
+        if r["condition"] != "with_skill":
+            continue
+        if kind == "reference":
+            observed_by_eval[r["eval_id"]].update(
+                ref for ref in r["ref_opens"] if ref != "SKILL.md"
+            )
+        elif kind == "script":
+            observed_by_eval[r["eval_id"]].update(r["script_executions"])
+        else:
+            raise ValueError(f"unknown confusion kind: {kind}")
+
+    labeled_evals = sorted(expected)
+    universe = set()
+    for eid in labeled_evals:
+        universe |= _expected_positive(expected[eid])
+        universe |= _expected_negative(expected[eid])
+        universe |= observed_by_eval.get(eid, set())
+    if kind == "script":
+        universe |= {s for s in TRACKED_SCRIPTS if TRACKED_SCRIPT_ROLES[s] == "agent"}
+    universe.discard("SKILL.md")
+    if not universe:
+        return
+
+    per_resource: dict[str, dict[str, int]] = {
+        r: {
+            "expected_called": 0,
+            "expected_not_called": 0,
+            "unexpected_called": 0,
+            "unexpected_not_called": 0,
+            "failed_expected_not_called": 0,
+            "failed_expected_called": 0,
+            "passed_unexpected_called": 0,
+        }
+        for r in sorted(universe)
+    }
+
+    for eid in labeled_evals:
+        positives = _expected_positive(expected[eid])
+        negatives = set(universe) - positives
+        called = observed_by_eval.get(eid, set())
+        passed = pass_by_eval.get(eid, False)
+        for resource in positives:
+            if resource in called:
+                per_resource[resource]["expected_called"] += 1
+                if not passed:
+                    per_resource[resource]["failed_expected_called"] += 1
+            else:
+                per_resource[resource]["expected_not_called"] += 1
+                if not passed:
+                    per_resource[resource]["failed_expected_not_called"] += 1
+        for resource in negatives:
+            if resource in called:
+                per_resource[resource]["unexpected_called"] += 1
+                if passed:
+                    per_resource[resource]["passed_unexpected_called"] += 1
+            else:
+                per_resource[resource]["unexpected_not_called"] += 1
+
+    rows = [
+        (
+            "resource,kind,n_labeled_evals,expected_called,expected_not_called,"
+            "unexpected_called,unexpected_not_called,precision,recall,"
+            "false_positive_rate,failed_expected_not_called,failed_expected_called,"
+            "passed_unexpected_called"
+        )
+    ]
+    totals = Counter()
+    for resource, counts in per_resource.items():
+        tp = counts["expected_called"]
+        fn = counts["expected_not_called"]
+        fp = counts["unexpected_called"]
+        tn = counts["unexpected_not_called"]
+        precision = 100 * tp / (tp + fp) if tp + fp else 0.0
+        recall = 100 * tp / (tp + fn) if tp + fn else 0.0
+        fpr = 100 * fp / (fp + tn) if fp + tn else 0.0
+        rows.append(
+            f"{resource},{kind},{len(labeled_evals)},{tp},{fn},{fp},{tn},"
+            f"{precision:.1f},{recall:.1f},{fpr:.1f},"
+            f"{counts['failed_expected_not_called']},"
+            f"{counts['failed_expected_called']},"
+            f"{counts['passed_unexpected_called']}"
+        )
+        totals.update(
+            {
+                "expected_called": tp,
+                "expected_not_called": fn,
+                "unexpected_called": fp,
+                "unexpected_not_called": tn,
+            }
+        )
+    (OUT / f"{kind}_call_confusion.csv").write_text("\n".join(rows) + "\n")
+
+    matrix = np.array(
+        [
+            [totals["expected_called"], totals["expected_not_called"]],
+            [totals["unexpected_called"], totals["unexpected_not_called"]],
+        ],
+        dtype=float,
+    )
+    fig, ax = plt.subplots(figsize=(6.5, 5.5), constrained_layout=True)
+    im = ax.imshow(matrix, cmap="Blues", aspect="auto")
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(["called", "not called"], fontsize=10)
+    ax.set_yticks([0, 1])
+    ax.set_yticklabels(["expected", "not expected"], fontsize=10)
+    for i in range(2):
+        for j in range(2):
+            ax.text(j, i, f"{int(matrix[i, j])}", ha="center", va="center", fontsize=13)
+    fig.colorbar(im, ax=ax, shrink=0.7, label="# eval-resource pairs")
+    setup_axes(
+        ax,
+        f"{kind.title()} called-vs-expected confusion matrix",
+        xlabel="Observed in with_skill transcript",
+        ylabel="Eval annotation",
+    )
+    recall = (
+        100
+        * totals["expected_called"]
+        / (totals["expected_called"] + totals["expected_not_called"])
+        if totals["expected_called"] + totals["expected_not_called"]
+        else 0.0
+    )
+    precision = (
+        100
+        * totals["expected_called"]
+        / (totals["expected_called"] + totals["unexpected_called"])
+        if totals["expected_called"] + totals["unexpected_called"]
+        else 0.0
+    )
+    ax.text(
+        0.5,
+        -0.22,
+        f"{len(labeled_evals)} labeled evals; recall={recall:.1f}%, precision={precision:.1f}%",
+        transform=ax.transAxes,
+        ha="center",
+        va="top",
+        fontsize=9,
+    )
+    filename_prefix = "20_reference" if kind == "reference" else "21_script"
+    fig.savefig(OUT / f"{filename_prefix}_call_confusion.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     args = parse_args()
     configure_run(args.run, args.out)
@@ -2513,6 +2708,7 @@ def main() -> None:
     # Round-D actionable summaries — "what should we change?" outputs.
     timing = load_per_eval_timing()
     expected_refs = load_expected_refs()
+    expected_scripts = load_expected_scripts()
     write_reference_effectiveness_csv(records, per_eval, cats)
     write_cost_effectiveness_csv(cats, per_eval, timing)
     write_outcome_by_category_csv(cats, per_eval)
@@ -2521,6 +2717,18 @@ def main() -> None:
     write_headroom_evals_csv(cats, per_eval)
     write_failure_taxonomy_stub_csv(cats, per_eval)
     write_reference_expected_used_csv(per_eval, records, expected_refs)
+    write_expected_call_confusion(
+        per_eval=per_eval,
+        records=records,
+        expected=expected_refs,
+        kind="reference",
+    )
+    write_expected_call_confusion(
+        per_eval=per_eval,
+        records=records,
+        expected=expected_scripts,
+        kind="script",
+    )
     print("Wrote plots + CSV/JSON exports to", OUT)
 
 
