@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from collections import Counter
 from math import comb
+from pathlib import Path
 
 from _schemas import WONG, PerEvalResult
 
@@ -118,3 +120,24 @@ def exact_mcnemar_p(b: int, c: int) -> float:
     one_sided = sum(comb(n, i) for i in range(k + 1)) / 2**n
     return min(1.0, 2 * one_sided)
 
+
+
+def collect_behavioral(workspace: Path, batch_id: int) -> tuple[int, int, int, int]:
+    """Return (ws_pass, ws_total, bs_pass, bs_total) on behavioral checks."""
+    ws_p = ws_t = bs_p = bs_t = 0
+    for eval_dir in (workspace / f"iteration-{batch_id}").glob("eval-*"):
+        for cond in ("with_skill", "without_skill"):
+            grading_path = eval_dir / cond / "grading.json"
+            if not grading_path.exists():
+                continue
+            grading = json.loads(grading_path.read_text())
+            for e in grading["expectations"]:
+                if not e["text"].startswith("behavioral_check:"):
+                    continue
+                if cond == "with_skill":
+                    ws_t += 1
+                    ws_p += int(bool(e["passed"]))
+                else:
+                    bs_t += 1
+                    bs_p += int(bool(e["passed"]))
+    return ws_p, ws_t, bs_p, bs_t

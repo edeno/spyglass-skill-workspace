@@ -20,14 +20,23 @@ from _eval_io import (
 )
 from _figures import (
     configure_figures,
+    plot_baseline_source_split,
     plot_by_category,
     plot_by_difficulty,
+    plot_cost_effectiveness_scatter,
     plot_cumulative_summary,
     plot_delta_per_batch,
     plot_difficulty_x_stage_heatmap,
+    plot_eval_coverage_map,
+    plot_expected_call_confusion,
+    plot_failure_taxonomy,
+    plot_fix_priority_actions,
+    plot_outcome_by_category,
     plot_per_batch_pass_rate,
     plot_per_eval_outcomes,
     plot_per_eval_scatter,
+    plot_reference_effectiveness,
+    plot_reference_expected_used,
     plot_reference_utilization,
     plot_script_utilization,
     plot_tokens_and_duration,
@@ -237,6 +246,18 @@ def main() -> None:
         expected_scripts=expected_scripts,
         timing=timing,
     )
+
+    plot_reference_effectiveness()
+    plot_cost_effectiveness_scatter()
+    plot_outcome_by_category()
+    plot_baseline_source_split()
+    plot_eval_coverage_map()
+    plot_failure_taxonomy()
+    plot_reference_expected_used()
+    plot_expected_call_confusion("reference")
+    plot_expected_call_confusion("script")
+    plot_fix_priority_actions()
+
     write_summary_manifest_json()
     print("Wrote plots + CSV/JSON exports to", OUT)
 

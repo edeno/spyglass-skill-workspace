@@ -240,8 +240,8 @@
   {
     "filename": "figures/06_by_category.png",
     "family": "category",
-    "priority": "secondary",
-    "purpose": "Pass-rate view by stage/tier.",
+    "priority": "appendix",
+    "purpose": "Dense stage/tier pass-rate view; use outcome_by_category for primary decisions.",
     "classification_source": "override"
   },
   {
@@ -261,8 +261,8 @@
   {
     "filename": "figures/09_per_eval_scatter.png",
     "family": "headline",
-    "priority": "secondary",
-    "purpose": "Per-eval ws vs bs expectation-rate scatter.",
+    "priority": "appendix",
+    "purpose": "Exploratory per-eval ws vs bs expectation-rate scatter.",
     "classification_source": "override"
   },
   {
@@ -331,8 +331,8 @@
   {
     "filename": "figures/19_reference_expected_used.png",
     "family": "routing",
-    "priority": "secondary",
-    "purpose": "Reference expected-vs-opened heatmap by required/optional/distractor status.",
+    "priority": "appendix",
+    "purpose": "Dense reference expected-vs-opened heatmap; use call-confusion and per-eval routing tables first.",
     "classification_source": "override"
   },
   {

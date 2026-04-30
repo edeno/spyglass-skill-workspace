@@ -86,16 +86,25 @@ FIX_PRIORITY_ACTION_ORDER = {
 
 EVAL_METADATA_COLUMNS = ["eval_id", "batch", "eval_name", "stage", "tier", "difficulty"]
 
+FIGURE_DPI = 160
+SIZE_SINGLE = (10, 5.5)
+SIZE_WIDE = (13, 5.5)
+SIZE_COMPACT = (9, 5)
+SIZE_SQUARE = (8.5, 8.5)
+SIZE_TALL = (12, 9)
+GRID_STYLE = {"alpha": 0.3, "linestyle": ":"}
+ANNOTATION_FONTSIZE = 9
+
 MANIFEST_OVERRIDES = {
     "01_per_batch_pass_rate.png": ("batch_health", "secondary", "Operational batch health, not a general category conclusion."),
     "02_delta_per_batch.png": ("batch_health", "secondary", "Per-batch skill lift for spotting run or batch anomalies."),
     "03_per_eval_outcomes.png": ("headline", "secondary", "Per-eval outcome strip for visual scan of wins/regressions."),
     "04_cost_per_batch.png": ("batch_health", "secondary", "Batch-level token and duration profile."),
     "05_cumulative_summary.png": ("headline", "primary", "Headline ws/bs full-pass, expectation, and token totals."),
-    "06_by_category.png": ("category", "secondary", "Pass-rate view by stage/tier."),
+    "06_by_category.png": ("category", "appendix", "Dense stage/tier pass-rate view; use outcome_by_category for primary decisions."),
     "07_by_difficulty.png": ("category", "secondary", "Skill value by eval difficulty."),
     "08_difficulty_x_stage_heatmap.png": ("coverage", "secondary", "Stage x difficulty performance and coverage map."),
-    "09_per_eval_scatter.png": ("headline", "secondary", "Per-eval ws vs bs expectation-rate scatter."),
+    "09_per_eval_scatter.png": ("headline", "appendix", "Exploratory per-eval ws vs bs expectation-rate scatter."),
     "10_top_skill_wins.png": ("headline", "secondary", "Largest per-eval skill wins by expectation delta."),
     "11_reference_utilization.png": ("utilization", "appendix", "Raw reference open counts; use routing outputs for expected-vs-called analysis."),
     "12_script_utilization.png": ("utilization", "appendix", "Raw bundled-script executions/source-reads; use script confusion for routing analysis."),
@@ -105,7 +114,7 @@ MANIFEST_OVERRIDES = {
     "16_baseline_source_split.png": ("headline", "secondary", "Whether skill value is source-delivery vs workflow/routing."),
     "17_eval_coverage_map.png": ("coverage", "secondary", "Stage x tier eval-count map for future eval-set design."),
     "18_failure_taxonomy.png": ("fix_priority", "secondary", "Manual failure-type distribution; placeholder until failure_taxonomy.csv is annotated."),
-    "19_reference_expected_used.png": ("routing", "secondary", "Reference expected-vs-opened heatmap by required/optional/distractor status."),
+    "19_reference_expected_used.png": ("routing", "appendix", "Dense reference expected-vs-opened heatmap; use call-confusion and per-eval routing tables first."),
     "20_reference_call_confusion.png": ("routing", "primary", "Required reference opened vs missed; optional references are neutral."),
     "21_script_call_confusion.png": ("routing", "primary", "Required bundled script executed vs missed."),
     "22_fix_priority_actions.png": ("fix_priority", "primary", "Likely-action distribution from fix_priority.csv."),
