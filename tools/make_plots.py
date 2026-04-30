@@ -172,8 +172,8 @@ def main() -> None:
         plot_script_utilization(agent_to_run, records)
     else:
         unlink_outputs(
-            "11_reference_utilization.png",
-            "12_script_utilization.png",
+            "appendix_raw_reference_utilization.png",
+            "appendix_raw_script_utilization.png",
             "ref_utilization.json",
             "script_utilization.json",
             "transcript_stats.json",

@@ -203,161 +203,161 @@
     "classification_source": "override"
   },
   {
-    "filename": "figures/01_per_batch_pass_rate.png",
+    "filename": "figures/appendix_cost_per_batch.png",
     "family": "batch_health",
-    "priority": "secondary",
-    "purpose": "Operational batch health, not a general category conclusion.",
-    "classification_source": "override"
-  },
-  {
-    "filename": "figures/02_delta_per_batch.png",
-    "family": "batch_health",
-    "priority": "secondary",
-    "purpose": "Per-batch skill lift for spotting run or batch anomalies.",
-    "classification_source": "override"
-  },
-  {
-    "filename": "figures/03_per_eval_outcomes.png",
-    "family": "headline",
-    "priority": "secondary",
-    "purpose": "Per-eval outcome strip for visual scan of wins/regressions.",
-    "classification_source": "override"
-  },
-  {
-    "filename": "figures/04_cost_per_batch.png",
-    "family": "batch_health",
-    "priority": "secondary",
+    "priority": "appendix",
     "purpose": "Batch-level token and duration profile.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/05_cumulative_summary.png",
-    "family": "headline",
-    "priority": "primary",
-    "purpose": "Headline ws/bs full-pass, expectation, and token totals.",
+    "filename": "figures/appendix_delta_per_batch.png",
+    "family": "batch_health",
+    "priority": "appendix",
+    "purpose": "Per-batch skill lift for spotting run or batch anomalies.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/06_by_category.png",
+    "filename": "figures/appendix_dense_pass_rate_by_category.png",
     "family": "category",
     "priority": "appendix",
     "purpose": "Dense stage/tier pass-rate view; use outcome_by_category for primary decisions.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/07_by_difficulty.png",
-    "family": "category",
-    "priority": "secondary",
-    "purpose": "Skill value by eval difficulty.",
-    "classification_source": "override"
-  },
-  {
-    "filename": "figures/08_difficulty_x_stage_heatmap.png",
+    "filename": "figures/appendix_difficulty_x_stage_heatmap.png",
     "family": "coverage",
-    "priority": "secondary",
+    "priority": "appendix",
     "purpose": "Stage x difficulty performance and coverage map.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/09_per_eval_scatter.png",
+    "filename": "figures/appendix_failure_taxonomy_placeholder.png",
+    "family": "fix_priority",
+    "priority": "appendix",
+    "purpose": "Manual failure-type distribution; placeholder until failure_taxonomy.csv is annotated.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/appendix_per_batch_pass_rate.png",
+    "family": "batch_health",
+    "priority": "appendix",
+    "purpose": "Operational batch-health pass-rate view.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/appendix_per_eval_expectation_scatter.png",
     "family": "headline",
     "priority": "appendix",
     "purpose": "Exploratory per-eval ws vs bs expectation-rate scatter.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/10_top_skill_wins.png",
+    "filename": "figures/appendix_per_eval_outcomes_by_batch.png",
     "family": "headline",
-    "priority": "secondary",
-    "purpose": "Largest per-eval skill wins by expectation delta.",
+    "priority": "appendix",
+    "purpose": "Per-eval outcome strip for visual scan of wins/regressions by batch.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/11_reference_utilization.png",
+    "filename": "figures/appendix_raw_reference_utilization.png",
     "family": "utilization",
     "priority": "appendix",
     "purpose": "Raw reference open counts; use routing outputs for expected-vs-called analysis.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/12_script_utilization.png",
+    "filename": "figures/appendix_raw_script_utilization.png",
     "family": "utilization",
     "priority": "appendix",
     "purpose": "Raw bundled-script executions/source-reads; use script confusion for routing analysis.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/13_reference_effectiveness.png",
+    "filename": "figures/appendix_reference_effectiveness_when_loaded.png",
     "family": "utilization",
     "priority": "appendix",
     "purpose": "Reference loads vs pass-rate-when-loaded; confounded by eval difficulty.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/14_cost_effectiveness_scatter.png",
-    "family": "cost",
-    "priority": "primary",
-    "purpose": "Per-eval extra tokens vs expectation delta.",
+    "filename": "figures/appendix_top_skill_wins.png",
+    "family": "headline",
+    "priority": "appendix",
+    "purpose": "Largest per-eval skill wins by expectation delta.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/15_outcome_by_category.png",
+    "filename": "figures/q01_how_much_does_the_skill_help.png",
+    "family": "headline",
+    "priority": "primary",
+    "purpose": "Headline ws/bs full-pass, expectation, and token totals.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q02_where_does_the_skill_help.png",
     "family": "category",
     "priority": "primary",
     "purpose": "Where the skill uniquely helps, regresses, or still fails by stage/tier.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/16_baseline_source_split.png",
+    "filename": "figures/q03_does_it_help_on_harder_evals.png",
+    "family": "category",
+    "priority": "primary",
+    "purpose": "Skill value by eval difficulty.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q04_what_does_the_extra_cost_buy.png",
+    "family": "cost",
+    "priority": "primary",
+    "purpose": "Per-eval extra tokens vs expectation delta.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q05_is_value_more_than_source_access.png",
     "family": "headline",
-    "priority": "secondary",
+    "priority": "primary",
     "purpose": "Whether skill value is source-delivery vs workflow/routing.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/17_eval_coverage_map.png",
-    "family": "coverage",
-    "priority": "secondary",
-    "purpose": "Stage x tier eval-count map for future eval-set design.",
-    "classification_source": "override"
-  },
-  {
-    "filename": "figures/18_failure_taxonomy.png",
-    "family": "fix_priority",
-    "priority": "secondary",
-    "purpose": "Manual failure-type distribution; placeholder until failure_taxonomy.csv is annotated.",
-    "classification_source": "override"
-  },
-  {
-    "filename": "figures/19_reference_expected_used.png",
-    "family": "routing",
-    "priority": "appendix",
-    "purpose": "Dense reference expected-vs-opened heatmap; use call-confusion and per-eval routing tables first.",
-    "classification_source": "override"
-  },
-  {
-    "filename": "figures/20_reference_call_confusion.png",
+    "filename": "figures/q06_are_reference_routes_working.png",
     "family": "routing",
     "priority": "primary",
     "purpose": "Required reference opened vs missed; optional references are neutral.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/21_script_call_confusion.png",
+    "filename": "figures/q07_are_script_routes_working.png",
     "family": "routing",
     "priority": "primary",
     "purpose": "Required bundled script executed vs missed.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/22_fix_priority_actions.png",
+    "filename": "figures/q08_what_should_we_fix_next.png",
     "family": "fix_priority",
     "priority": "primary",
     "purpose": "Likely-action distribution from fix_priority.csv.",
     "classification_source": "override"
   },
   {
-    "filename": "figures/23_skill_regressions.png",
+    "filename": "figures/q09_how_well_are_expected_references_used.png",
+    "family": "routing",
+    "priority": "secondary",
+    "purpose": "Dense reference expected-vs-opened heatmap by required/optional/distractor status.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q10_where_are_eval_coverage_gaps.png",
+    "family": "coverage",
+    "priority": "secondary",
+    "purpose": "Stage x tier eval-count map for future eval-set design.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q11_where_are_skill_regressions.png",
     "family": "headline",
     "priority": "secondary",
     "purpose": "Eval-level cases where with_skill scored below baseline.",

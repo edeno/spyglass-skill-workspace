@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import shutil
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -45,6 +46,11 @@ def configure_figures(
     DATA = OUT / "data"
     FIGURES.mkdir(parents=True, exist_ok=True)
     DATA.mkdir(parents=True, exist_ok=True)
+    for stale_png in FIGURES.glob("*.png"):
+        stale_png.unlink()
+    for stale_dir in (FIGURES / "presentation", FIGURES / "analyst", FIGURES / "appendix"):
+        if stale_dir.exists():
+            shutil.rmtree(stale_dir)
     WORKSPACE = workspace
     BATCH_ORDER = batch_order
     BATCH_LABELS = batch_labels
@@ -52,7 +58,9 @@ def configure_figures(
 
 def figure_path(name: str) -> Path:
     """Return the path for a generated figure."""
-    return FIGURES / name
+    path = FIGURES / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def data_path(name: str) -> Path:
@@ -115,7 +123,7 @@ def plot_per_batch_pass_rate(benchmarks: dict[int, dict]) -> None:
     setup_axes(ax, f"Full-eval pass rate per batch ({sum(n_evals)} evals x 2 conditions)", ylabel="evals fully passing (%)")
     ax.legend(loc="upper right", frameon=False, fontsize=10)
     ax.grid(axis="y", alpha=0.3, linestyle=":")
-    fig.savefig(figure_path("01_per_batch_pass_rate.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_per_batch_pass_rate.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_delta_per_batch(benchmarks: dict[int, dict]) -> None:
@@ -169,7 +177,7 @@ def plot_delta_per_batch(benchmarks: dict[int, dict]) -> None:
         ax.set_xlim(-3, x_max)
         setup_axes(ax, f"{title} (with_skill - baseline)", xlabel="percentage points (pp)")
         ax.grid(axis="x", alpha=0.3, linestyle=":")
-    fig.savefig(figure_path("02_delta_per_batch.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_delta_per_batch.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_per_eval_outcomes(benchmarks: dict[int, dict]) -> None:
@@ -230,7 +238,7 @@ def plot_per_eval_outcomes(benchmarks: dict[int, dict]) -> None:
         borderaxespad=0,
     )
     ax.grid(axis="y", alpha=0.3, linestyle=":")
-    fig.savefig(figure_path("03_per_eval_outcomes.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_per_eval_outcomes_by_batch.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_tokens_and_duration(benchmarks: dict[int, dict]) -> None:
@@ -256,7 +264,7 @@ def plot_tokens_and_duration(benchmarks: dict[int, dict]) -> None:
         setup_axes(ax, title, xlabel=xlabel)
         ax.legend(loc="lower right", frameon=False, fontsize=9)
         ax.grid(axis="x", alpha=0.3, linestyle=":")
-    fig.savefig(figure_path("04_cost_per_batch.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_cost_per_batch.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_cumulative_summary(benchmarks: dict[int, dict]) -> None:
@@ -315,7 +323,7 @@ def plot_cumulative_summary(benchmarks: dict[int, dict]) -> None:
     ]
     ax.legend(handles=handles, loc="lower right", frameon=False, fontsize=10)
     ax.grid(axis="x", alpha=0.3, linestyle=":")
-    fig.savefig(figure_path("05_cumulative_summary.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("q01_how_much_does_the_skill_help.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_by_category(
@@ -398,7 +406,7 @@ def plot_by_category(
         ax.legend(loc="lower right", frameon=False, fontsize=10)
         ax.grid(axis="x", alpha=0.3, linestyle=":")
 
-    fig.savefig(figure_path("06_by_category.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_dense_pass_rate_by_category.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_by_difficulty(
@@ -506,7 +514,7 @@ def plot_by_difficulty(
     )
     axes[1].grid(axis="y", alpha=0.3, linestyle=":")
 
-    fig.savefig(figure_path("07_by_difficulty.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("q03_does_it_help_on_harder_evals.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_difficulty_x_stage_heatmap(
@@ -575,7 +583,7 @@ def plot_difficulty_x_stage_heatmap(
     cbar = fig.colorbar(im, ax=ax, shrink=0.7, pad=0.02)
     cbar.set_label("skill delta (pp on full-eval pass)", fontsize=10)
     setup_axes(ax, "Skill delta by stage x difficulty: hard vs easy prompts", xlabel="difficulty")
-    fig.savefig(figure_path("08_difficulty_x_stage_heatmap.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_difficulty_x_stage_heatmap.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_per_eval_scatter(
@@ -689,7 +697,7 @@ def plot_per_eval_scatter(
         75, 5, "skill hurts\n(below line)", fontsize=9, color="#666666", style="italic"
     )
 
-    fig.savefig(figure_path("09_per_eval_scatter.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_per_eval_expectation_scatter.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_top_skill_wins(
@@ -741,7 +749,7 @@ def plot_top_skill_wins(
     ax.set_xlim(0, max(deltas) + 22 if deltas else 100)
     setup_axes(ax, "Top 15 evals where the skill helped most", xlabel="delta in expectation pass rate (pp)")
     ax.grid(axis="x", **GRID_STYLE)
-    fig.savefig(figure_path("10_top_skill_wins.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_top_skill_wins.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
     fig_height = max(3.5, 1.0 + 0.8 * max(len(regressions), 1))
@@ -777,7 +785,7 @@ def plot_top_skill_wins(
         ax.set_xlim(min(deltas) - 5, 2)
         setup_axes(ax, "Evals where the skill scored worse than baseline", xlabel="delta in expectation pass rate (pp)")
         ax.grid(axis="x", **GRID_STYLE)
-    fig.savefig(figure_path("23_skill_regressions.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("q11_where_are_skill_regressions.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -838,7 +846,7 @@ def plot_reference_utilization(
         color="#666666",
     )
 
-    fig.savefig(figure_path("11_reference_utilization.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_raw_reference_utilization.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_script_utilization(
@@ -967,7 +975,7 @@ def plot_script_utilization(
         color="#666666",
     )
 
-    fig.savefig(figure_path("12_script_utilization.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_raw_script_utilization.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -992,7 +1000,7 @@ def plot_reference_effectiveness() -> None:
     """Plot reference load count colored by pass-rate-when-loaded."""
     rows = [r for r in _read_csv("reference_effectiveness.csv") if r["reference"] != "SKILL.md"]
     if not rows:
-        unlink_figure("13_reference_effectiveness.png")
+        unlink_figure("appendix_reference_effectiveness_when_loaded.png")
         return
     rows.sort(key=lambda r: -int(r["ws_evals_loaded"]))
     rows = rows[:25]
@@ -1026,7 +1034,7 @@ def plot_reference_effectiveness() -> None:
     cbar = fig.colorbar(sm, ax=ax, shrink=0.5, pad=0.02)
     cbar.set_label("ws full-pass rate when loaded (%)", fontsize=9)
     ax.grid(axis="x", **GRID_STYLE)
-    fig.savefig(figure_path("13_reference_effectiveness.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_reference_effectiveness_when_loaded.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -1044,7 +1052,7 @@ def plot_cost_effectiveness_scatter() -> None:
     """Plot extra tokens against expectation delta, colored by outcome."""
     rows = _read_csv("cost_effectiveness_per_eval.csv")
     if not rows:
-        unlink_figure("14_cost_effectiveness_scatter.png")
+        unlink_figure("q04_what_does_the_extra_cost_buy.png")
         return
     outcome_colors = {
         "both_pass": WONG["both_pass"],
@@ -1129,7 +1137,7 @@ def plot_cost_effectiveness_scatter() -> None:
         style="italic",
         color="#666666",
     )
-    fig.savefig(figure_path("14_cost_effectiveness_scatter.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("q04_what_does_the_extra_cost_buy.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -1137,7 +1145,7 @@ def plot_outcome_by_category() -> None:
     """Plot stage-level outcome split from outcome_by_category.csv."""
     rows = [r for r in _read_csv("outcome_by_category.csv") if r["category_kind"] == "stage"]
     if not rows:
-        unlink_figure("15_outcome_by_category.png")
+        unlink_figure("q02_where_does_the_skill_help.png")
         return
     rows.sort(key=lambda r: -int(r["skill_only"]))
     labels = [r["category"] for r in rows]
@@ -1181,14 +1189,14 @@ def plot_outcome_by_category() -> None:
         borderaxespad=0,
     )
     ax.grid(axis="x", **GRID_STYLE)
-    fig.savefig(figure_path("15_outcome_by_category.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("q02_where_does_the_skill_help.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_baseline_source_split() -> None:
     path = data_path("baseline_source_split.json")
     if not path.exists():
-        unlink_figure("16_baseline_source_split.png")
+        unlink_figure("q05_is_value_more_than_source_access.png")
         return
     payload = json.loads(path.read_text())
     groups = [
@@ -1225,14 +1233,14 @@ def plot_baseline_source_split() -> None:
         ylabel="full-eval pass rate (%)",
     )
     ax.grid(axis="y", **GRID_STYLE)
-    fig.savefig(figure_path("16_baseline_source_split.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("q05_is_value_more_than_source_access.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_eval_coverage_map() -> None:
     rows = _read_csv("eval_coverage.csv")
     if not rows:
-        unlink_figure("17_eval_coverage_map.png")
+        unlink_figure("q10_where_are_eval_coverage_gaps.png")
         return
     stages = sorted({r["stage"] for r in rows})
     tiers = sorted({r["tier"] for r in rows})
@@ -1264,14 +1272,14 @@ def plot_eval_coverage_map() -> None:
                 )
     fig.colorbar(im, ax=ax, shrink=0.6, label="eval count")
     setup_axes(ax, "Eval coverage by stage x tier: under- and over-tested cells")
-    fig.savefig(figure_path("17_eval_coverage_map.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("q10_where_are_eval_coverage_gaps.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_failure_taxonomy() -> None:
     rows = _read_csv("failure_taxonomy.csv")
     if not rows:
-        unlink_figure("18_failure_taxonomy.png")
+        unlink_figure("appendix_failure_taxonomy_placeholder.png")
         return
     annotated = [r for r in rows if r["failure_type"]]
     if not annotated:
@@ -1296,7 +1304,7 @@ def plot_failure_taxonomy() -> None:
             fontsize=11,
             transform=ax.transAxes,
         )
-        fig.savefig(figure_path("18_failure_taxonomy.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+        fig.savefig(figure_path("appendix_failure_taxonomy_placeholder.png"), dpi=FIGURE_DPI, bbox_inches="tight")
         plt.close(fig)
         return
     type_counts = Counter(r["failure_type"] for r in annotated)
@@ -1320,14 +1328,14 @@ def plot_failure_taxonomy() -> None:
     ax.set_xlabel("# of with_skill failures", fontsize=10)
     setup_axes(ax, f"Failure taxonomy: {sum(counts)} of {len(rows)} with-skill failures annotated")
     ax.grid(axis="x", **GRID_STYLE)
-    fig.savefig(figure_path("18_failure_taxonomy.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("appendix_failure_taxonomy_placeholder.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_reference_expected_used() -> None:
     rows = _read_csv("reference_expected_used.csv")
     if not rows:
-        unlink_figure("19_reference_expected_used.png")
+        unlink_figure("q09_how_well_are_expected_references_used.png")
         return
     refs = sorted({r["reference"] for r in rows})
     statuses = ["required", "optional", "distractor"]
@@ -1377,15 +1385,19 @@ def plot_reference_expected_used() -> None:
                     ax.add_patch(plt.Rectangle((j - 0.5, i - 0.5), 1, 1, fill=False, edgecolor="#999999", linewidth=0.6, alpha=0.5))
         fig.colorbar(im, ax=ax, shrink=0.5, label="%")
         setup_axes(ax, title)
-    fig.savefig(figure_path("19_reference_expected_used.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("q09_how_well_are_expected_references_used.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_expected_call_confusion(kind: str) -> None:
     rows = _read_csv(f"{kind}_call_confusion.csv")
-    prefix = "20_reference" if kind == "reference" else "21_script"
+    figure_name = (
+        "q06_are_reference_routes_working.png"
+        if kind == "reference"
+        else "q07_are_script_routes_working.png"
+    )
     if not rows:
-        unlink_figure(f"{prefix}_call_confusion.png")
+        unlink_figure(figure_name)
         return
     totals = Counter()
     for row in rows:
@@ -1453,14 +1465,14 @@ def plot_expected_call_confusion(kind: str) -> None:
         va="top",
         fontsize=9,
     )
-    fig.savefig(figure_path(f"{prefix}_call_confusion.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path(figure_name), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 
 def plot_fix_priority_actions() -> None:
     rows = [r for r in _read_csv("fix_priority.csv") if r["likely_action"]]
     if not rows:
-        unlink_figure("22_fix_priority_actions.png")
+        unlink_figure("q08_what_should_we_fix_next.png")
         return
     order = {
         "investigate_regression": 0,
@@ -1495,5 +1507,5 @@ def plot_fix_priority_actions() -> None:
     ax.set_xlabel("# evals", fontsize=10)
     setup_axes(ax, "Fix-priority actions — what should the next refactor inspect first?")
     ax.grid(axis="x", **GRID_STYLE)
-    fig.savefig(figure_path("22_fix_priority_actions.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    fig.savefig(figure_path("q08_what_should_we_fix_next.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)

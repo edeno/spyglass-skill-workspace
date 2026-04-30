@@ -1509,7 +1509,7 @@ def write_summary_manifest_json() -> None:
         print("Manifest fallback classifications:", ", ".join(sorted(fallback_files)))
 
 def _write_summary_index_md(manifest: list[dict[str, str]]) -> None:
-    """Render a human-readable index from summary_manifest.json metadata."""
+    """Render a human-readable output index grouped by manifest priority."""
     priority_order = {"primary": 0, "secondary": 1, "appendix": 2}
     rows = sorted(
         manifest,
@@ -1526,15 +1526,15 @@ def _write_summary_index_md(manifest: list[dict[str, str]]) -> None:
         "",
     ]
     for priority in ("primary", "secondary", "appendix"):
-        group = [r for r in rows if r["priority"] == priority]
-        if not group:
+        priority_rows = [r for r in rows if r["priority"] == priority]
+        if not priority_rows:
             continue
-        lines.extend([f"## {priority.title()}", ""])
-        for r in group:
+        lines.extend([f"## {priority.title()} Outputs", ""])
+        for row in priority_rows:
+            filename = row["filename"]
             lines.append(
-                f"- [`{r['filename']}`]({r['filename']}) — "
-                f"{r['family']}: {r['purpose']}"
+                f"- [`{filename}`]({filename}) — "
+                f"{row['family']}: {row['purpose']}"
             )
         lines.append("")
     (OUT / "INDEX.md").write_text("\n".join(lines).rstrip() + "\n")
-
