@@ -146,13 +146,13 @@ Note on the run count: the headline 130 evals × 2 conditions = 260 dispatches r
 
 | Reference | % of ws runs that opened it |
 | --- | --- |
-| `SKILL.md` | 97% (the entry point — opened by directive) |
+| `SKILL.md` | 100% (the entry point — opened by directive) |
 | `lfp_pipeline.md`, `merge_methods.md`, `decoding_pipeline.md` | ~10% each |
 | `common_tables.md`, `spikesorting_v1_pipeline.md`, `destructive_operations.md`, `ripple_pipeline.md` | 8–10% each |
 | `runtime_debugging.md`, `position_pipeline.md`, `datajoint_api.md` | 6–7% each |
 | Long tail (15+ refs) | <5% each |
 
-The progressive-disclosure pattern is doing what it should: `SKILL.md` is the routing layer (97% utilization), and individual references are pulled in only when the prompt warrants. No reference dominates — the skill is broad rather than concentrated.
+The progressive-disclosure pattern is doing what it should: `SKILL.md` is the routing layer (100% transcript-level utilization), and individual references are pulled in only when the prompt warrants. No reference dominates — the skill is broad rather than concentrated.
 
 **Bundled scripts (utilization across 134 with_skill runs):**
 

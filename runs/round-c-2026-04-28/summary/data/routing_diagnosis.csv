@@ -1,5 +1,5 @@
 eval_id,batch,eval_name,stage,tier,difficulty,bs_pass,outcome,diagnosis,required_refs,called_refs,missed_required_refs,required_scripts,called_scripts,missed_required_scripts
-72,4,dep-trace-lfpbandv1,pipeline-usage,dependency-tracing,hard,0,both_fail,routing_miss,feedback_loops.md;lfp_pipeline.md,lfp_pipeline.md,feedback_loops.md,,code_graph.py,
+72,4,dep-trace-lfpbandv1,pipeline-usage,dependency-tracing,hard,0,both_fail,routing_miss,feedback_loops.md;lfp_pipeline.md,lfp_pipeline.md,feedback_loops.md,code_graph.py,code_graph.py,
 85,4,recover-parameter-edit-in-place,pipeline-usage,workflow-recovery,hard,0,both_fail,routing_miss,common_mistakes.md;destructive_operations.md;ripple_pipeline.md,destructive_operations.md;ripple_pipeline.md,common_mistakes.md,,,
 87,4,counterfactual-trodes-pos-params-swap,pipeline-usage,counterfactual,hard,0,both_fail,routing_miss,destructive_operations.md;position_trodes_v1_pipeline.md,merge_methods.md;position_pipeline.md;position_trodes_v1_pipeline.md,destructive_operations.md,,,
 89,4,restrict-by-interval-name-no-star,pipeline-usage,joins,medium,0,both_fail,routing_miss,datajoint_api.md;spikesorting_v1_pipeline.md,datajoint_api.md;spikesorting_v1_pipeline.md,,code_graph.py,,code_graph.py

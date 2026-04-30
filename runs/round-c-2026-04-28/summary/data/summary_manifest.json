@@ -72,6 +72,14 @@
     "audience": "data"
   },
   {
+    "filename": "data/evals_snapshot.json",
+    "family": "headline",
+    "priority": "primary",
+    "purpose": "Eval catalog snapshot used for category and expected-resource annotations.",
+    "classification_source": "override",
+    "audience": "data"
+  },
+  {
     "filename": "data/failure_taxonomy.csv",
     "family": "fix_priority",
     "priority": "secondary",

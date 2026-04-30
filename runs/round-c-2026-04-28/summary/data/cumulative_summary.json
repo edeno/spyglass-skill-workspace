@@ -20,6 +20,9 @@
   "delta": {
     "full_pass_pp": 21.54,
     "expectation_pp": 9.11,
+    "extra_tokens_total": 2048776
+  },
+  "combined": {
     "tokens_total": 8353588
   },
   "outcomes": {
