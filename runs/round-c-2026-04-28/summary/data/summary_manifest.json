@@ -355,5 +355,12 @@
     "priority": "primary",
     "purpose": "Likely-action distribution from fix_priority.csv.",
     "classification_source": "override"
+  },
+  {
+    "filename": "figures/23_skill_regressions.png",
+    "family": "headline",
+    "priority": "secondary",
+    "purpose": "Eval-level cases where with_skill scored below baseline.",
+    "classification_source": "override"
   }
 ]

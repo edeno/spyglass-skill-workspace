@@ -118,6 +118,7 @@ MANIFEST_OVERRIDES = {
     "20_reference_call_confusion.png": ("routing", "primary", "Required reference opened vs missed; optional references are neutral."),
     "21_script_call_confusion.png": ("routing", "primary", "Required bundled script executed vs missed."),
     "22_fix_priority_actions.png": ("fix_priority", "primary", "Likely-action distribution from fix_priority.csv."),
+    "23_skill_regressions.png": ("headline", "secondary", "Eval-level cases where with_skill scored below baseline."),
     "INDEX.md": ("headline", "primary", "Generated guide to summary outputs grouped by priority."),
     "SUMMARY.md": ("headline", "primary", "Human-authored narrative summary and recommendations."),
     "baseline_source_split.json": ("headline", "secondary", "Machine-readable source-delivery vs workflow/routing split."),

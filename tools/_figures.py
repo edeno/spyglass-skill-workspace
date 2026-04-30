@@ -112,28 +112,21 @@ def plot_per_batch_pass_rate(benchmarks: dict[int, dict]) -> None:
     )
     ax.set_ylim(0, 115)
     ax.set_yticks(np.arange(0, 101, 20))
-    setup_axes(ax, "Full-eval pass rate per batch", ylabel="evals fully passing (%)")
+    setup_axes(ax, f"Full-eval pass rate per batch ({sum(n_evals)} evals x 2 conditions)", ylabel="evals fully passing (%)")
     ax.legend(loc="upper right", frameon=False, fontsize=10)
     ax.grid(axis="y", alpha=0.3, linestyle=":")
-    n_total = sum(
-        b["configurations"]["with_skill"]["n_runs"] for b in benchmarks.values()
-    )
-    fig.suptitle(
-        f"Spyglass skill — full-eval pass rate per batch ({n_total} evals × 2 conditions)",
-        fontsize=12,
-        y=1.02,
-    )
     fig.savefig(figure_path("01_per_batch_pass_rate.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_delta_per_batch(benchmarks: dict[int, dict]) -> None:
     fig, axes = plt.subplots(1, 2, figsize=SIZE_WIDE, constrained_layout=True)
-    x = np.arange(len(BATCH_ORDER))
+    y = np.arange(len(BATCH_ORDER))
+    labels = [BATCH_LABELS[b] for b in BATCH_ORDER]
     behavioral_deltas = []
     for b in BATCH_ORDER:
-        ws_p, ws_t, bs_p, bs_t = collect_behavioral(WORKSPACE, b)
+        ws_p, ws_t, bs_p, bs_b_t = collect_behavioral(WORKSPACE, b)
         ws_pp = 100 * ws_p / ws_t if ws_t else 0
-        bs_pp = 100 * bs_p / bs_t if bs_t else 0
+        bs_pp = 100 * bs_p / bs_b_t if bs_b_t else 0
         behavioral_deltas.append(ws_pp - bs_pp)
     # Compute expectation deltas directly from configurations (older batches store delta in
     # fractional form `expectation_pass_rate`, newer ones in percentage points
@@ -152,34 +145,30 @@ def plot_delta_per_batch(benchmarks: dict[int, dict]) -> None:
             / cfg["without_skill"]["expectations_total"]
         )
         expectation_deltas.append(ws_pp - bs_pp)
+    x_max = max(max(behavioral_deltas), max(expectation_deltas)) + 5
     for ax, deltas, title in [
-        (axes[0], behavioral_deltas, "Behavioral-check delta (with_skill − baseline)"),
-        (
-            axes[1],
-            expectation_deltas,
-            "Total expectation delta (with_skill − baseline)",
-        ),
+        (axes[0], behavioral_deltas, "Behavioral-check delta"),
+        (axes[1], expectation_deltas, "Total expectation delta"),
     ]:
         colors = [delta_color(d) for d in deltas]
-        bars = ax.bar(x, deltas, color=colors, width=0.7)
-        for bar, d in zip(bars, deltas, strict=True):
+        bars = ax.barh(y, deltas, color=colors, height=0.7)
+        for bar, delta in zip(bars, deltas, strict=True):
             ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                d + (0.6 if d >= 0 else -1.5),
-                f"{d:+.1f}",
-                ha="center",
+                delta + (0.35 if delta >= 0 else -0.35),
+                bar.get_y() + bar.get_height() / 2,
+                f"{delta:+.1f}",
+                va="center",
+                ha="left" if delta >= 0 else "right",
                 fontsize=9,
                 fontweight="bold",
             )
-        ax.axhline(0, color="black", linewidth=0.7)
-        ax.set_xticks(x)
-        ax.set_xticklabels([BATCH_LABELS[b] for b in BATCH_ORDER], fontsize=9)
-        ax.set_ylim(-3, max(max(behavioral_deltas), max(expectation_deltas)) + 5)
-        setup_axes(ax, title, ylabel="percentage points (pp)")
-        ax.grid(axis="y", alpha=0.3, linestyle=":")
-    fig.suptitle(
-        "Skill delta per batch — where with_skill helped most", fontsize=12, y=1.02
-    )
+        ax.axvline(0, color="black", linewidth=0.7)
+        ax.set_yticks(y)
+        ax.set_yticklabels(labels, fontsize=9)
+        ax.invert_yaxis()
+        ax.set_xlim(-3, x_max)
+        setup_axes(ax, f"{title} (with_skill - baseline)", xlabel="percentage points (pp)")
+        ax.grid(axis="x", alpha=0.3, linestyle=":")
     fig.savefig(figure_path("02_delta_per_batch.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -232,39 +221,41 @@ def plot_per_eval_outcomes(benchmarks: dict[int, dict]) -> None:
         bottom = bottom + np.array(vals)
     ax.set_xticks(x)
     ax.set_xticklabels([BATCH_LABELS[b] for b in BATCH_ORDER], fontsize=9)
-    setup_axes(ax, "Per-eval outcomes by batch", ylabel="number of evals")
+    setup_axes(ax, "Per-eval outcomes by batch: skill-only vs baseline-only wins", ylabel="number of evals")
     ax.legend(
-        loc="upper left", frameon=False, fontsize=10, ncol=4, bbox_to_anchor=(0, 1.08)
+        loc="upper left",
+        bbox_to_anchor=(1.01, 1),
+        frameon=False,
+        fontsize=9,
+        borderaxespad=0,
     )
     ax.grid(axis="y", alpha=0.3, linestyle=":")
-    fig.suptitle("Skill-only vs baseline-only wins per batch", fontsize=12, y=1.04)
     fig.savefig(figure_path("03_per_eval_outcomes.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_tokens_and_duration(benchmarks: dict[int, dict]) -> None:
     fig, axes = plt.subplots(1, 2, figsize=SIZE_WIDE, constrained_layout=True)
-    x = np.arange(len(BATCH_ORDER))
-    width = 0.38
+    y = np.arange(len(BATCH_ORDER))
+    labels = [BATCH_LABELS[b] for b in BATCH_ORDER]
+    height = 0.38
     cfgs = [benchmarks[b]["configurations"] for b in BATCH_ORDER]
     ws_tokens = [c["with_skill"]["tokens_mean"] / 1000 for c in cfgs]
     bs_tokens = [c["without_skill"]["tokens_mean"] / 1000 for c in cfgs]
     ws_dur = [c["with_skill"]["duration_mean_s"] for c in cfgs]
     bs_dur = [c["without_skill"]["duration_mean_s"] for c in cfgs]
-    axes[0].bar(x - width / 2, ws_tokens, width, label="with skill", color=WONG["ws"])
-    axes[0].bar(x + width / 2, bs_tokens, width, label="baseline", color=WONG["bs"])
-    axes[0].set_xticks(x)
-    axes[0].set_xticklabels([BATCH_LABELS[b] for b in BATCH_ORDER], fontsize=9)
-    setup_axes(axes[0], "Mean tokens per run", ylabel="tokens (thousands)")
-    axes[0].legend(loc="upper left", frameon=False, fontsize=10)
-    axes[0].grid(axis="y", alpha=0.3, linestyle=":")
-    axes[1].bar(x - width / 2, ws_dur, width, label="with skill", color=WONG["ws"])
-    axes[1].bar(x + width / 2, bs_dur, width, label="baseline", color=WONG["bs"])
-    axes[1].set_xticks(x)
-    axes[1].set_xticklabels([BATCH_LABELS[b] for b in BATCH_ORDER], fontsize=9)
-    setup_axes(axes[1], "Mean wall-clock duration per run", ylabel="seconds")
-    axes[1].legend(loc="upper left", frameon=False, fontsize=10)
-    axes[1].grid(axis="y", alpha=0.3, linestyle=":")
-    fig.suptitle("Cost: tokens and wall-clock per run", fontsize=12, y=1.02)
+
+    for ax, ws_vals, bs_vals, title, xlabel in [
+        (axes[0], ws_tokens, bs_tokens, "Mean tokens per run", "tokens (thousands)"),
+        (axes[1], ws_dur, bs_dur, "Mean wall-clock duration per run", "seconds"),
+    ]:
+        ax.barh(y - height / 2, ws_vals, height, label="with skill", color=WONG["ws"])
+        ax.barh(y + height / 2, bs_vals, height, label="baseline", color=WONG["bs"])
+        ax.set_yticks(y)
+        ax.set_yticklabels(labels, fontsize=9)
+        ax.invert_yaxis()
+        setup_axes(ax, title, xlabel=xlabel)
+        ax.legend(loc="lower right", frameon=False, fontsize=9)
+        ax.grid(axis="x", alpha=0.3, linestyle=":")
     fig.savefig(figure_path("04_cost_per_batch.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -317,14 +308,13 @@ def plot_cumulative_summary(benchmarks: dict[int, dict]) -> None:
     ax.set_xticks([0, 25, 50, 75, 100])
     ax.set_xlabel("% passing", fontsize=10)
     ax.invert_yaxis()
-    setup_axes(ax, f"Cumulative — all {len(BATCH_ORDER)} batches, {n_evals} evals")
+    setup_axes(ax, f"Final cumulative result — all {len(BATCH_ORDER)} batches, {n_evals} evals")
     handles = [
         plt.Rectangle((0, 0), 1, 1, color=WONG["ws"], label="with skill"),
         plt.Rectangle((0, 0), 1, 1, color=WONG["bs"], label="baseline"),
     ]
     ax.legend(handles=handles, loc="lower right", frameon=False, fontsize=10)
     ax.grid(axis="x", alpha=0.3, linestyle=":")
-    fig.suptitle("Spyglass skill — final cumulative result", fontsize=13, y=1.02)
     fig.savefig(figure_path("05_cumulative_summary.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -408,7 +398,6 @@ def plot_by_category(
         ax.legend(loc="lower right", frameon=False, fontsize=10)
         ax.grid(axis="x", alpha=0.3, linestyle=":")
 
-    fig.suptitle("Spyglass skill — pass rate by eval category", fontsize=13, y=1.01)
     fig.savefig(figure_path("06_by_category.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -472,7 +461,13 @@ def plot_by_difficulty(
     axes[0].set_ylim(-15, 115)
     axes[0].set_yticks(np.arange(0, 101, 20))
     setup_axes(axes[0], "Full-eval pass rate by difficulty", ylabel="% passing")
-    axes[0].legend(loc="lower right", frameon=False, fontsize=10)
+    axes[0].legend(
+        loc="lower left",
+        bbox_to_anchor=(1.01, 0),
+        frameon=False,
+        fontsize=9,
+        borderaxespad=0,
+    )
     axes[0].grid(axis="y", alpha=0.3, linestyle=":")
 
     bottom = np.zeros(len(diff_order))
@@ -503,13 +498,14 @@ def plot_by_difficulty(
     )
     setup_axes(axes[1], "Outcome breakdown by difficulty", ylabel="number of evals")
     axes[1].legend(
-        loc="upper left", frameon=False, fontsize=9, ncol=2, bbox_to_anchor=(0, 1.13)
+        loc="upper left",
+        bbox_to_anchor=(1.01, 1),
+        frameon=False,
+        fontsize=9,
+        borderaxespad=0,
     )
     axes[1].grid(axis="y", alpha=0.3, linestyle=":")
 
-    fig.suptitle(
-        "Spyglass skill — pass rate and outcomes by difficulty", fontsize=12, y=1.02
-    )
     fig.savefig(figure_path("07_by_difficulty.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -578,10 +574,7 @@ def plot_difficulty_x_stage_heatmap(
                 )
     cbar = fig.colorbar(im, ax=ax, shrink=0.7, pad=0.02)
     cbar.set_label("skill delta (pp on full-eval pass)", fontsize=10)
-    setup_axes(ax, "Skill delta by stage × difficulty (pp)", xlabel="difficulty")
-    fig.suptitle(
-        "Where does the skill help on HARD prompts vs EASY?", fontsize=12, y=1.01
-    )
+    setup_axes(ax, "Skill delta by stage x difficulty: hard vs easy prompts", xlabel="difficulty")
     fig.savefig(figure_path("08_difficulty_x_stage_heatmap.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -668,7 +661,7 @@ def plot_per_eval_scatter(
     ax.set_xlabel("baseline expectation pass rate (%)", fontsize=11)
     ax.set_ylabel("with-skill expectation pass rate (%)", fontsize=11)
     n_total = len(ws_rates)
-    setup_axes(ax, f"Per-eval scatter — each point is one of {n_total} evals")
+    setup_axes(ax, f"Per-eval scatter: skill vs baseline expectation rate (n={n_total})")
 
     # Per-difficulty legend uses live counts from this run.
     diff_counts = Counter()
@@ -696,16 +689,13 @@ def plot_per_eval_scatter(
         75, 5, "skill hurts\n(below line)", fontsize=9, color="#666666", style="italic"
     )
 
-    fig.suptitle(
-        "Skill vs baseline — per-eval scatter (color = difficulty)", fontsize=12, y=1.02
-    )
     fig.savefig(figure_path("09_per_eval_scatter.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
 def plot_top_skill_wins(
     cats: EvalCategories, per_eval: list[PerEvalResult]
 ) -> None:
-    """Horizontal bar: top-15 evals where skill helped most (largest passed-count delta)."""
+    """Write separate figures for largest skill wins and skill regressions."""
 
     items = []
     for r in per_eval:
@@ -724,73 +714,72 @@ def plot_top_skill_wins(
         )
 
     top = sorted(items, key=lambda x: -x["delta"])[:15]
-    bottom = sorted(items, key=lambda x: x["delta"])[:5]
-    bottom = [b for b in bottom if b["delta"] < 0]
+    regressions = [r for r in sorted(items, key=lambda x: x["delta"]) if r["delta"] < 0]
 
-    fig, axes = plt.subplots(
-        2,
-        1,
-        figsize=SIZE_TALL,
-        gridspec_kw={"height_ratios": [3, max(1, len(bottom)) / 5]},
-        constrained_layout=True,
-    )
-
-    for ax, rows, title, color in [
-        (
-            axes[0],
-            top,
-            "Top 15 evals where the SKILL helped most (ranked by Δ pp)",
-            WONG["delta_pos"],
-        ),
-        (
-            axes[1],
-            bottom,
-            "Evals where the SKILL scored WORSE than baseline",
-            WONG["delta_neg"],
-        ),
-    ]:
-        if not rows:
-            ax.text(
-                0.5,
-                0.5,
-                "(none — no eval where skill scored worse)",
-                ha="center",
-                va="center",
-                fontsize=11,
-                transform=ax.transAxes,
-            )
-            ax.axis("off")
-            continue
-        y = np.arange(len(rows))
-        deltas = [r["delta"] for r in rows]
-        labels = [
+    def labels(rows: list[dict]) -> list[str]:
+        return [
             f"#{r['eval_id']} {r['name']} ({r['stage']}/{r['difficulty']})"
             for r in rows
         ]
-        ax.barh(y, deltas, color=color, edgecolor="white")
-        for yi, r in enumerate(rows):
+
+    fig, ax = plt.subplots(figsize=SIZE_TALL, constrained_layout=True)
+    y = np.arange(len(top))
+    deltas = [r["delta"] for r in top]
+    ax.barh(y, deltas, color=WONG["delta_pos"], edgecolor="white")
+    for yi, r in enumerate(top):
+        ax.text(
+            r["delta"] + 1,
+            yi,
+            f"+{r['delta']:.0f} pp  (ws {r['ws_pct']:.0f}% vs bs {r['bs_pct']:.0f}%)",
+            va="center",
+            ha="left",
+            fontsize=8,
+        )
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels(top), fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlim(0, max(deltas) + 22 if deltas else 100)
+    setup_axes(ax, "Top 15 evals where the skill helped most", xlabel="delta in expectation pass rate (pp)")
+    ax.grid(axis="x", **GRID_STYLE)
+    fig.savefig(figure_path("10_top_skill_wins.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    plt.close(fig)
+
+    fig_height = max(3.5, 1.0 + 0.8 * max(len(regressions), 1))
+    fig, ax = plt.subplots(figsize=(12, fig_height), constrained_layout=True)
+    if not regressions:
+        ax.text(
+            0.5,
+            0.5,
+            "No evals where the skill scored below baseline",
+            ha="center",
+            va="center",
+            fontsize=12,
+            transform=ax.transAxes,
+        )
+        ax.axis("off")
+    else:
+        y = np.arange(len(regressions))
+        deltas = [r["delta"] for r in regressions]
+        ax.barh(y, deltas, color=WONG["delta_neg"], edgecolor="white")
+        for yi, r in enumerate(regressions):
             ax.text(
-                r["delta"] + (1 if r["delta"] > 0 else -1),
+                -0.8,
                 yi,
-                f"{r['delta']:+.0f} pp  (ws {r['ws_pct']:.0f}% vs bs {r['bs_pct']:.0f}%)",
+                f"{r['delta']:.0f} pp  (ws {r['ws_pct']:.0f}% vs bs {r['bs_pct']:.0f}%)",
                 va="center",
-                ha="left" if r["delta"] > 0 else "right",
+                ha="right",
                 fontsize=8,
             )
         ax.set_yticks(y)
-        ax.set_yticklabels(labels, fontsize=9)
+        ax.set_yticklabels(labels(regressions), fontsize=9)
         ax.invert_yaxis()
         ax.axvline(0, color="black", linewidth=0.7)
-        setup_axes(ax, title, xlabel="Δ expectation pass rate (pp)")
-        ax.grid(axis="x", alpha=0.3, linestyle=":")
-
-    fig.suptitle(
-        "Eval-level extremes — biggest skill wins and the rare losses",
-        fontsize=12,
-        y=1.01,
-    )
-    fig.savefig(figure_path("10_top_skill_wins.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+        ax.set_xlim(min(deltas) - 5, 2)
+        setup_axes(ax, "Evals where the skill scored worse than baseline", xlabel="delta in expectation pass rate (pp)")
+        ax.grid(axis="x", **GRID_STYLE)
+    fig.savefig(figure_path("23_skill_regressions.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
+
 
 def plot_reference_utilization(
     agent_to_run: dict[str, tuple[int, int, str]],
@@ -836,7 +825,7 @@ def plot_reference_utilization(
     ax.invert_yaxis()
     ax.set_xlim(0, max(pcts) * 1.4 if pcts else 100)
     ax.set_xlabel("% of with_skill runs that opened the reference", fontsize=10)
-    setup_axes(ax, f"Reference-file utilization across {total_ws} with_skill runs")
+    setup_axes(ax, f"Which reference files got read? Utilization across {total_ws} with_skill runs")
     ax.grid(axis="x", alpha=0.3, linestyle=":")
     ax.text(
         0.99,
@@ -849,7 +838,6 @@ def plot_reference_utilization(
         color="#666666",
     )
 
-    fig.suptitle("Which reference files actually got read?", fontsize=12, y=1.01)
     fig.savefig(figure_path("11_reference_utilization.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -953,8 +941,14 @@ def plot_script_utilization(
     ax.invert_yaxis()
     ax.set_xlim(0, max(max(invokes_ws), 1) * 1.6)
     ax.set_xlabel("# of tool calls across all with_skill runs", fontsize=10)
-    setup_axes(ax, f"Bundled-script utilization across {n_ws} with_skill runs")
-    ax.legend(loc="lower right", frameon=False, fontsize=9)
+    setup_axes(ax, f"Which bundled scripts got run? Utilization across {n_ws} with_skill runs")
+    ax.legend(
+        loc="upper left",
+        bbox_to_anchor=(1.01, 1),
+        frameon=False,
+        fontsize=9,
+        borderaxespad=0,
+    )
     ax.grid(axis="x", alpha=0.3, linestyle=":")
 
     any_script_runs = set()
@@ -962,17 +956,17 @@ def plot_script_utilization(
         any_script_runs |= bash_runs[s].get("with_skill", set())
     ax.text(
         0.99,
-        0.02,
-        f"{len(any_script_runs)}/{n_ws} ws runs ({100 * len(any_script_runs) / n_ws:.0f}%) invoked at least one script.\n"
-        f"Baseline runs invoked 0 scripts (as expected — they have no skill exposure).",
+        -0.12,
+        f"{len(any_script_runs)}/{n_ws} ws runs ({100 * len(any_script_runs) / n_ws:.0f}%) invoked at least one script. "
+        f"Baseline runs invoked 0 scripts.",
         transform=ax.transAxes,
         ha="right",
+        va="top",
         fontsize=9,
         style="italic",
         color="#666666",
     )
 
-    fig.suptitle("Which bundled scripts actually got run?", fontsize=12, y=1.01)
     fig.savefig(figure_path("12_script_utilization.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -1027,16 +1021,11 @@ def plot_reference_effectiveness() -> None:
     ax.invert_yaxis()
     ax.set_xlim(0, max(loads) * 1.5 if loads else 10)
     ax.set_xlabel("# of distinct ws evals that opened the reference", fontsize=10)
-    setup_axes(ax, "Reference effectiveness — loads vs pass rate when loaded")
+    setup_axes(ax, "Appendix diagnostic: reference loads vs pass rate when loaded")
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(0, 100))
     cbar = fig.colorbar(sm, ax=ax, shrink=0.5, pad=0.02)
     cbar.set_label("ws full-pass rate when loaded (%)", fontsize=9)
     ax.grid(axis="x", **GRID_STYLE)
-    fig.suptitle(
-        "Appendix diagnostic: pass rate when loaded is confounded by eval difficulty",
-        fontsize=10,
-        y=1.01,
-    )
     fig.savefig(figure_path("13_reference_effectiveness.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -1232,11 +1221,10 @@ def plot_baseline_source_split() -> None:
     ax.set_yticks([0, 25, 50, 75, 100])
     setup_axes(
         ax,
-        "Three-way split — does the skill add value beyond source access?",
+        "Three-way split: skill value beyond baseline source access",
         ylabel="full-eval pass rate (%)",
     )
     ax.grid(axis="y", **GRID_STYLE)
-    fig.suptitle("Skill's lift over baseline-with-source isolates routing/workflow value", fontsize=11, y=1.02)
     fig.savefig(figure_path("16_baseline_source_split.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -1275,8 +1263,7 @@ def plot_eval_coverage_map() -> None:
                     color="white" if count > matrix.max() / 2 else "black",
                 )
     fig.colorbar(im, ax=ax, shrink=0.6, label="eval count")
-    setup_axes(ax, "Eval coverage by stage × tier — where is the suite under-/over-testing?")
-    fig.suptitle("Future sweeps should add evals to under-covered cells", fontsize=11, y=1.02)
+    setup_axes(ax, "Eval coverage by stage x tier: under- and over-tested cells")
     fig.savefig(figure_path("17_eval_coverage_map.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -1331,9 +1318,8 @@ def plot_failure_taxonomy() -> None:
     ax.set_yticklabels(labels, fontsize=10)
     ax.invert_yaxis()
     ax.set_xlabel("# of with_skill failures", fontsize=10)
-    setup_axes(ax, f"With-skill failure taxonomy ({sum(counts)} of {len(rows)} ws-failed evals annotated)")
+    setup_axes(ax, f"Failure taxonomy: {sum(counts)} of {len(rows)} with-skill failures annotated")
     ax.grid(axis="x", **GRID_STYLE)
-    fig.suptitle("Where to invest skill maintenance effort", fontsize=11, y=1.02)
     fig.savefig(figure_path("18_failure_taxonomy.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
@@ -1391,11 +1377,6 @@ def plot_reference_expected_used() -> None:
                     ax.add_patch(plt.Rectangle((j - 0.5, i - 0.5), 1, 1, fill=False, edgecolor="#999999", linewidth=0.6, alpha=0.5))
         fig.colorbar(im, ax=ax, shrink=0.5, label="%")
         setup_axes(ax, title)
-    fig.suptitle(
-        "Appendix: expected vs actual reference use (low-n cells are muted)",
-        fontsize=11,
-        y=1.02,
-    )
     fig.savefig(figure_path("19_reference_expected_used.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
