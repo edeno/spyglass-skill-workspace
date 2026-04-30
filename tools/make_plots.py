@@ -24,11 +24,14 @@ from _figures import (
     plot_by_category,
     plot_by_difficulty,
     plot_cost_effectiveness_scatter,
+    plot_cost_reduction_candidates,
     plot_cumulative_summary,
     plot_delta_per_batch,
     plot_difficulty_x_stage_heatmap,
     plot_eval_coverage_map,
     plot_expected_call_confusion,
+    plot_extra_tokens_by_outcome,
+    plot_failure_routing_vs_synthesis,
     plot_failure_taxonomy,
     plot_fix_priority_actions,
     plot_outcome_by_category,
@@ -257,6 +260,9 @@ def main() -> None:
     plot_expected_call_confusion("reference")
     plot_expected_call_confusion("script")
     plot_fix_priority_actions()
+    plot_extra_tokens_by_outcome()
+    plot_cost_reduction_candidates()
+    plot_failure_routing_vs_synthesis()
 
     write_summary_manifest_json()
     print("Wrote plots + CSV/JSON exports to", OUT)

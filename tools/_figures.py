@@ -1509,3 +1509,131 @@ def plot_fix_priority_actions() -> None:
     ax.grid(axis="x", **GRID_STYLE)
     fig.savefig(figure_path("q08_what_should_we_fix_next.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
+
+
+def plot_extra_tokens_by_outcome() -> None:
+    """Show where the skill's extra token spend goes."""
+    rows = _read_csv("cost_by_outcome.csv")
+    if not rows:
+        unlink_figure("q12_where_are_extra_tokens_spent.png")
+        return
+    order = ["both_pass", "skill_only", "both_fail", "baseline_only"]
+    rows_by_outcome = {r["outcome"]: r for r in rows}
+    rows = [rows_by_outcome[outcome] for outcome in order if outcome in rows_by_outcome]
+    labels = [r["outcome"] for r in rows]
+    totals = [int(float(r["total_extra_tokens"])) for r in rows]
+    totals_k = [total / 1000 for total in totals]
+    shares = [float(r["share_of_total_extra"]) for r in rows]
+    ns = [int(r["n"]) for r in rows]
+    colors = {
+        "both_pass": WONG["both_pass"],
+        "skill_only": WONG["delta_pos"],
+        "baseline_only": WONG["delta_neg"],
+        "both_fail": WONG["both_fail"],
+    }
+
+    fig, ax = plt.subplots(figsize=SIZE_SINGLE, constrained_layout=True)
+    y = np.arange(len(rows))
+    bars = ax.barh(y, totals_k, color=[colors[label] for label in labels])
+    for bar, total_k, share, n in zip(bars, totals_k, shares, ns, strict=True):
+        ax.text(
+            total_k + max(totals_k) * 0.015,
+            bar.get_y() + bar.get_height() / 2,
+            f"{total_k:.0f}k tokens\n{share:.1f}%, n={n}",
+            va="center",
+            fontsize=9,
+        )
+    ax.set_yticks(y)
+    ax.set_yticklabels([label.replace("_", " ") for label in labels], fontsize=10)
+    ax.invert_yaxis()
+    ax.set_xlim(0, max(totals_k) * 1.25 if totals_k else 1)
+    ax.set_xlabel("extra with-skill tokens (thousands)", fontsize=10)
+    setup_axes(ax, "Where are the extra tokens spent?")
+    ax.grid(axis="x", **GRID_STYLE)
+    fig.savefig(figure_path("q12_where_are_extra_tokens_spent.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_cost_reduction_candidates() -> None:
+    """Show high-cost categories where baseline already performs strongly."""
+    rows = [r for r in _read_csv("skip_gate_candidates.csv") if r["candidate_reason"]]
+    if not rows:
+        unlink_figure("q13_where_can_cost_be_reduced.png")
+        return
+    rows.sort(key=lambda r: -int(float(r["total_extra_tokens"])))
+    rows = rows[:10]
+    labels = [f"{r['category_kind']}: {r['category']}" for r in rows]
+    totals = [int(float(r["total_extra_tokens"])) for r in rows]
+    totals_k = [total / 1000 for total in totals]
+    reasons = [r["candidate_reason"] for r in rows]
+    bs_rates = [float(r["bs_pass_rate"]) for r in rows]
+    rescue_rates = [float(r["rescue_rate"]) for r in rows]
+
+    fig, ax = plt.subplots(figsize=SIZE_SINGLE, constrained_layout=True)
+    y = np.arange(len(rows))
+    bars = ax.barh(y, totals_k, color=WONG["neutral"], edgecolor="white")
+    for bar, total_k, bs_rate, rescue_rate, reason in zip(
+        bars, totals_k, bs_rates, rescue_rates, reasons, strict=True
+    ):
+        ax.text(
+            total_k + max(totals_k) * 0.015,
+            bar.get_y() + bar.get_height() / 2,
+            f"{total_k:.0f}k; bs={bs_rate:.0f}%; rescue={rescue_rate:.0f}%\n"
+            f"{reason.replace('_', ' ')}",
+            va="center",
+            fontsize=8,
+        )
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlim(0, max(totals_k) * 1.45 if totals_k else 1)
+    ax.set_xlabel("extra with-skill tokens (thousands)", fontsize=10)
+    setup_axes(ax, "Where can skill cost be reduced?")
+    ax.grid(axis="x", **GRID_STYLE)
+    fig.savefig(figure_path("q13_where_can_cost_be_reduced.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_failure_routing_vs_synthesis() -> None:
+    """Show whether ws failures are routing misses or loaded-context failures."""
+    rows = _read_csv("routing_diagnosis.csv")
+    if not rows:
+        unlink_figure("q14_are_failures_routing_or_synthesis.png")
+        return
+    diagnoses = sorted({r["diagnosis"] for r in rows})
+    outcomes = ["both_fail", "baseline_only"]
+    counts = {
+        diagnosis: Counter(r["outcome"] for r in rows if r["diagnosis"] == diagnosis)
+        for diagnosis in diagnoses
+    }
+    colors = {"both_fail": WONG["both_fail"], "baseline_only": WONG["delta_neg"]}
+
+    fig, ax = plt.subplots(figsize=SIZE_SINGLE, constrained_layout=True)
+    x = np.arange(len(diagnoses))
+    bottom = np.zeros(len(diagnoses))
+    for outcome in outcomes:
+        values = np.array([counts[diagnosis][outcome] for diagnosis in diagnoses])
+        ax.bar(
+            x,
+            values,
+            bottom=bottom,
+            label=outcome.replace("_", " "),
+            color=colors[outcome],
+        )
+        bottom += values
+    for i, total in enumerate(bottom):
+        ax.text(i, total + 0.25, str(int(total)), ha="center", fontsize=10)
+    ax.set_xticks(x)
+    ax.set_xticklabels(
+        [diagnosis.replace("_", " ") for diagnosis in diagnoses],
+        rotation=20,
+        ha="right",
+        fontsize=9,
+    )
+    ax.set_ylim(0, max(bottom) * 1.25 if len(bottom) else 1)
+    ax.set_ylabel("# ws-failed evals", fontsize=10)
+    setup_axes(ax, "Are failures routing misses or synthesis/content failures?")
+    ax.legend(loc="upper right", frameon=False, fontsize=9)
+    ax.grid(axis="y", **GRID_STYLE)
+    fig.savefig(figure_path("q14_are_failures_routing_or_synthesis.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    plt.close(fig)

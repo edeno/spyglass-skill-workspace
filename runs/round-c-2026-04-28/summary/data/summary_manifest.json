@@ -362,5 +362,26 @@
     "priority": "secondary",
     "purpose": "Eval-level cases where with_skill scored below baseline.",
     "classification_source": "override"
+  },
+  {
+    "filename": "figures/q12_where_are_extra_tokens_spent.png",
+    "family": "cost",
+    "priority": "primary",
+    "purpose": "Extra ws-token spend split by eval outcome.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q13_where_can_cost_be_reduced.png",
+    "family": "cost",
+    "priority": "primary",
+    "purpose": "High-cost categories where baseline already performs strongly.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q14_are_failures_routing_or_synthesis.png",
+    "family": "routing",
+    "priority": "primary",
+    "purpose": "Whether ws failures missed expected resources or loaded them and still failed.",
+    "classification_source": "override"
   }
 ]
