@@ -81,11 +81,12 @@ EXPENSIVE_BOTH_PASS_EXTRA_TOKEN_FLOOR = 20_000
 
 FIX_PRIORITY_ACTION_ORDER = {
     "investigate_regression": 0,
-    "fix_script_routing": 1,
-    "fix_reference_routing": 2,
-    "fix_template_or_reference_content": 3,
-    "expensive_both_pass": 4,
-    "": 5,
+    "inspect_transcripts": 1,
+    "fix_script_routing": 2,
+    "fix_reference_routing": 3,
+    "fix_template_or_reference_content": 4,
+    "expensive_both_pass": 5,
+    "": 6,
 }
 
 
@@ -180,6 +181,16 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Output dir for figures and CSV/JSON. Defaults to <run>/summary/.",
+    )
+    parser.add_argument(
+        "--snapshot-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Directory holding snapshotted subagent transcripts. Defaults to "
+            "<run>/summary/transcripts_snapshot/ even when --out points "
+            "somewhere else."
+        ),
     )
     parser.add_argument(
         "--skill-root",
@@ -278,6 +289,15 @@ def _write_csv(path: Path, fieldnames: list[str], rows: list[dict]) -> None:
     for row in rows:
         writer.writerow(row)
     path.write_text(buf.getvalue())
+
+
+def _unlink_outputs(*names: str) -> None:
+    """Remove generated outputs that are invalid for the current input state."""
+    for name in names:
+        try:
+            (OUT / name).unlink()
+        except FileNotFoundError:
+            pass
 
 
 def _join_items(items) -> str:
@@ -1910,6 +1930,7 @@ def write_per_eval_routing_csv(
     Skipped entirely if no transcripts are available (records is None).
     """
     if records is None:
+        _unlink_outputs("per_eval_routing.csv")
         return
     by_key: dict[tuple[int, int, str], dict] = {}
     for r in records:
@@ -2118,6 +2139,7 @@ def write_reference_effectiveness_csv(
     n_content) from "rubric strictness made the ref look weak" (high n_rubric).
     """
     if records is None:
+        _unlink_outputs("reference_effectiveness.csv", "13_reference_effectiveness.png")
         return
     pass_by_eval: dict[int, bool] = {r["eval_id"]: bool(r["ws_pass"]) for r in per_eval}
     name_by_eval: dict[int, str] = {r["eval_id"]: r["eval_name"] for r in per_eval}
@@ -2304,6 +2326,7 @@ def write_cost_effectiveness_csv(
     )
 
     if not points:
+        _unlink_outputs("14_cost_effectiveness_scatter.png")
         return
 
     fig, ax = plt.subplots(figsize=(10, 7), constrained_layout=True)
@@ -2450,6 +2473,7 @@ def write_baseline_source_split_json(
     bs+source still trails ws meaningfully.
     """
     if records is None:
+        _unlink_outputs("baseline_source_split.json", "16_baseline_source_split.png")
         return
     bs_source_evals: set[int] = set()
     for r in records:
@@ -2664,7 +2688,7 @@ def write_failure_taxonomy_stub_csv(
     )
 
     # Plot 18: only render if any annotations exist.
-    types = [r for r in existing.values() if r["failure_type"]]
+    types = [r for r in rows if r["failure_type"]]
     if not types:
         return
     type_counts: Counter = Counter(t["failure_type"] for t in types)
@@ -2701,6 +2725,7 @@ def write_reference_expected_used_csv(
     not opened but answer passed).
     """
     if not expected_refs or records is None:
+        _unlink_outputs("reference_expected_used.csv", "19_reference_expected_used.png")
         return
     pass_by_eval: dict[int, bool] = {r["eval_id"]: bool(r["ws_pass"]) for r in per_eval}
     ws_opens_by_eval: dict[int, set[str]] = defaultdict(set)
@@ -2825,6 +2850,8 @@ def write_expected_call_confusion(
     source-only reads do not count.
     """
     if not expected or records is None:
+        prefix = "20_reference" if kind == "reference" else "21_script"
+        _unlink_outputs(f"{kind}_call_confusion.csv", f"{prefix}_call_confusion.png")
         return
 
     pass_by_eval: dict[int, bool] = {r["eval_id"]: bool(r["ws_pass"]) for r in per_eval}
@@ -2852,6 +2879,8 @@ def write_expected_call_confusion(
         universe |= {s for s in TRACKED_SCRIPTS if TRACKED_SCRIPT_ROLES[s] == "agent"}
     universe.discard("SKILL.md")
     if not universe:
+        prefix = "20_reference" if kind == "reference" else "21_script"
+        _unlink_outputs(f"{kind}_call_confusion.csv", f"{prefix}_call_confusion.png")
         return
 
     per_resource: dict[str, dict[str, int]] = {
@@ -3042,6 +3071,7 @@ def write_expected_by_eval_csv(
     were used, and which distractors were called/opened.
     """
     if not expected or observed is None:
+        _unlink_outputs(f"{kind}_expected_by_eval.csv")
         return
 
     by_eval = {r["eval_id"]: r for r in per_eval}
@@ -3104,8 +3134,10 @@ def write_routing_failure_views(
 ) -> None:
     """Classify ws failures as routing misses or loaded-but-not-synthesized."""
     if not expected_refs and not expected_scripts:
+        _unlink_outputs("routing_diagnosis.csv")
         return
     if refs_by_eval is None or scripts_by_eval is None:
+        _unlink_outputs("routing_diagnosis.csv")
         return
 
     rows = []
@@ -3342,11 +3374,13 @@ def write_fix_priority_csv(
 ) -> None:
     """Decision table for next skill edits.
 
-    Sort order puts direct fixes first: regressions, missed-script routing,
-    missed-reference routing, and loaded-but-failed synthesis/content. Expensive
-    both-pass rows follow as cost inspections, then idle rows with no likely
-    action.
+    Sort order puts direct fixes first: regressions, transcript-inspection
+    blockers, missed-script routing, missed-reference routing, and
+    loaded-but-failed synthesis/content. Expensive both-pass rows follow as
+    cost inspections, then idle rows with no likely action.
     """
+    refs_observed = refs_by_eval is not None
+    scripts_observed = scripts_by_eval is not None
     refs_by_eval = refs_by_eval or {}
     scripts_by_eval = scripts_by_eval or {}
     rows = []
@@ -3357,13 +3391,23 @@ def write_fix_priority_csv(
         bs_tok = timing.get((r["batch"], r["eval_id"], "without_skill"))
         req_refs = _expected_required(expected_refs.get(r["eval_id"], {}))
         req_scripts = _expected_required(expected_scripts.get(r["eval_id"], {}))
-        missed_refs = req_refs - refs_by_eval.get(r["eval_id"], set())
-        missed_scripts = req_scripts - scripts_by_eval.get(r["eval_id"], set())
+        missed_refs = (
+            req_refs - refs_by_eval.get(r["eval_id"], set())
+            if refs_observed
+            else set()
+        )
+        missed_scripts = (
+            req_scripts - scripts_by_eval.get(r["eval_id"], set())
+            if scripts_observed
+            else set()
+        )
         outcome = _outcome_label(r)
         extra_tokens_known = ws_tok is not None and bs_tok is not None
         extra_tokens = (ws_tok - bs_tok) if extra_tokens_known else 0
         if outcome == "baseline_only":
             likely_action = "investigate_regression"
+        elif not r["ws_pass"] and not (refs_observed and scripts_observed):
+            likely_action = "inspect_transcripts"
         elif not r["ws_pass"] and missed_scripts:
             likely_action = "fix_script_routing"
         elif not r["ws_pass"] and missed_refs:
@@ -3387,6 +3431,7 @@ def write_fix_priority_csv(
                 "ws_expectation_rate": f"{ws_pct:.1f}",
                 "bs_expectation_rate": f"{bs_pct:.1f}",
                 "delta_expectation_pp": f"{ws_pct - bs_pct:.1f}",
+                "routing_observed": int(refs_observed and scripts_observed),
                 "extra_tokens_known": int(extra_tokens_known),
                 "extra_tokens": extra_tokens,
                 "missed_required_refs": _join_items(missed_refs),
@@ -3414,6 +3459,7 @@ def write_fix_priority_csv(
             "ws_expectation_rate",
             "bs_expectation_rate",
             "delta_expectation_pp",
+            "routing_observed",
             "extra_tokens_known",
             "extra_tokens",
             "missed_required_refs",
@@ -3561,7 +3607,9 @@ def main() -> None:
     plot_per_eval_scatter(cats, per_eval)
     plot_top_skill_wins(cats, per_eval)
 
-    snapshot_dir = OUT / "transcripts_snapshot"
+    snapshot_dir = (
+        args.snapshot_dir or WORKSPACE / "summary" / "transcripts_snapshot"
+    ).resolve()
     records: list[dict] | None = None
     if snapshot_dir.exists() and any(snapshot_dir.iterdir()):
         agent_to_run = build_agent_to_run()
@@ -3569,6 +3617,13 @@ def main() -> None:
         plot_reference_utilization(agent_to_run, records, per_eval)
         plot_script_utilization(agent_to_run, records)
     else:
+        _unlink_outputs(
+            "11_reference_utilization.png",
+            "12_script_utilization.png",
+            "ref_utilization.json",
+            "script_utilization.json",
+            "transcript_stats.json",
+        )
         print(f"Skipping transcript-derived plots: snapshot dir empty at {snapshot_dir}")
         print("  Run snapshot_transcripts.py first to populate it.")
 
