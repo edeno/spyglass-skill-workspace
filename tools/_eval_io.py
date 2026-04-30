@@ -8,6 +8,41 @@ from pathlib import Path
 from _schemas import EvalCategories, ExpectedResources, PerEvalResult
 
 
+def load_eval_catalog(evals_path: Path) -> list[dict]:
+    """Read an evals.json-style catalog and return its eval list."""
+    return list(json.loads(evals_path.read_text())["evals"])
+
+
+def load_eval_catalog_for_run(
+    run_dir: Path, fallback_evals_path: Path
+) -> tuple[list[dict], Path, bool]:
+    """Load the eval catalog that should define run-level annotations.
+
+    Prefer a run-local snapshot so regenerated summaries are stable even when
+    the sibling spyglass-skill checkout changes after the sweep. If no snapshot
+    exists, fall back to the current evals.json and let the caller persist a
+    snapshot of what was used.
+    """
+    for candidate in (
+        run_dir / "evals_snapshot.json",
+        run_dir / "summary" / "data" / "evals_snapshot.json",
+    ):
+        if candidate.is_file():
+            return load_eval_catalog(candidate), candidate, True
+    return load_eval_catalog(fallback_evals_path), fallback_evals_path, False
+
+
+def write_eval_catalog_snapshot(out_dir: Path, evals: list[dict], source: Path) -> None:
+    """Persist the eval catalog used for this summary generation."""
+    target = out_dir / ".data_tmp" / "evals_snapshot.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "source": str(source),
+        "evals": evals,
+    }
+    target.write_text(json.dumps(payload, indent=2) + "\n")
+
+
 def load_batch_labels(run_dir: Path, batch_order: list[int]) -> dict[int, str]:
     """Read run.json's optional `batches` block; fill missing entries with `B{i}`."""
     run_meta_path = run_dir / "run.json"
@@ -52,16 +87,25 @@ def load_per_eval_timing(
 
 def load_expected_refs(evals_path: Path) -> ExpectedResources:
     """Read optional `expected_refs` annotations from evals.json."""
-    return _load_expected_resources(evals_path, "expected_refs")
+    return load_expected_refs_from_catalog(load_eval_catalog(evals_path))
 
 
 def load_expected_scripts(evals_path: Path) -> ExpectedResources:
     """Read optional `expected_scripts` annotations from evals.json."""
-    return _load_expected_resources(evals_path, "expected_scripts")
+    return load_expected_scripts_from_catalog(load_eval_catalog(evals_path))
 
 
-def _load_expected_resources(evals_path: Path, key: str) -> ExpectedResources:
-    evals = json.loads(evals_path.read_text())["evals"]
+def load_expected_refs_from_catalog(evals: list[dict]) -> ExpectedResources:
+    """Read optional `expected_refs` annotations from an eval catalog."""
+    return _load_expected_resources(evals, "expected_refs")
+
+
+def load_expected_scripts_from_catalog(evals: list[dict]) -> ExpectedResources:
+    """Read optional `expected_scripts` annotations from an eval catalog."""
+    return _load_expected_resources(evals, "expected_scripts")
+
+
+def _load_expected_resources(evals: list[dict], key: str) -> ExpectedResources:
     out: ExpectedResources = {}
     for e in evals:
         block = e.get(key)
@@ -77,7 +121,11 @@ def _load_expected_resources(evals_path: Path, key: str) -> ExpectedResources:
 
 def load_eval_categories(evals_path: Path) -> EvalCategories:
     """Map eval_id -> {stage, tier, difficulty}."""
-    evals = json.loads(evals_path.read_text())["evals"]
+    return load_eval_categories_from_catalog(load_eval_catalog(evals_path))
+
+
+def load_eval_categories_from_catalog(evals: list[dict]) -> EvalCategories:
+    """Map eval_id -> {stage, tier, difficulty} from an eval catalog."""
     return {
         e["id"]: {
             "stage": e.get("stage", "unknown"),
@@ -86,6 +134,29 @@ def load_eval_categories(evals_path: Path) -> EvalCategories:
         }
         for e in evals
     }
+
+
+def load_eval_categories_from_run(workspace: Path, batch_order: list[int]) -> EvalCategories:
+    """Map eval_id -> categories from per-dispatch eval_metadata.json snapshots."""
+    out: EvalCategories = {}
+    for i in batch_order:
+        for eval_dir in (workspace / f"iteration-{i}").glob("eval-*"):
+            meta_path = eval_dir / "with_skill" / "eval_metadata.json"
+            if not meta_path.is_file():
+                meta_path = eval_dir / "without_skill" / "eval_metadata.json"
+            if not meta_path.is_file():
+                continue
+            try:
+                meta = json.loads(meta_path.read_text())
+                eid = int(meta["eval_id"])
+            except (json.JSONDecodeError, KeyError, OSError, ValueError):
+                continue
+            out[eid] = {
+                "stage": meta.get("stage", "unknown"),
+                "tier": meta.get("tier", "unknown"),
+                "difficulty": meta.get("difficulty", "unknown"),
+            }
+    return out
 
 
 def load_per_eval_results(benchmarks: dict[int, dict]) -> list[PerEvalResult]:

@@ -7,16 +7,20 @@ figures under `<run>/summary/figures/` and CSV/JSON data under `<run>/summary/da
 from __future__ import annotations
 
 import argparse
+import shutil
 from pathlib import Path
 
 from _eval_io import (
     load_batch_labels,
     load_benchmarks,
-    load_eval_categories,
-    load_expected_refs,
-    load_expected_scripts,
+    load_eval_catalog_for_run,
+    load_eval_categories_from_catalog,
+    load_eval_categories_from_run,
+    load_expected_refs_from_catalog,
+    load_expected_scripts_from_catalog,
     load_per_eval_results,
     load_per_eval_timing,
+    write_eval_catalog_snapshot,
 )
 from _figures import (
     configure_figures,
@@ -55,6 +59,7 @@ from _schemas import TranscriptRecord
 from _transcripts import build_agent_to_run, configure_transcripts, parse_transcripts
 from _util import discover_iterations, find_skill_root
 from _writers import (
+    commit_summary_outputs,
     configure_writers,
     observed_resources_by_eval,
     unlink_outputs,
@@ -97,6 +102,13 @@ def configure_run(run_dir: Path, out_dir: Path | None = None) -> None:
     WORKSPACE = run_dir.resolve()
     OUT = (out_dir or WORKSPACE / "summary").resolve()
     OUT.mkdir(parents=True, exist_ok=True)
+    for stale in (OUT / ".data_tmp", OUT / ".figures_tmp"):
+        if stale.is_dir():
+            shutil.rmtree(stale)
+    try:
+        (OUT / ".INDEX.tmp").unlink()
+    except FileNotFoundError:
+        pass
     BATCH_ORDER = discover_iterations(WORKSPACE)
     if not BATCH_ORDER:
         raise SystemExit(f"No iteration-N/ dirs found under {WORKSPACE}")
@@ -109,7 +121,20 @@ def configure_run(run_dir: Path, out_dir: Path | None = None) -> None:
 def configure_skill_root(skill_root: Path | None = None) -> None:
     """Resolve the skill repo and set EVALS_PATH."""
     global EVALS_PATH
-    repo = find_skill_root(skill_root)
+    try:
+        repo = find_skill_root(skill_root)
+    except SystemExit:
+        has_snapshot = any(
+            p.is_file()
+            for p in (
+                WORKSPACE / "evals_snapshot.json",
+                WORKSPACE / "summary" / "data" / "evals_snapshot.json",
+            )
+        )
+        if has_snapshot:
+            EVALS_PATH = _UNCONFIGURED
+            return
+        raise
     EVALS_PATH = repo / "skills" / "spyglass" / "evals" / "evals.json"
 
 
@@ -154,8 +179,18 @@ def main() -> None:
     configure_run(args.run, args.out)
     configure_skill_root(args.skill_root)
     benchmarks = load_benchmarks(WORKSPACE, BATCH_ORDER)
-    cats = load_eval_categories(EVALS_PATH)
     per_eval = load_per_eval_results(benchmarks)
+    eval_catalog, eval_catalog_source, used_run_snapshot = load_eval_catalog_for_run(
+        WORKSPACE, EVALS_PATH
+    )
+    if not used_run_snapshot:
+        print(
+            "Warning: no run-local eval catalog snapshot found; using current "
+            f"evals.json from {eval_catalog_source}"
+        )
+    write_eval_catalog_snapshot(OUT, eval_catalog, eval_catalog_source)
+    cats = load_eval_categories_from_catalog(eval_catalog)
+    cats.update(load_eval_categories_from_run(WORKSPACE, BATCH_ORDER))
     timing = load_per_eval_timing(WORKSPACE, BATCH_ORDER)
 
     plot_per_batch_pass_rate(benchmarks)
@@ -197,8 +232,8 @@ def main() -> None:
     write_stage_x_difficulty_csv(cats, per_eval)
     write_per_eval_routing_csv(cats, per_eval, records)
 
-    expected_refs = load_expected_refs(EVALS_PATH)
-    expected_scripts = load_expected_scripts(EVALS_PATH)
+    expected_refs = load_expected_refs_from_catalog(eval_catalog)
+    expected_scripts = load_expected_scripts_from_catalog(eval_catalog)
     refs_by_eval = observed_resources_by_eval(records, "reference") if records else None
     scripts_by_eval = observed_resources_by_eval(records, "script") if records else None
     write_reference_effectiveness_csv(records, per_eval, cats)
@@ -208,7 +243,7 @@ def main() -> None:
     write_outcome_by_category_csv(cats, per_eval)
     write_ws_regressions_csv(cats, per_eval)
     write_baseline_source_split_json(per_eval, records)
-    write_eval_coverage_csv(cats)
+    write_eval_coverage_csv(cats, per_eval)
     write_headroom_evals_csv(cats, per_eval)
     write_failure_taxonomy_stub_csv(cats, per_eval)
     write_reference_expected_used_csv(per_eval, records, expected_refs)
@@ -277,6 +312,7 @@ def main() -> None:
     plot_stage_value_for_cost()
 
     write_summary_manifest_json()
+    commit_summary_outputs()
     print("Wrote plots + CSV/JSON exports to", OUT)
 
 

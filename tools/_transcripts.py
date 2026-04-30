@@ -20,7 +20,7 @@ def configure_transcripts(out: Path, workspace: Path, batch_order: list[int]) ->
     """Set run-scoped transcript globals."""
     global OUT, DATA, WORKSPACE, BATCH_ORDER
     OUT = out
-    DATA = OUT / "data"
+    DATA = OUT / ".data_tmp"
     DATA.mkdir(parents=True, exist_ok=True)
     WORKSPACE = workspace
     BATCH_ORDER = batch_order
@@ -322,4 +322,3 @@ def _is_script_execution(cmd: str, script: str) -> bool:
         rf"(?:[\s|;&<>]|$)"
     )
     return re.search(pat, cmd) is not None
-

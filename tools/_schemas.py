@@ -138,6 +138,11 @@ MANIFEST_OVERRIDES = {
     "cost_effectiveness_per_eval.csv": ("cost", "primary", "Per-eval cost-effectiveness data."),
     "cumulative_summary.json": ("headline", "primary", "Machine-readable headline totals, outcome cross-tab, spend by outcome, and McNemar test."),
     "eval_coverage.csv": ("coverage", "secondary", "Stage x tier eval-count matrix."),
+    "evals_snapshot.json": (
+        "headline",
+        "primary",
+        "Eval catalog snapshot used for category and expected-resource annotations.",
+    ),
     "failure_taxonomy.csv": ("fix_priority", "secondary", "Manual annotation stub for ws-failed eval failure modes."),
     "fix_priority.csv": ("fix_priority", "primary", "Combined next-action table with outcome, cost, and routing misses."),
     "headroom_evals.csv": ("fix_priority", "primary", "Failed or weak evals where skill edits may still improve outcomes."),

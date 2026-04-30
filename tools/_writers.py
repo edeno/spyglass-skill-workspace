@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import shutil
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -52,8 +53,8 @@ def configure_writers(
     """Set run-scoped writer globals."""
     global OUT, FIGURES, DATA, WORKSPACE, BATCH_ORDER, BATCH_LABELS
     OUT = out
-    FIGURES = OUT / "figures"
-    DATA = OUT / "data"
+    FIGURES = OUT / ".figures_tmp"
+    DATA = OUT / ".data_tmp"
     FIGURES.mkdir(parents=True, exist_ok=True)
     DATA.mkdir(parents=True, exist_ok=True)
     WORKSPACE = workspace
@@ -88,6 +89,67 @@ def unlink_outputs(*names: str) -> None:
     for name in names:
         try:
             output_path(name).unlink()
+        except FileNotFoundError:
+            pass
+
+
+def commit_summary_outputs() -> None:
+    """Publish staged data, figures, and index after successful generation.
+
+    Existing outputs are moved aside first and restored if any staged rename
+    fails. This keeps failed runs from freezing partial CSV/JSON/figure output.
+    """
+    global DATA, FIGURES
+    final_data = OUT / "data"
+    final_figures = OUT / "figures"
+    index_tmp = OUT / ".INDEX.tmp"
+    final_index = OUT / "INDEX.md"
+    resources = [
+        (DATA, final_data),
+        (FIGURES, final_figures),
+        (index_tmp, final_index),
+    ]
+    missing = [str(staged) for staged, _ in resources if not staged.exists()]
+    if missing:
+        raise FileNotFoundError(f"missing staged outputs: {', '.join(missing)}")
+
+    backups: list[tuple[Path, Path]] = []
+    moved: list[tuple[Path, Path]] = []
+    try:
+        for _, final in resources:
+            backup = _backup_path(final)
+            _remove_path(backup)
+            if final.exists():
+                final.rename(backup)
+                backups.append((backup, final))
+        for staged, final in resources:
+            staged.rename(final)
+            moved.append((final, staged))
+    except Exception:
+        for final, staged in reversed(moved):
+            if final.exists():
+                final.rename(staged)
+        for backup, final in reversed(backups):
+            if backup.exists():
+                backup.rename(final)
+        raise
+    else:
+        for backup, _ in backups:
+            _remove_path(backup)
+        DATA = final_data
+        FIGURES = final_figures
+
+
+def _backup_path(path: Path) -> Path:
+    return path.with_name(f".{path.name}.previous")
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_dir():
+        shutil.rmtree(path)
+    else:
+        try:
+            path.unlink()
         except FileNotFoundError:
             pass
 
@@ -264,6 +326,9 @@ def write_cumulative_summary_json(
             "expectation_pp": round(
                 100 * (ws_exp_p / ws_exp_t - bs_exp_p / bs_exp_t), 2
             ),
+            "extra_tokens_total": ws_tokens - bs_tokens,
+        },
+        "combined": {
             "tokens_total": ws_tokens + bs_tokens,
         },
         "outcomes": {
@@ -788,10 +853,11 @@ def write_headroom_evals_csv(
         rows,
     )
 
-def write_eval_coverage_csv(cats: EvalCategories) -> None:
+def write_eval_coverage_csv(cats: EvalCategories, per_eval: list[PerEvalResult]) -> None:
     """Stage × tier eval-count matrix. Plotting lives in _figures.py."""
     by_pair: Counter = Counter()
-    for c in cats.values():
+    for r in per_eval:
+        c = cats.get(r["eval_id"], {})
         by_pair[(c.get("stage", "unknown"), c.get("tier", "unknown"))] += 1
     rows = [
         {"stage": s, "tier": t, "n_evals": n}
@@ -1544,4 +1610,4 @@ def _write_summary_index_md(manifest: list[dict[str, str]]) -> None:
                 f"{audience}; {row['family']}: {row['purpose']}"
             )
         lines.append("")
-    (OUT / "INDEX.md").write_text("\n".join(lines).rstrip() + "\n")
+    (OUT / ".INDEX.tmp").write_text("\n".join(lines).rstrip() + "\n")

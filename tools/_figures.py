@@ -30,6 +30,7 @@ from _transcripts import TRACKED_SCRIPT_ROLES, TRACKED_SCRIPTS, write_transcript
 _UNCONFIGURED = Path("/__not_configured__")
 OUT: Path = _UNCONFIGURED
 FIGURES: Path = _UNCONFIGURED
+FINAL_FIGURES: Path = _UNCONFIGURED
 DATA: Path = _UNCONFIGURED
 WORKSPACE: Path = _UNCONFIGURED
 BATCH_ORDER: list[int] = []
@@ -39,18 +40,16 @@ BATCH_LABELS: dict[int, str] = {}
 def configure_figures(
     out: Path, workspace: Path, batch_order: list[int], batch_labels: dict[int, str]
 ) -> None:
-    """Set run-scoped figure globals."""
-    global OUT, FIGURES, DATA, WORKSPACE, BATCH_ORDER, BATCH_LABELS
+    """Set run-scoped figure globals and prepare a staging directory."""
+    global OUT, FIGURES, FINAL_FIGURES, DATA, WORKSPACE, BATCH_ORDER, BATCH_LABELS
     OUT = out
-    FIGURES = OUT / "figures"
-    DATA = OUT / "data"
+    FINAL_FIGURES = OUT / "figures"
+    FIGURES = OUT / ".figures_tmp"
+    DATA = OUT / ".data_tmp"
+    if FIGURES.exists():
+        shutil.rmtree(FIGURES)
     FIGURES.mkdir(parents=True, exist_ok=True)
     DATA.mkdir(parents=True, exist_ok=True)
-    for stale_png in FIGURES.glob("*.png"):
-        stale_png.unlink()
-    for stale_dir in (FIGURES / "presentation", FIGURES / "analyst", FIGURES / "appendix"):
-        if stale_dir.exists():
-            shutil.rmtree(stale_dir)
     WORKSPACE = workspace
     BATCH_ORDER = batch_order
     BATCH_LABELS = batch_labels
