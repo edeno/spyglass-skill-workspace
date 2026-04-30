@@ -14,36 +14,36 @@ Run date: 2026-04-28. Run id: `round-c-2026-04-28`. Skill: `skills/spyglass`. Ev
 
 The skill costs ~65% more tokens per run and converts that into a +21.5pp absolute lift in full-eval pass rate (111 vs 83 evals out of 130) and a +9.1pp lift on the harder per-expectation rubric. Absolute spend on 130 evals × 2 conditions: ~$200.
 
-See [05_cumulative_summary.png](05_cumulative_summary.png) for the headline plot.
+See [figures/q01_how_much_does_the_skill_help.png](figures/q01_how_much_does_the_skill_help.png) for the headline plot.
 
 ## Plots
 
 **Per-batch view:**
 
-1. [01_per_batch_pass_rate.png](01_per_batch_pass_rate.png) — full-eval pass rate per batch.
-2. [02_delta_per_batch.png](02_delta_per_batch.png) — behavioral and expectation delta per batch.
-3. [03_per_eval_outcomes.png](03_per_eval_outcomes.png) — per-eval outcome stack (both pass / skill-only / baseline-only / both fail).
-4. [04_cost_per_batch.png](04_cost_per_batch.png) — mean tokens and wall-clock per run.
+1. [figures/appendix_per_batch_pass_rate.png](figures/appendix_per_batch_pass_rate.png) — full-eval pass rate per batch.
+2. [figures/appendix_delta_per_batch.png](figures/appendix_delta_per_batch.png) — behavioral and expectation delta per batch.
+3. [figures/appendix_per_eval_outcomes_by_batch.png](figures/appendix_per_eval_outcomes_by_batch.png) — per-eval outcome stack (both pass / skill-only / baseline-only / both fail).
+4. [figures/appendix_cost_per_batch.png](figures/appendix_cost_per_batch.png) — mean tokens and wall-clock per run.
 
 **Headline:**
 
-5. [05_cumulative_summary.png](05_cumulative_summary.png) — final cumulative result, all 130 evals.
+5. [figures/q01_how_much_does_the_skill_help.png](figures/q01_how_much_does_the_skill_help.png) — final cumulative result, all 130 evals.
 
 **Category breakdowns:**
 
-6. [06_by_category.png](06_by_category.png) — pass rate by stage and by tier.
-7. [07_by_difficulty.png](07_by_difficulty.png) — pass rate and outcomes by difficulty (easy / medium / hard).
-8. [08_difficulty_x_stage_heatmap.png](08_difficulty_x_stage_heatmap.png) — skill delta as a stage × difficulty heatmap.
+6. [figures/appendix_dense_pass_rate_by_category.png](figures/appendix_dense_pass_rate_by_category.png) — pass rate by stage and by tier.
+7. [figures/q03_does_it_help_on_harder_evals.png](figures/q03_does_it_help_on_harder_evals.png) — pass rate and outcomes by difficulty (easy / medium / hard).
+8. [figures/appendix_difficulty_x_stage_heatmap.png](figures/appendix_difficulty_x_stage_heatmap.png) — skill delta as a stage × difficulty heatmap.
 
 **Per-eval views:**
 
-9. [09_per_eval_scatter.png](09_per_eval_scatter.png) — scatter of skill vs baseline, each dot one of 130 evals, colored by difficulty.
-10. [10_top_skill_wins.png](10_top_skill_wins.png) — eval-level extremes (top 15 skill wins + the largest skill-underperformance cases by expectation delta).
+9. [figures/appendix_per_eval_expectation_scatter.png](figures/appendix_per_eval_expectation_scatter.png) — scatter of skill vs baseline, each dot one of 130 evals, colored by difficulty.
+10. [figures/appendix_top_skill_wins.png](figures/appendix_top_skill_wins.png) — eval-level extremes (top 15 skill wins + the largest skill-underperformance cases by expectation delta).
 
 **Skill-internal:**
 
-11. [11_reference_utilization.png](11_reference_utilization.png) — % of with_skill runs that opened each reference file (parsed from snapshotted subagent transcripts).
-12. [12_script_utilization.png](12_script_utilization.png) — bundled-script invocations and source-only reads, per script, across all with_skill runs.
+11. [figures/appendix_raw_reference_utilization.png](figures/appendix_raw_reference_utilization.png) — % of with_skill runs that opened each reference file (parsed from snapshotted subagent transcripts).
+12. [figures/appendix_raw_script_utilization.png](figures/appendix_raw_script_utilization.png) — bundled-script invocations and source-only reads, per script, across all with_skill runs.
 
 Underlying numbers: [category_breakdown.csv](category_breakdown.csv) (covers stage, tier, and difficulty breakdowns).
 
@@ -91,7 +91,7 @@ Per-difficulty delta:
 
 Worth noting: **the skill helps roughly equally across difficulty levels** (+18 to +23pp), and *both* conditions degrade with difficulty. The skill does not specialize for hard prompts — it provides similar lift across the board.
 
-The stage × difficulty heatmap ([08_difficulty_x_stage_heatmap.png](08_difficulty_x_stage_heatmap.png)) reveals where the lift is concentrated within hard prompts:
+The stage × difficulty heatmap ([figures/appendix_difficulty_x_stage_heatmap.png](figures/appendix_difficulty_x_stage_heatmap.png)) reveals where the lift is concentrated within hard prompts:
 
 - **Hard ingestion + hard setup**: +100pp (1/1 each — small n but consistent direction)
 - **Hard pipeline-authoring**: +50pp (4 evals) — biggest hard-eval surface
@@ -138,7 +138,7 @@ A third small underperformance case, **eval-106** (PFC + W-track compound query)
 
 ## What did the skill machinery actually get used?
 
-Reference and bundled-script utilization measured by parsing every with_skill subagent's transcript (`Read` / `Bash` tool calls; n=134 runs). See [11_reference_utilization.png](11_reference_utilization.png) and [12_script_utilization.png](12_script_utilization.png).
+Reference and bundled-script utilization measured by parsing every with_skill subagent's transcript (`Read` / `Bash` tool calls; n=134 runs). See [figures/appendix_raw_reference_utilization.png](figures/appendix_raw_reference_utilization.png) and [figures/appendix_raw_script_utilization.png](figures/appendix_raw_script_utilization.png).
 
 Note on the run count: the headline 130 evals × 2 conditions = 260 dispatches refers to **graded** runs. The transcript count is **267** (134 with_skill + 133 without_skill) because retry attempts retained separate agent IDs in `.agent_map.json`; in the current workspace, the retained extras are concentrated in iteration-3 (47 transcripts for 40 expected runs, +7). Utilization analysis parses all 267 transcripts; per-eval grading uses one successful run per eval. That's why benchmark.json shows 130 unique evals while transcript-derived counts are slightly higher.
 
@@ -223,7 +223,7 @@ These follow two skill-design principles applied throughout this analysis: (a) k
 
 5. **Watch the "bundle a script vs document a pattern" tradeoff.** Several wins traced to specific scripts the skill bundles (`scrub_dj_config.py`, `db_graph.py`, `code_graph.py`). When a future eval shows multiple subagents independently re-implementing the same diagnostic snippet, that's the strongest signal to bundle it as a script instead of documenting it inline. *Best-practice rationale:* one bundled script saves every future invocation from reinventing the wheel.
 
-6. **Add a tool-routing Core Directive to SKILL.md** (covers eval-028 / 029 / 107 / 108 / 089 and the broader "wrong subcommand" failure mode). Script-utilization data ([12_script_utilization.png](12_script_utilization.png)) shows `code_graph.py` is the dominant agent-facing tool (47 invocations / 21 runs) but under-invoked on a class of questions where it would have been the right tool — the brain-region-for-sorted-spikes family had **zero** `code_graph.py` invocations, and eval-029 invoked it with the wrong subcommand (`describe` instead of `path --to`). The fix is a generalized routing rule, not a per-eval reference example.
+6. **Add a tool-routing Core Directive to SKILL.md** (covers eval-028 / 029 / 107 / 108 / 089 and the broader "wrong subcommand" failure mode). Script-utilization data ([figures/appendix_raw_script_utilization.png](figures/appendix_raw_script_utilization.png)) shows `code_graph.py` is the dominant agent-facing tool (47 invocations / 21 runs) but under-invoked on a class of questions where it would have been the right tool — the brain-region-for-sorted-spikes family had **zero** `code_graph.py` invocations, and eval-029 invoked it with the wrong subcommand (`describe` instead of `path --to`). The fix is a generalized routing rule, not a per-eval reference example.
 
    > **Tool routing for relationship and lookup questions:**
    > - *"How does X relate to Y?"* (joins, FK chains, table-to-table relationships) → run `code_graph.py path --to X Y` and **translate the printed path into a DataJoint restriction/join expression**. FKs are directed: if X→Y returns no path, flip and try Y→X. Note: `path --to` answers *table-level* relationship questions, not column-level provenance — for "which table declares this field?", see field ownership (rec #7).

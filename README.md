@@ -10,11 +10,11 @@ You're a new user. Pick what you want to do:
 
 **See the round-C results.** Read [`runs/round-c-2026-04-28/summary/SUMMARY.md`](runs/round-c-2026-04-28/summary/SUMMARY.md) — it cites every headline number with links to the figures.
 
-**Cite a number from round-C.** Open [`cumulative_summary.json`](runs/round-c-2026-04-28/summary/data/cumulative_summary.json) for the headline ws/bs/Δ + McNemar p-value + outcome cross-tab; [`batch_summary.csv`](runs/round-c-2026-04-28/summary/data/batch_summary.csv) for per-batch numbers; [`stage_x_difficulty.csv`](runs/round-c-2026-04-28/summary/data/stage_x_difficulty.csv) for cells of plot 08's heatmap; [`top_skill_wins.csv`](runs/round-c-2026-04-28/summary/data/top_skill_wins.csv) for per-eval Δ rankings; [`per_eval_routing.csv`](runs/round-c-2026-04-28/summary/data/per_eval_routing.csv) for "what did the agent reach for on this eval"; [`transcript_stats.json`](runs/round-c-2026-04-28/summary/data/transcript_stats.json) for tool-call totals, error counts, source-assistance, contamination.
+**Cite a number from round-C.** Open [`cumulative_summary.json`](runs/round-c-2026-04-28/summary/data/cumulative_summary.json) for the headline ws/bs/Δ + McNemar p-value + outcome cross-tab; [`batch_summary.csv`](runs/round-c-2026-04-28/summary/data/batch_summary.csv) for per-batch numbers; [`stage_x_difficulty.csv`](runs/round-c-2026-04-28/summary/data/stage_x_difficulty.csv) for cells of the stage x difficulty heatmap; [`top_skill_wins.csv`](runs/round-c-2026-04-28/summary/data/top_skill_wins.csv) for per-eval Δ rankings; [`per_eval_routing.csv`](runs/round-c-2026-04-28/summary/data/per_eval_routing.csv) for "what did the agent reach for on this eval"; [`transcript_stats.json`](runs/round-c-2026-04-28/summary/data/transcript_stats.json) for tool-call totals, error counts, source-assistance, contamination.
 
-**Decide what to change next.** Start with [`fix_priority.csv`](runs/round-c-2026-04-28/summary/data/fix_priority.csv) and [`22_fix_priority_actions.png`](runs/round-c-2026-04-28/summary/figures/22_fix_priority_actions.png) for the combined next-action view, [`headroom_evals.csv`](runs/round-c-2026-04-28/summary/data/headroom_evals.csv) for failed/weak evals, [`outcome_by_category.csv`](runs/round-c-2026-04-28/summary/data/outcome_by_category.csv) for where the skill uniquely helps vs where everything still fails, and [`cost_effectiveness_per_eval.csv`](runs/round-c-2026-04-28/summary/data/cost_effectiveness_per_eval.csv) / [`cost_by_outcome.csv`](runs/round-c-2026-04-28/summary/data/cost_by_outcome.csv) for token spend. Use [`routing_diagnosis.csv`](runs/round-c-2026-04-28/summary/data/routing_diagnosis.csv) as the canonical routing-vs-synthesis split for ws failures. [`baseline_source_split.json`](runs/round-c-2026-04-28/summary/data/baseline_source_split.json) tests whether the skill's value is source-delivery or routing/workflow. [`eval_coverage.csv`](runs/round-c-2026-04-28/summary/data/eval_coverage.csv) flags under-tested stage × tier cells.
+**Decide what to change next.** Start with [`fix_priority.csv`](runs/round-c-2026-04-28/summary/data/fix_priority.csv) and [`q08_what_should_we_fix_next.png`](runs/round-c-2026-04-28/summary/figures/q08_what_should_we_fix_next.png) for the combined next-action view, [`headroom_evals.csv`](runs/round-c-2026-04-28/summary/data/headroom_evals.csv) for failed/weak evals, [`outcome_by_category.csv`](runs/round-c-2026-04-28/summary/data/outcome_by_category.csv) for where the skill uniquely helps vs where everything still fails, and [`cost_effectiveness_per_eval.csv`](runs/round-c-2026-04-28/summary/data/cost_effectiveness_per_eval.csv) / [`cost_by_outcome.csv`](runs/round-c-2026-04-28/summary/data/cost_by_outcome.csv) for token spend. Use [`routing_diagnosis.csv`](runs/round-c-2026-04-28/summary/data/routing_diagnosis.csv) as the canonical routing-vs-synthesis split for ws failures. [`baseline_source_split.json`](runs/round-c-2026-04-28/summary/data/baseline_source_split.json) tests whether the skill's value is source-delivery or routing/workflow. [`eval_coverage.csv`](runs/round-c-2026-04-28/summary/data/eval_coverage.csv) flags under-tested stage × tier cells.
 
-**Annotate failure modes by hand.** [`failure_taxonomy.csv`](runs/round-c-2026-04-28/summary/data/failure_taxonomy.csv) is auto-generated as a stub with one row per ws-failed eval. Fill in the `failure_type` column (suggested values: `wrong_factual`, `omitted_step`, `over_skeptical`, `wrong_tool`, `right_ref_no_verify`, `rubric_friction`, `eval_issue`) and re-run `make_plots.py` — plot 18 will render the distribution. Existing annotations are preserved across re-runs.
+**Annotate failure modes by hand.** [`failure_taxonomy.csv`](runs/round-c-2026-04-28/summary/data/failure_taxonomy.csv) is auto-generated as a stub with one row per ws-failed eval. Fill in the `failure_type` column (suggested values: `wrong_factual`, `omitted_step`, `over_skeptical`, `wrong_tool`, `right_ref_no_verify`, `rubric_friction`, `eval_issue`) and re-run `make_plots.py` — `appendix_failure_taxonomy_placeholder.png` will render the distribution. Existing annotations are preserved across re-runs.
 
 **Annotate expected references per eval.** Add an `expected_refs` block per eval in `skills/spyglass/evals/evals.json`:
 
@@ -22,7 +22,7 @@ You're a new user. Pick what you want to do:
 {"id": 100, "expected_refs": {"required": ["decoding_pipeline.md"], "optional": ["common_tables.md"], "distractor": ["spyglassmixin_methods.md"]}}
 ```
 
-`make_plots.py` will then render `reference_expected_used.csv` plus plot 19 — separating routing failures (expected ref not opened) from reference weakness (opened but answer still failed) from overuse (distractor opened) from eval mismatch (expected ref not needed). Skipped if no eval has the field.
+`make_plots.py` will then render `reference_expected_used.csv` plus `q09_how_well_are_expected_references_used.png` — separating routing failures (expected ref not opened) from reference weakness (opened but answer still failed) from overuse (distractor opened) from eval mismatch (expected ref not needed). Skipped if no eval has the field.
 
 **Annotate expected references/scripts for confusion matrices.** The same
 `required` / `optional` / `distractor` shape also supports bundled-script
@@ -33,14 +33,15 @@ annotations:
 ```
 
 `make_plots.py` renders `data/reference_call_confusion.csv`,
-`data/script_call_confusion.csv`, and plots 20/21 when annotations exist. The unit
+`data/script_call_confusion.csv`, and `q06_are_reference_routes_working.png` / `q07_are_script_routes_working.png` when annotations exist. The unit
 is a with_skill eval-resource pair: `required` entries are positives,
 `distractor` entries and unlabeled resources are negatives, and `optional`
 entries are tracked but neutral. Scripts count as "called" only when executed
 via Bash, not merely source-read.
 
 **Read outputs by decision family.** [`summary_manifest.json`](runs/round-c-2026-04-28/summary/data/summary_manifest.json)
-labels each output as `primary`, `secondary`, or `appendix`. Treat headline,
+labels each output as `primary`, `secondary`, or `appendix`, and tags figures as
+`presentation`, `analyst`, or `appendix`. Treat headline,
 outcome-by-category, cost-effectiveness, routing, and fix-priority outputs as
 primary evidence. Treat batch plots as run-health diagnostics, difficulty and
 coverage plots as secondary structure, and raw reference/script utilization as
@@ -101,7 +102,7 @@ runs/
         ├── INDEX.md                   generated guide to summary outputs by priority
         ├── SUMMARY.md                 final analysis + recommendations
         ├── figures/                   generated PNG figures
-        │   └── 01..22_*.png           summary figures (plot 18 is a placeholder until annotated)
+        │   └── q*.png / appendix_*.png question-first and appendix figures
         └── data/                      generated CSV/JSON data behind the figures and narrative
             ├── summary_manifest.json  output family/priority/purpose index
             ├── cumulative_summary.json headline ws/bs/Δ + outcome cross-tab + McNemar p-value

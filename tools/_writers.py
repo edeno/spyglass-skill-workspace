@@ -19,6 +19,7 @@ from _aggregations import (
     outcome_label as _outcome_label,
 )
 from _schemas import (
+    AUDIENCE_OVERRIDES,
     EVAL_METADATA_COLUMNS,
     EXPENSIVE_BOTH_PASS_EXTRA_TOKEN_FLOOR,
     FIX_PRIORITY_ACTION_ORDER,
@@ -286,7 +287,7 @@ def write_cumulative_summary_json(
 def write_stage_x_difficulty_csv(
     cats: EvalCategories, per_eval: list[PerEvalResult]
 ) -> None:
-    """Flat CSV of plot 08's stage × difficulty heatmap cells.
+    """Flat CSV of stage × difficulty heatmap cells.
 
     One row per (stage, difficulty) combination present in the eval set,
     with ws/bs/n/Δ. Lets the SUMMARY.md author cite specific cells (e.g.
@@ -424,7 +425,7 @@ def write_top_skill_wins_csv(
     """Per-eval expectation deltas, sorted by delta desc.
 
     Covers the top-N table in SUMMARY.md and the figure-only data behind
-    plot 10. Sorted by skill - baseline expectation delta (descending) so
+    top skill-wins plot. Sorted by skill - baseline expectation delta (descending) so
     the largest skill wins are at the top, the largest skill losses (if
     any) at the bottom.
     """
@@ -1494,6 +1495,10 @@ def write_summary_manifest_json() -> None:
             )
             classification_source = "fallback"
             fallback_files.append(filename)
+        audience = AUDIENCE_OVERRIDES.get(
+            override_key,
+            "appendix" if filename.startswith("figures/appendix_") else "data",
+        )
         manifest.append(
             {
                 "filename": filename,
@@ -1501,6 +1506,7 @@ def write_summary_manifest_json() -> None:
                 "priority": priority,
                 "purpose": purpose,
                 "classification_source": classification_source,
+                "audience": audience,
             }
         )
     data_path("summary_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
@@ -1532,9 +1538,10 @@ def _write_summary_index_md(manifest: list[dict[str, str]]) -> None:
         lines.extend([f"## {priority.title()} Outputs", ""])
         for row in priority_rows:
             filename = row["filename"]
+            audience = row.get("audience", "data")
             lines.append(
                 f"- [`{filename}`]({filename}) — "
-                f"{row['family']}: {row['purpose']}"
+                f"{audience}; {row['family']}: {row['purpose']}"
             )
         lines.append("")
     (OUT / "INDEX.md").write_text("\n".join(lines).rstrip() + "\n")

@@ -159,3 +159,26 @@ MANIFEST_OVERRIDES = {
     "transcript_stats.json": ("utilization", "appendix", "Tool-call totals, source assistance, contamination, and activation metrics."),
     "ws_regressions.csv": ("fix_priority", "primary", "Full-pass or expectation-level regressions against baseline."),
 }
+
+AUDIENCE_OVERRIDES = {
+    "q01_how_much_does_the_skill_help.png": "presentation",
+    "q02_where_does_the_skill_help.png": "presentation",
+    "q03_does_it_help_on_harder_evals.png": "presentation",
+    "q04_what_does_the_extra_cost_buy.png": "presentation",
+    "q05_is_value_more_than_source_access.png": "presentation",
+    "q06_are_reference_routes_working.png": "presentation",
+    "q07_are_script_routes_working.png": "presentation",
+    "q08_what_should_we_fix_next.png": "analyst",
+    "q09_how_well_are_expected_references_used.png": "analyst",
+    "q10_where_are_eval_coverage_gaps.png": "analyst",
+    "q11_where_are_skill_regressions.png": "analyst",
+    "q12_where_are_extra_tokens_spent.png": "presentation",
+    "q13_where_can_cost_be_reduced.png": "analyst",
+    "q14_are_failures_routing_or_synthesis.png": "analyst",
+    "q15_which_evals_are_near_misses.png": "analyst",
+    "q16_which_reference_routes_are_missed.png": "analyst",
+    "q17_which_script_routes_are_missed.png": "analyst",
+    "q18_which_evals_best_show_skill_value.png": "presentation",
+    "q19_which_evals_are_expensive_without_gain.png": "analyst",
+    "q20_which_stages_have_best_value_for_cost.png": "presentation",
+}

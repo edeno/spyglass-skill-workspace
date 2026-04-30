@@ -188,7 +188,7 @@ def main() -> None:
         manifest = json.loads((out / "data/summary_manifest.json").read_text())
         manifest_files = {row["filename"] for row in manifest}
         if "INDEX.md" not in manifest_files or "figures/appendix_failure_taxonomy_placeholder.png" not in manifest_files:
-            raise AssertionError("manifest missing generated index or plot 18")
+            raise AssertionError("manifest missing generated index or failure-taxonomy plot")
 
     print("smoketest passed")
 
