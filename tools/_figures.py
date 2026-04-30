@@ -1758,3 +1758,131 @@ def plot_missed_reference_routes() -> None:
 def plot_missed_script_routes() -> None:
     """Show required bundled scripts most often missed by with-skill agents."""
     _plot_missed_resource_routes("script")
+
+
+def plot_skill_value_examples() -> None:
+    """Show the individual evals with the largest skill gains."""
+    rows = _read_csv("top_skill_wins.csv")
+    if not rows:
+        unlink_figure("q18_which_evals_best_show_skill_value.png")
+        return
+    rows.sort(key=lambda r: -float(r["delta_expectation_pp"]))
+    rows = rows[:15]
+    labels = [f"{r['eval_id']} {r['eval_name']}" for r in rows]
+    deltas = [float(r["delta_expectation_pp"]) for r in rows]
+    rescued = [bool(int(r["ws_pass"]) and not int(r["bs_pass"])) for r in rows]
+    colors = [WONG["delta_pos"] if is_rescued else WONG["both_pass"] for is_rescued in rescued]
+
+    fig, ax = plt.subplots(figsize=(12, max(5, len(rows) * 0.42)), constrained_layout=True)
+    y = np.arange(len(rows))
+    bars = ax.barh(y, deltas, color=colors)
+    for bar, delta, is_rescued in zip(bars, deltas, rescued, strict=True):
+        ax.text(
+            delta + 1.0,
+            bar.get_y() + bar.get_height() / 2,
+            f"+{delta:.1f} pp" + ("; full rescue" if is_rescued else ""),
+            va="center",
+            fontsize=8,
+        )
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=8)
+    ax.invert_yaxis()
+    ax.set_xlim(0, max(deltas) * 1.25 if deltas else 1)
+    ax.set_xlabel("with-skill expectation-rate gain (percentage points)", fontsize=10)
+    setup_axes(ax, "Which evals best show skill value?")
+    ax.grid(axis="x", **GRID_STYLE)
+    fig.savefig(figure_path("q18_which_evals_best_show_skill_value.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_expensive_without_gain_evals() -> None:
+    """Show high-cost evals where the skill did not improve expectation rate."""
+    rows = [
+        r
+        for r in _read_csv("cost_effectiveness_per_eval.csv")
+        if float(r["delta_expectation_pp"]) <= 0
+    ]
+    if not rows:
+        unlink_figure("q19_which_evals_are_expensive_without_gain.png")
+        return
+    rows.sort(key=lambda r: -int(float(r["extra_tokens"])))
+    rows = rows[:15]
+    labels = [f"{r['eval_id']} {r['eval_name']}" for r in rows]
+    extra_k = [int(float(r["extra_tokens"])) / 1000 for r in rows]
+    deltas = [float(r["delta_expectation_pp"]) for r in rows]
+    colors = [WONG["delta_neg"] if delta < 0 else WONG["neutral"] for delta in deltas]
+
+    fig, ax = plt.subplots(figsize=(12, max(5, len(rows) * 0.42)), constrained_layout=True)
+    y = np.arange(len(rows))
+    bars = ax.barh(y, extra_k, color=colors)
+    for bar, extra, delta in zip(bars, extra_k, deltas, strict=True):
+        ax.text(
+            extra + max(extra_k) * 0.015,
+            bar.get_y() + bar.get_height() / 2,
+            f"{extra:.0f}k tokens; {delta:+.1f} pp",
+            va="center",
+            fontsize=8,
+        )
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=8)
+    ax.invert_yaxis()
+    ax.set_xlim(0, max(extra_k) * 1.35 if extra_k else 1)
+    ax.set_xlabel("extra with-skill tokens (thousands)", fontsize=10)
+    setup_axes(ax, "Which evals are expensive without expectation-rate gain?")
+    ax.grid(axis="x", **GRID_STYLE)
+    fig.savefig(figure_path("q19_which_evals_are_expensive_without_gain.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_stage_value_for_cost() -> None:
+    """Compare stage-level rescue rate with extra-token spend."""
+    rows = [r for r in _read_csv("skip_gate_candidates.csv") if r["category_kind"] == "stage"]
+    if not rows:
+        unlink_figure("q20_which_stages_have_best_value_for_cost.png")
+        return
+    x = np.array([int(float(r["total_extra_tokens"])) / 1000 for r in rows])
+    y = np.array([float(r["rescue_rate"]) for r in rows])
+    n = np.array([int(r["n_evals"]) for r in rows])
+    labels = [r["category"] for r in rows]
+    colors = [
+        WONG["delta_pos"] if rate >= 75
+        else WONG["neutral"] if rate >= 25
+        else WONG["delta_neg"]
+        for rate in y
+    ]
+
+    fig, ax = plt.subplots(figsize=(10, 6.5), constrained_layout=True)
+    ax.scatter(x, y, s=40 + 10 * n, c=colors, alpha=0.82, edgecolor="white", linewidth=0.8)
+    high_rescue_labels = 0
+    for xi, yi, label in zip(x, y, labels, strict=True):
+        if yi >= 95:
+            offset_y = [-12, -26, -40, -54, -68, -82][high_rescue_labels % 6]
+            high_rescue_labels += 1
+        else:
+            offset_y = 4
+        ax.annotate(
+            label,
+            (xi, yi),
+            xytext=(5, offset_y),
+            textcoords="offset points",
+            fontsize=8,
+            clip_on=False,
+        )
+    ax.set_xlabel("extra with-skill tokens (thousands)", fontsize=10)
+    ax.set_ylabel("rescue rate among baseline failures (%)", fontsize=10)
+    ax.set_ylim(-5, 105)
+    ax.set_xlim(0, max(x) * 1.12 if len(x) else 1)
+    setup_axes(ax, "Which stages have the best value for cost?")
+    ax.grid(**GRID_STYLE)
+    ax.text(
+        0.99,
+        0.02,
+        "bubble size = # evals",
+        transform=ax.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=8,
+        color="#666666",
+    )
+    fig.savefig(figure_path("q20_which_stages_have_best_value_for_cost.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    plt.close(fig)

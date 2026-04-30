@@ -404,5 +404,26 @@
     "priority": "secondary",
     "purpose": "Required bundled scripts most often missed by with-skill agents.",
     "classification_source": "override"
+  },
+  {
+    "filename": "figures/q18_which_evals_best_show_skill_value.png",
+    "family": "headline",
+    "priority": "secondary",
+    "purpose": "Largest eval-level expectation-rate wins for with-skill agents.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q19_which_evals_are_expensive_without_gain.png",
+    "family": "cost",
+    "priority": "secondary",
+    "purpose": "High extra-token evals with no expectation-rate improvement.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q20_which_stages_have_best_value_for_cost.png",
+    "family": "cost",
+    "priority": "secondary",
+    "purpose": "Stage-level rescue rate compared with extra-token spend.",
+    "classification_source": "override"
   }
 ]

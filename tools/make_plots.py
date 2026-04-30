@@ -30,6 +30,7 @@ from _figures import (
     plot_difficulty_x_stage_heatmap,
     plot_eval_coverage_map,
     plot_expected_call_confusion,
+    plot_expensive_without_gain_evals,
     plot_extra_tokens_by_outcome,
     plot_failure_routing_vs_synthesis,
     plot_failure_taxonomy,
@@ -45,6 +46,8 @@ from _figures import (
     plot_reference_expected_used,
     plot_reference_utilization,
     plot_script_utilization,
+    plot_skill_value_examples,
+    plot_stage_value_for_cost,
     plot_tokens_and_duration,
     plot_top_skill_wins,
 )
@@ -269,6 +272,9 @@ def main() -> None:
     plot_near_miss_evals()
     plot_missed_reference_routes()
     plot_missed_script_routes()
+    plot_skill_value_examples()
+    plot_expensive_without_gain_evals()
+    plot_stage_value_for_cost()
 
     write_summary_manifest_json()
     print("Wrote plots + CSV/JSON exports to", OUT)
