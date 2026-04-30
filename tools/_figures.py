@@ -996,6 +996,11 @@ def _read_csv(name: str) -> list[dict[str, str]]:
         return list(csv.DictReader(f))
 
 
+def _split_items(cell: str) -> list[str]:
+    """Parse the semicolon-delimited list cells used by routing CSVs."""
+    return [item for item in cell.split(";") if item]
+
+
 def plot_reference_effectiveness() -> None:
     """Plot reference load count colored by pass-rate-when-loaded."""
     rows = [r for r in _read_csv("reference_effectiveness.csv") if r["reference"] != "SKILL.md"]
@@ -1637,3 +1642,119 @@ def plot_failure_routing_vs_synthesis() -> None:
     ax.grid(axis="y", **GRID_STYLE)
     fig.savefig(figure_path("q14_are_failures_routing_or_synthesis.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
+
+
+def plot_near_miss_evals() -> None:
+    """Show failed/weak evals that are closest to passing with the skill."""
+    rows = _read_csv("headroom_evals.csv")
+    if not rows:
+        unlink_figure("q15_which_evals_are_near_misses.png")
+        return
+    rows.sort(
+        key=lambda r: (
+            -float(r["ws_expectation_rate"]),
+            r["stage"],
+            int(r["eval_id"]),
+        )
+    )
+    rows = rows[:15]
+    labels = [f"{r['eval_id']} {r['eval_name']}" for r in rows]
+    ws_rates = [float(r["ws_expectation_rate"]) for r in rows]
+    bs_rates = [float(r["bs_expectation_rate"]) for r in rows]
+
+    fig, ax = plt.subplots(figsize=(12, max(5, len(rows) * 0.42)), constrained_layout=True)
+    y = np.arange(len(rows))
+    ax.barh(y, ws_rates, color=WONG["ws"], label="with skill")
+    ax.scatter(bs_rates, y, color=WONG["bs"], label="baseline", zorder=3)
+    for yi, ws_rate, bs_rate in zip(y, ws_rates, bs_rates, strict=True):
+        ax.text(
+            min(ws_rate + 1.0, 99),
+            yi,
+            f"{ws_rate:.1f}%",
+            va="center",
+            fontsize=8,
+            color=WONG["ws"],
+        )
+        ax.text(
+            bs_rate,
+            yi - 0.24,
+            f"{bs_rate:.1f}%",
+            va="center",
+            ha="center",
+            fontsize=7,
+            color=WONG["bs"],
+        )
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=8)
+    ax.invert_yaxis()
+    ax.set_xlim(0, 105)
+    ax.set_xlabel("expectation pass rate (%)", fontsize=10)
+    setup_axes(ax, "Which evals are closest to passing?")
+    ax.legend(loc="lower right", frameon=False, fontsize=9)
+    ax.grid(axis="x", **GRID_STYLE)
+    fig.savefig(figure_path("q15_which_evals_are_near_misses.png"), dpi=FIGURE_DPI, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _plot_missed_resource_routes(kind: str) -> None:
+    """Plot required resources missed by with-skill agents."""
+    filename = (
+        "q16_which_reference_routes_are_missed.png"
+        if kind == "reference"
+        else "q17_which_script_routes_are_missed.png"
+    )
+    label = "references" if kind == "reference" else "bundled scripts"
+    rows = _read_csv(f"{kind}_expected_by_eval.csv")
+    missed_by_resource = Counter()
+    missed_on_ws_fail = Counter()
+    for row in rows:
+        missed = _split_items(row["missed_required"])
+        if not missed:
+            continue
+        for resource in missed:
+            missed_by_resource[resource] += 1
+            if not int(row["ws_pass"]):
+                missed_on_ws_fail[resource] += 1
+    if not missed_by_resource:
+        unlink_figure(filename)
+        return
+    items = sorted(
+        missed_by_resource,
+        key=lambda resource: (-missed_by_resource[resource], resource),
+    )[:15]
+    total_misses = np.array([missed_by_resource[item] for item in items])
+    ws_fail_misses = np.array([missed_on_ws_fail[item] for item in items])
+    ws_pass_misses = total_misses - ws_fail_misses
+
+    fig, ax = plt.subplots(figsize=(11, max(4.5, len(items) * 0.45)), constrained_layout=True)
+    y = np.arange(len(items))
+    ax.barh(y, ws_fail_misses, color=WONG["both_fail"], label="missed on ws-failed eval")
+    ax.barh(
+        y,
+        ws_pass_misses,
+        left=ws_fail_misses,
+        color=WONG["both_pass"],
+        label="missed but ws passed",
+    )
+    for yi, total in zip(y, total_misses, strict=True):
+        ax.text(total + 0.15, yi, str(int(total)), va="center", fontsize=9)
+    ax.set_yticks(y)
+    ax.set_yticklabels(items, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlim(0, max(total_misses) * 1.25 if len(total_misses) else 1)
+    ax.set_xlabel("# evals with missed required route", fontsize=10)
+    setup_axes(ax, f"Which required {label} are missed most often?")
+    ax.legend(loc="lower right", frameon=False, fontsize=9)
+    ax.grid(axis="x", **GRID_STYLE)
+    fig.savefig(figure_path(filename), dpi=FIGURE_DPI, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_missed_reference_routes() -> None:
+    """Show required references most often missed by with-skill agents."""
+    _plot_missed_resource_routes("reference")
+
+
+def plot_missed_script_routes() -> None:
+    """Show required bundled scripts most often missed by with-skill agents."""
+    _plot_missed_resource_routes("script")

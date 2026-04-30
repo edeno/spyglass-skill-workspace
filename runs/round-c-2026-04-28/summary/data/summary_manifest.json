@@ -383,5 +383,26 @@
     "priority": "primary",
     "purpose": "Whether ws failures missed expected resources or loaded them and still failed.",
     "classification_source": "override"
+  },
+  {
+    "filename": "figures/q15_which_evals_are_near_misses.png",
+    "family": "fix_priority",
+    "priority": "secondary",
+    "purpose": "Headroom evals sorted by with-skill expectation rate.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q16_which_reference_routes_are_missed.png",
+    "family": "routing",
+    "priority": "secondary",
+    "purpose": "Required references most often missed by with-skill agents.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "figures/q17_which_script_routes_are_missed.png",
+    "family": "routing",
+    "priority": "secondary",
+    "purpose": "Required bundled scripts most often missed by with-skill agents.",
+    "classification_source": "override"
   }
 ]

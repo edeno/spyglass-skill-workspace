@@ -34,6 +34,9 @@ from _figures import (
     plot_failure_routing_vs_synthesis,
     plot_failure_taxonomy,
     plot_fix_priority_actions,
+    plot_missed_reference_routes,
+    plot_missed_script_routes,
+    plot_near_miss_evals,
     plot_outcome_by_category,
     plot_per_batch_pass_rate,
     plot_per_eval_outcomes,
@@ -263,6 +266,9 @@ def main() -> None:
     plot_extra_tokens_by_outcome()
     plot_cost_reduction_candidates()
     plot_failure_routing_vs_synthesis()
+    plot_near_miss_evals()
+    plot_missed_reference_routes()
+    plot_missed_script_routes()
 
     write_summary_manifest_json()
     print("Wrote plots + CSV/JSON exports to", OUT)
