@@ -55,6 +55,8 @@ uv run --with matplotlib --with numpy python3 tools/make_plots.py \
 ```
 
 All summary PNG/CSV/JSON outputs regenerate to `runs/round-c-2026-04-28/summary/`.
+Start with [`summary/INDEX.md`](runs/round-c-2026-04-28/summary/INDEX.md)
+when browsing the generated files directly.
 
 **Run a fresh sweep.** See "Adding a new sweep" below for the dispatch → snapshot → analyze → write-up flow.
 
@@ -78,13 +80,15 @@ Terms used throughout SUMMARY.md / BATCHES.md / findings.md:
 ```
 tools/                                 run-agnostic analysis scripts
 ├── make_plots.py                      regenerates all figures for a given run
-└── snapshot_transcripts.py            captures a live Claude Code session's transcripts into a run
+├── snapshot_transcripts.py            captures a live Claude Code session's transcripts into a run
+└── _smoketest.py                      synthetic regression smoke test for tools/
 
 runs/
 └── <run-id>/                          e.g., round-c-2026-04-28
     ├── run.json                       metadata: skill commit, source pin, headline numbers, batch labels
     ├── BATCHES.md                     per-batch ledger
     ├── findings.md                    cross-batch qualitative narrative
+    ├── transcripts_snapshot/          raw *.jsonl per-subagent transcripts (~14 MB per sweep)
     ├── iteration-{1..N}/              per-batch artifacts
     │   ├── benchmark.json             per-batch aggregated stats
     │   ├── grader_summary.md          behavioral grader's report
@@ -93,9 +97,10 @@ runs/
     │   └── eval-NNN-<name>/
     │       ├── with_skill/{eval_metadata.json, grading.json, timing.json, outputs/response.md}
     │       └── without_skill/{eval_metadata.json, grading.json, timing.json, outputs/response.md}
-    └── summary/                       analysis bundle (outputs only — no scripts)
+    └── summary/                       derived analysis bundle (outputs only — no scripts or raw data)
+        ├── INDEX.md                   generated guide to summary outputs by priority
         ├── SUMMARY.md                 final analysis + recommendations
-        ├── 01..17_*.png               core figures (+ 18, 19 conditional on annotation)
+        ├── 01..22_*.png               summary figures (plot 18 is a placeholder until annotated)
         ├── category_breakdown.csv     per stage/tier/difficulty: ws/bs/Δ pass counts
         ├── batch_summary.csv          per-batch row: full-eval, expectation, behavioral, tokens, duration
         ├── stage_x_difficulty.csv     flat plot-08 matrix: ws/bs/Δ per (stage, difficulty) cell
@@ -122,8 +127,7 @@ runs/
         ├── baseline_source_split.json 3-way split: bs-no-source / bs-source / ws full-pass rates
         ├── ref_utilization.json       per-reference open count (transcript-level)
         ├── script_utilization.json    per-bundled-script execution + source-read counts
-        ├── transcript_stats.json      tool-call totals (incl errors), source-assistance, SKILL.md activation
-        └── transcripts_snapshot/      *.jsonl per-subagent transcripts (~14 MB per sweep)
+        └── transcript_stats.json      tool-call totals (incl errors), source-assistance, SKILL.md activation
 ```
 
 ## Sibling-clone convention
@@ -148,7 +152,7 @@ Resolution order: `--skill-root` → `SPYGLASS_SKILL` → sibling-clone default.
 The scripts in `tools/` are run-agnostic — pass `--run <run-dir>` to point them at a specific sweep:
 
 ```bash
-# Regenerate the 12 figures + CSV + JSONs for round-C (only matplotlib + numpy needed)
+# Regenerate all figures + CSV + JSONs for round-C (only matplotlib + numpy needed)
 uv run --with matplotlib --with numpy python3 tools/make_plots.py \
     --run runs/round-c-2026-04-28/
 
@@ -163,6 +167,9 @@ python3 tools/snapshot_transcripts.py --run runs/<run-id>/
 # Override skill-root if the sibling-clone default doesn't apply
 python3 tools/make_plots.py --run runs/<run-id>/ \
     --skill-root /custom/path/to/spyglass-skill
+
+# Synthetic tools smoke test
+uv run --with matplotlib --with numpy python3 tools/_smoketest.py
 ```
 
 `make_plots.py` is idempotent — re-running produces byte-identical PNGs (modulo matplotlib non-determinism on some systems).
@@ -216,7 +223,7 @@ End-to-end flow for each new sweep:
        --run runs/<run-id>/
    ```
 
-   Writes 12 PNGs + 4 CSVs + 3 JSONs to `runs/<run-id>/summary/`. Idempotent — re-running produces byte-identical outputs.
+   Writes the generated PNG/CSV/JSON/Markdown summary bundle to `runs/<run-id>/summary/`. Idempotent — re-running produces byte-identical outputs.
 4. **Author narrative.** Write `BATCHES.md` (per-batch ledger), `findings.md` (cross-batch narrative), and `summary/SUMMARY.md` (analysis + recommendations). Cite numbers directly from the JSON/CSV exports rather than reading them off the figures — every headline number in round-c's SUMMARY.md is in `summary/cumulative_summary.json`, `batch_summary.csv`, `top_skill_wins.csv`, or `transcript_stats.json`.
 5. **Fill `run.json`.** Include `skill_commit_at_sweep_start/end`, `spyglass_src_commit`, `n_evals_run`, `headline_results`, contamination notes, and the optional `batches` block for per-batch figure labels.
 6. **Commit and push.**

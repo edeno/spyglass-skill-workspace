@@ -119,6 +119,13 @@
     "classification_source": "override"
   },
   {
+    "filename": "18_failure_taxonomy.png",
+    "family": "fix_priority",
+    "priority": "secondary",
+    "purpose": "Manual failure-type distribution; placeholder until failure_taxonomy.csv is annotated.",
+    "classification_source": "override"
+  },
+  {
     "filename": "19_reference_expected_used.png",
     "family": "routing",
     "priority": "secondary",
@@ -144,6 +151,13 @@
     "family": "fix_priority",
     "priority": "primary",
     "purpose": "Likely-action distribution from fix_priority.csv.",
+    "classification_source": "override"
+  },
+  {
+    "filename": "INDEX.md",
+    "family": "headline",
+    "priority": "primary",
+    "purpose": "Generated guide to summary outputs grouped by priority.",
     "classification_source": "override"
   },
   {

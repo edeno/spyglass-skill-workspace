@@ -8,7 +8,7 @@ into a session-scoped temp directory:
 That directory is wiped on session change or reboot — it's not durable. To
 make the reference-utilization plot reproducible after the session ends, this
 script copies each transcript referenced in any iteration-N/.agent_map.json
-under the target run into `<run>/summary/transcripts_snapshot/<agent-id>.jsonl`.
+under the target run into `<run>/transcripts_snapshot/<agent-id>.jsonl`.
 
 Run this ONCE at the end of an eval sweep, before the session is closed:
 
@@ -122,7 +122,7 @@ def main() -> None:
         "--out",
         type=Path,
         default=None,
-        help="Snapshot output dir. Defaults to <run>/summary/transcripts_snapshot/.",
+        help="Snapshot output dir. Defaults to <run>/transcripts_snapshot/.",
     )
     parser.add_argument(
         "--tasks-dir",
@@ -146,7 +146,7 @@ def main() -> None:
     run_dir = args.run.resolve()
     if not run_dir.is_dir():
         raise SystemExit(f"--run {run_dir} is not a directory")
-    snapshot_dir = (args.out or run_dir / "summary" / "transcripts_snapshot").resolve()
+    snapshot_dir = (args.out or run_dir / "transcripts_snapshot").resolve()
 
     skill_root = find_skill_root(args.skill_root)
     mapped = collect_mapped_agent_ids(run_dir)

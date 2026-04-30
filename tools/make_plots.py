@@ -89,6 +89,8 @@ FIX_PRIORITY_ACTION_ORDER = {
     "": 6,
 }
 
+EVAL_METADATA_COLUMNS = ["eval_id", "batch", "eval_name", "stage", "tier", "difficulty"]
+
 
 def delta_color(d: float) -> str:
     """WONG palette entry for a per-batch / per-category delta."""
@@ -188,8 +190,8 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Directory holding snapshotted subagent transcripts. Defaults to "
-            "<run>/summary/transcripts_snapshot/ even when --out points "
-            "somewhere else."
+            "<run>/transcripts_snapshot/, with a fallback to the legacy "
+            "<run>/summary/transcripts_snapshot/ location."
         ),
     )
     parser.add_argument(
@@ -1971,10 +1973,11 @@ def write_per_eval_routing_csv(
         )
         rows.append(
             {
-                "batch": batch,
                 "eval_id": eid,
+                "batch": batch,
                 "eval_name": per["eval_name"],
                 "stage": cat.get("stage", "unknown"),
+                "tier": cat.get("tier", "unknown"),
                 "difficulty": cat.get("difficulty", "unknown"),
                 "condition": cond,
                 "full_pass": passed,
@@ -1988,11 +1991,7 @@ def write_per_eval_routing_csv(
     _write_csv(
         OUT / "per_eval_routing.csv",
         [
-            "batch",
-            "eval_id",
-            "eval_name",
-            "stage",
-            "difficulty",
+            *EVAL_METADATA_COLUMNS,
             "condition",
             "full_pass",
             "n_read",
@@ -2046,33 +2045,33 @@ def write_top_skill_wins_csv(
             {
                 "rank": rank,
                 "eval_id": eid,
-                "eval_name": name,
                 "batch": batch,
+                "eval_name": name,
                 "stage": stage,
                 "tier": tier,
                 "difficulty": diff,
                 "ws_pass": wsp,
                 "bs_pass": bsp,
-                "ws_exp_rate": f"{wsr:.1f}",
-                "bs_exp_rate": f"{bsr:.1f}",
-                "delta_pp": f"{delta:.1f}",
+                "ws_expectation_rate": f"{wsr:.1f}",
+                "bs_expectation_rate": f"{bsr:.1f}",
+                "delta_expectation_pp": f"{delta:.1f}",
             }
         )
     _write_csv(
         OUT / "top_skill_wins.csv",
         [
-            "rank",
             "eval_id",
-            "eval_name",
             "batch",
+            "eval_name",
             "stage",
             "tier",
             "difficulty",
+            "rank",
             "ws_pass",
             "bs_pass",
-            "ws_exp_rate",
-            "bs_exp_rate",
-            "delta_pp",
+            "ws_expectation_rate",
+            "bs_expectation_rate",
+            "delta_expectation_pp",
         ],
         rows,
     )
@@ -2285,8 +2284,8 @@ def write_cost_effectiveness_csv(
         cat = cats.get(r["eval_id"], {})
         rows.append(
             {
-                "batch": r["batch"],
                 "eval_id": r["eval_id"],
+                "batch": r["batch"],
                 "eval_name": r["eval_name"],
                 "stage": cat.get("stage", "unknown"),
                 "tier": cat.get("tier", "unknown"),
@@ -2294,7 +2293,7 @@ def write_cost_effectiveness_csv(
                 "ws_tokens": ws_tok,
                 "bs_tokens": bs_tok,
                 "extra_tokens": ws_tok - bs_tok,
-                "exp_delta_pp": f"{delta:.1f}",
+                "delta_expectation_pp": f"{delta:.1f}",
                 "both_pass": int(r["ws_pass"] and r["bs_pass"]),
                 "skill_only": int(r["ws_pass"] and not r["bs_pass"]),
                 "baseline_only": int(r["bs_pass"] and not r["ws_pass"]),
@@ -2307,16 +2306,11 @@ def write_cost_effectiveness_csv(
     _write_csv(
         OUT / "cost_effectiveness_per_eval.csv",
         [
-            "batch",
-            "eval_id",
-            "eval_name",
-            "stage",
-            "tier",
-            "difficulty",
+            *EVAL_METADATA_COLUMNS,
             "ws_tokens",
             "bs_tokens",
             "extra_tokens",
-            "exp_delta_pp",
+            "delta_expectation_pp",
             "both_pass",
             "skill_only",
             "baseline_only",
@@ -2565,27 +2559,22 @@ def write_headroom_evals_csv(
         bs_pct = 100 * r["bs_exp_p"] / r["bs_exp_t"] if r["bs_exp_t"] else 0.0
         rows.append(
             {
-                "batch": r["batch"],
                 "eval_id": r["eval_id"],
+                "batch": r["batch"],
                 "eval_name": r["eval_name"],
                 "stage": cat.get("stage", "unknown"),
                 "tier": cat.get("tier", "unknown"),
                 "difficulty": cat.get("difficulty", "unknown"),
-                "ws_exp_rate": f"{ws_pct:.1f}",
-                "bs_exp_rate": f"{bs_pct:.1f}",
+                "ws_expectation_rate": f"{ws_pct:.1f}",
+                "bs_expectation_rate": f"{bs_pct:.1f}",
             }
         )
     _write_csv(
         OUT / "headroom_evals.csv",
         [
-            "batch",
-            "eval_id",
-            "eval_name",
-            "stage",
-            "tier",
-            "difficulty",
-            "ws_exp_rate",
-            "bs_exp_rate",
+            *EVAL_METADATA_COLUMNS,
+            "ws_expectation_rate",
+            "bs_expectation_rate",
         ],
         rows,
     )
@@ -2662,8 +2651,8 @@ def write_failure_taxonomy_stub_csv(
         prior = existing.get(r["eval_id"], {"failure_type": "", "notes": ""})
         rows.append(
             {
-                "batch": r["batch"],
                 "eval_id": r["eval_id"],
+                "batch": r["batch"],
                 "eval_name": r["eval_name"],
                 "stage": cat.get("stage", "unknown"),
                 "tier": cat.get("tier", "unknown"),
@@ -2675,21 +2664,40 @@ def write_failure_taxonomy_stub_csv(
     _write_csv(
         target,
         [
-            "batch",
-            "eval_id",
-            "eval_name",
-            "stage",
-            "tier",
-            "difficulty",
+            *EVAL_METADATA_COLUMNS,
             "failure_type",
             "notes",
         ],
         rows,
     )
 
-    # Plot 18: only render if any annotations exist.
+    # Plot 18: render a placeholder until annotations exist, so the numbered
+    # figure sequence stays complete.
     types = [r for r in rows if r["failure_type"]]
     if not types:
+        fig, ax = plt.subplots(figsize=(9, 5), constrained_layout=True)
+        ax.axis("off")
+        ax.text(
+            0.5,
+            0.58,
+            "No failure taxonomy annotations yet",
+            ha="center",
+            va="center",
+            fontsize=14,
+            fontweight="bold",
+            transform=ax.transAxes,
+        )
+        ax.text(
+            0.5,
+            0.42,
+            "Fill failure_taxonomy.csv and rerun make_plots.py.",
+            ha="center",
+            va="center",
+            fontsize=11,
+            transform=ax.transAxes,
+        )
+        fig.savefig(OUT / "18_failure_taxonomy.png", dpi=160, bbox_inches="tight")
+        plt.close(fig)
         return
     type_counts: Counter = Counter(t["failure_type"] for t in types)
     fig, ax = plt.subplots(figsize=(9, 5), constrained_layout=True)
@@ -3059,6 +3067,7 @@ def _observed_resources_by_eval(
 
 def write_expected_by_eval_csv(
     *,
+    cats: dict[int, dict[str, str]],
     per_eval: list[dict],
     observed: dict[int, set[str]] | None,
     expected: dict[int, dict[str, list[str]]],
@@ -3078,6 +3087,7 @@ def write_expected_by_eval_csv(
     rows = []
     for eid in sorted(expected):
         r = by_eval.get(eid, {})
+        cat = cats.get(eid, {})
         block = expected[eid]
         required = _expected_required(block)
         optional = _expected_optional(block)
@@ -3088,6 +3098,9 @@ def write_expected_by_eval_csv(
                 "eval_id": eid,
                 "batch": r.get("batch", ""),
                 "eval_name": r.get("eval_name", ""),
+                "stage": cat.get("stage", "unknown"),
+                "tier": cat.get("tier", "unknown"),
+                "difficulty": cat.get("difficulty", "unknown"),
                 "ws_pass": int(bool(r.get("ws_pass", False))),
                 "bs_pass": int(bool(r.get("bs_pass", False))),
                 "required": _join_items(required),
@@ -3105,9 +3118,7 @@ def write_expected_by_eval_csv(
     _write_csv(
         OUT / f"{kind}_expected_by_eval.csv",
         [
-            "eval_id",
-            "batch",
-            "eval_name",
+            *EVAL_METADATA_COLUMNS,
             "ws_pass",
             "bs_pass",
             "required",
@@ -3126,6 +3137,7 @@ def write_expected_by_eval_csv(
 
 def write_routing_failure_views(
     *,
+    cats: dict[int, dict[str, str]],
     per_eval: list[dict],
     refs_by_eval: dict[int, set[str]] | None,
     scripts_by_eval: dict[int, set[str]] | None,
@@ -3145,6 +3157,7 @@ def write_routing_failure_views(
         if r["ws_pass"]:
             continue
         eid = r["eval_id"]
+        cat = cats.get(eid, {})
         req_refs = _expected_required(expected_refs.get(eid, {}))
         req_scripts = _expected_required(expected_scripts.get(eid, {}))
         called_refs = refs_by_eval.get(eid, set())
@@ -3161,6 +3174,9 @@ def write_routing_failure_views(
                 "eval_id": eid,
                 "batch": r["batch"],
                 "eval_name": r["eval_name"],
+                "stage": cat.get("stage", "unknown"),
+                "tier": cat.get("tier", "unknown"),
+                "difficulty": cat.get("difficulty", "unknown"),
                 "bs_pass": int(bool(r["bs_pass"])),
                 "outcome": _outcome_label(r),
                 "diagnosis": diagnosis,
@@ -3174,9 +3190,7 @@ def write_routing_failure_views(
         )
 
     fields = [
-        "eval_id",
-        "batch",
-        "eval_name",
+        *EVAL_METADATA_COLUMNS,
         "bs_pass",
         "outcome",
         "diagnosis",
@@ -3326,8 +3340,8 @@ def write_ws_regressions_csv(
         cat = cats.get(r["eval_id"], {})
         rows.append(
             {
-                "batch": r["batch"],
                 "eval_id": r["eval_id"],
+                "batch": r["batch"],
                 "eval_name": r["eval_name"],
                 "stage": cat.get("stage", "unknown"),
                 "tier": cat.get("tier", "unknown"),
@@ -3344,12 +3358,7 @@ def write_ws_regressions_csv(
     _write_csv(
         OUT / "ws_regressions.csv",
         [
-            "batch",
-            "eval_id",
-            "eval_name",
-            "stage",
-            "tier",
-            "difficulty",
+            *EVAL_METADATA_COLUMNS,
             "ws_pass",
             "bs_pass",
             "ws_expectation_rate",
@@ -3421,8 +3430,8 @@ def write_fix_priority_csv(
         cat = cats.get(r["eval_id"], {})
         rows.append(
             {
-                "batch": r["batch"],
                 "eval_id": r["eval_id"],
+                "batch": r["batch"],
                 "eval_name": r["eval_name"],
                 "stage": cat.get("stage", "unknown"),
                 "tier": cat.get("tier", "unknown"),
@@ -3449,12 +3458,7 @@ def write_fix_priority_csv(
     _write_csv(
         OUT / "fix_priority.csv",
         [
-            "batch",
-            "eval_id",
-            "eval_name",
-            "stage",
-            "tier",
-            "difficulty",
+            *EVAL_METADATA_COLUMNS,
             "outcome",
             "ws_expectation_rate",
             "bs_expectation_rate",
@@ -3525,10 +3529,12 @@ def write_summary_manifest_json() -> None:
         "15_outcome_by_category.png": ("category", "primary", "Where the skill uniquely helps, regresses, or still fails by stage/tier."),
         "16_baseline_source_split.png": ("headline", "secondary", "Whether skill value is source-delivery vs workflow/routing."),
         "17_eval_coverage_map.png": ("coverage", "secondary", "Stage x tier eval-count map for future eval-set design."),
+        "18_failure_taxonomy.png": ("fix_priority", "secondary", "Manual failure-type distribution; placeholder until failure_taxonomy.csv is annotated."),
         "19_reference_expected_used.png": ("routing", "secondary", "Reference expected-vs-opened heatmap by required/optional/distractor status."),
         "20_reference_call_confusion.png": ("routing", "primary", "Required reference opened vs missed; optional references are neutral."),
         "21_script_call_confusion.png": ("routing", "primary", "Required bundled script executed vs missed."),
         "22_fix_priority_actions.png": ("fix_priority", "primary", "Likely-action distribution from fix_priority.csv."),
+        "INDEX.md": ("headline", "primary", "Generated guide to summary outputs grouped by priority."),
         "SUMMARY.md": ("headline", "primary", "Human-authored narrative summary and recommendations."),
         "baseline_source_split.json": ("headline", "secondary", "Machine-readable source-delivery vs workflow/routing split."),
         "batch_summary.csv": ("batch_health", "secondary", "Per-batch full-pass, expectation, behavioral, token, and duration metrics."),
@@ -3560,6 +3566,7 @@ def write_summary_manifest_json() -> None:
     }
     manifest = []
     filenames = {p.name for p in OUT.iterdir() if p.is_file()}
+    filenames.add("INDEX.md")
     filenames.add("summary_manifest.json")
     fallback_files = []
     for filename in sorted(filenames):
@@ -3584,8 +3591,40 @@ def write_summary_manifest_json() -> None:
             }
         )
     (OUT / "summary_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    _write_summary_index_md(manifest)
     if fallback_files:
         print("Manifest fallback classifications:", ", ".join(sorted(fallback_files)))
+
+
+def _write_summary_index_md(manifest: list[dict[str, str]]) -> None:
+    """Render a human-readable index from summary_manifest.json metadata."""
+    priority_order = {"primary": 0, "secondary": 1, "appendix": 2}
+    rows = sorted(
+        manifest,
+        key=lambda r: (
+            priority_order.get(r["priority"], 99),
+            r["family"],
+            r["filename"],
+        ),
+    )
+    lines = [
+        "# Summary Output Index",
+        "",
+        "Generated by `tools/make_plots.py` from `summary_manifest.json`.",
+        "",
+    ]
+    for priority in ("primary", "secondary", "appendix"):
+        group = [r for r in rows if r["priority"] == priority]
+        if not group:
+            continue
+        lines.extend([f"## {priority.title()}", ""])
+        for r in group:
+            lines.append(
+                f"- [`{r['filename']}`]({r['filename']}) — "
+                f"{r['family']}: {r['purpose']}"
+            )
+        lines.append("")
+    (OUT / "INDEX.md").write_text("\n".join(lines).rstrip() + "\n")
 
 
 def main() -> None:
@@ -3607,9 +3646,18 @@ def main() -> None:
     plot_per_eval_scatter(cats, per_eval)
     plot_top_skill_wins(cats, per_eval)
 
-    snapshot_dir = (
-        args.snapshot_dir or WORKSPACE / "summary" / "transcripts_snapshot"
-    ).resolve()
+    if args.snapshot_dir:
+        snapshot_dir = args.snapshot_dir.resolve()
+    else:
+        snapshot_dir = WORKSPACE / "transcripts_snapshot"
+        legacy_snapshot_dir = WORKSPACE / "summary" / "transcripts_snapshot"
+        if not snapshot_dir.exists() and legacy_snapshot_dir.exists():
+            print(
+                "Using legacy transcript snapshot location: "
+                f"{legacy_snapshot_dir}. Move it to {snapshot_dir} when convenient."
+            )
+            snapshot_dir = legacy_snapshot_dir
+        snapshot_dir = snapshot_dir.resolve()
     records: list[dict] | None = None
     if snapshot_dir.exists() and any(snapshot_dir.iterdir()):
         agent_to_run = build_agent_to_run()
@@ -3664,18 +3712,21 @@ def main() -> None:
         kind="script",
     )
     write_expected_by_eval_csv(
+        cats=cats,
         per_eval=per_eval,
         observed=refs_by_eval,
         expected=expected_refs,
         kind="reference",
     )
     write_expected_by_eval_csv(
+        cats=cats,
         per_eval=per_eval,
         observed=scripts_by_eval,
         expected=expected_scripts,
         kind="script",
     )
     write_routing_failure_views(
+        cats=cats,
         per_eval=per_eval,
         refs_by_eval=refs_by_eval,
         scripts_by_eval=scripts_by_eval,
