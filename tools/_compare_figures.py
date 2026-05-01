@@ -1,11 +1,17 @@
 """Figure generation for cross-run comparison outputs.
 
-c01 headline shift, c02 per-eval transitions, c03 outcome-bucket flow,
-c04 targeted-edit summary, c05 cost shift by ws_transition,
-c06 routing-recall shift (gated on transcripts on both sides).
+Each figure asks one question and reads the staged JSON/CSV the writers
+produce, so layout changes don't require re-plumbing data through the
+call sites.
 
-Each figure reads the staged JSON/CSV the writers produce, so layout changes
-don't require re-plumbing data through the call sites.
+- c01 did the headline improve?
+- c02 did outcomes move per eval?
+- c03 where did evals move in the 2x2 outcome space?
+- c04 did targeted edits explain the movement?
+- c05 did improvements cost more?
+- c06 did routing change? (gated on transcripts on both sides)
+- c07 where does category-level pass rate drift?
+- c08 did the skill-lift change between commits?
 """
 
 from __future__ import annotations
@@ -122,7 +128,7 @@ def plot_headline_shift(figures_dir: Path, data_dir: Path) -> None:
         )
 
     fig.tight_layout(rect=(0, 0.04, 1, 1))
-    fig.savefig(figures_dir / "c01_headline_shift.png", dpi=FIGURE_DPI)
+    fig.savefig(figures_dir / "c01_did_the_headline_improve.png", dpi=FIGURE_DPI)
     plt.close(fig)
 
 
@@ -260,7 +266,7 @@ def plot_outcome_flow(figures_dir: Path, data_dir: Path) -> None:
     )
 
     fig.tight_layout()
-    fig.savefig(figures_dir / "c03_outcome_flow.png", dpi=FIGURE_DPI)
+    fig.savefig(figures_dir / "c03_where_did_evals_move_in_2x2.png", dpi=FIGURE_DPI)
     plt.close(fig)
 
 
@@ -318,7 +324,7 @@ def plot_per_eval_transitions(figures_dir: Path, data_dir: Path) -> None:
     )
     fig.text(0.5, 0.01, summary, ha="center", fontsize=ANNOTATION_FONTSIZE)
     fig.tight_layout(rect=(0, 0.03, 1, 1))
-    fig.savefig(figures_dir / "c02_per_eval_transitions.png", dpi=FIGURE_DPI)
+    fig.savefig(figures_dir / "c02_did_outcomes_move_per_eval.png", dpi=FIGURE_DPI)
     plt.close(fig)
 
 
@@ -411,7 +417,7 @@ def plot_targeted_edits(figures_dir: Path, data_dir: Path) -> None:
             )
 
     fig.tight_layout()
-    fig.savefig(figures_dir / "c04_targeted_edits.png", dpi=FIGURE_DPI)
+    fig.savefig(figures_dir / "c04_did_targeted_edits_explain_movement.png", dpi=FIGURE_DPI)
     plt.close(fig)
 
 
@@ -538,7 +544,7 @@ def plot_cost_shift_by_transition(figures_dir: Path, data_dir: Path) -> None:
         )
 
     fig.tight_layout(rect=(0, bottom_pad, 1, 1))
-    fig.savefig(figures_dir / "c05_cost_shift_by_transition.png", dpi=FIGURE_DPI)
+    fig.savefig(figures_dir / "c05_did_improvements_cost_more.png", dpi=FIGURE_DPI)
     plt.close(fig)
 
 
@@ -669,7 +675,7 @@ def plot_routing_shift(figures_dir: Path, data_dir: Path) -> None:
         fontsize=12,
     )
     fig.tight_layout(rect=(0, bottom_pad, 1, 0.97))
-    fig.savefig(figures_dir / "c06_routing_shift.png", dpi=FIGURE_DPI)
+    fig.savefig(figures_dir / "c06_did_routing_change.png", dpi=FIGURE_DPI)
     plt.close(fig)
 
 
@@ -677,6 +683,164 @@ def _pseudo_jitter(seed: int, eval_id: int) -> float:
     """Deterministic jitter in [-0.18, 0.18] keyed on (seed, eval_id)."""
     h = (seed * 2654435761 + eval_id * 40503) & 0xFFFFFFFF
     return (h / 0xFFFFFFFF - 0.5) * 0.36
+
+
+def plot_category_shift(figures_dir: Path, data_dir: Path) -> None:
+    """c07: per-(stage, tier) ws full-pass rate delta heatmap.
+
+    Reads category_shift.csv. Renders only the per-(stage, tier) cell rows
+    (scope='cell') to avoid mixing rollups with cells in the heatmap.
+    Color encodes ws_delta_pp; cell labels show new−old as +/-pp with the
+    cell n. Cells where n_ws_with_data == 0 (no eval has both ws cells
+    present) are drawn neutral with an "n/a" label so partial dispatches
+    don't render as a strong negative.
+    """
+    rows = [r for r in _read_csv(data_dir / "category_shift.csv") if r["scope"] == "cell"]
+    if not rows:
+        return
+    stages = sorted({r["stage"] for r in rows})
+    tiers = sorted({r["tier"] for r in rows})
+    if not stages or not tiers:
+        return
+    cell: dict[tuple[str, str], dict[str, str]] = {(r["stage"], r["tier"]): r for r in rows}
+
+    fig, ax = plt.subplots(
+        figsize=(max(SIZE_TALL[0], 1.4 * len(tiers) + 4), max(4.5, 0.7 * len(stages) + 2.5))
+    )
+    grid = []
+    annotations: list[tuple[int, int, str]] = []
+    for i, stage in enumerate(stages):
+        row_vals = []
+        for j, tier in enumerate(tiers):
+            r = cell.get((stage, tier))
+            if r is None or int(r["n_ws_with_data"]) == 0:
+                row_vals.append(float("nan"))
+                annotations.append((i, j, "n/a"))
+                continue
+            delta = float(r["ws_delta_pp"])
+            row_vals.append(delta)
+            n = r["n_ws_with_data"]
+            annotations.append((i, j, f"{delta:+.0f}pp\nn={n}"))
+        grid.append(row_vals)
+
+    import numpy as np  # local import keeps matplotlib-free callers cheap
+
+    arr = np.array(grid, dtype=float)
+    cmap = plt.cm.get_cmap("RdYlGn")
+    cmap.set_bad(WONG["neutral"])
+    masked = np.ma.masked_invalid(arr)
+    abs_max = max(10.0, float(np.nanmax(np.abs(arr))) if np.isfinite(arr).any() else 10.0)
+    im = ax.imshow(
+        masked,
+        cmap=cmap,
+        vmin=-abs_max,
+        vmax=abs_max,
+        aspect="auto",
+    )
+    ax.set_xticks(range(len(tiers)))
+    ax.set_xticklabels(tiers, rotation=30, ha="right")
+    ax.set_yticks(range(len(stages)))
+    ax.set_yticklabels(stages)
+    for i, j, label in annotations:
+        ax.text(
+            j,
+            i,
+            label,
+            ha="center",
+            va="center",
+            fontsize=ANNOTATION_FONTSIZE - 1,
+            color="black",
+        )
+    ax.set_title(
+        "c07: ws full-pass rate Δ by stage × tier (overlap only)\n"
+        "Green = improved, red = regressed; cells with no ws data on either side are 'n/a'.",
+        fontsize=11,
+    )
+    fig.colorbar(im, ax=ax, label="ws_delta_pp (new − old)")
+    fig.tight_layout()
+    fig.savefig(figures_dir / "c07_where_does_category_drift.png", dpi=FIGURE_DPI)
+    plt.close(fig)
+
+
+def plot_skill_lift_change(figures_dir: Path, data_dir: Path) -> None:
+    """c08: skill-lift (ws_pass_rate − bs_pass_rate) at old vs new and the delta.
+
+    Reads headline_diff.json's skill_lift block. Three bars: old skill-lift,
+    new skill-lift, and delta. Each bar carries its 95% bootstrap CI as a
+    black error line. The figure answers the comparison's central question:
+    did the skill help differently between commits, beyond what both
+    conditions moved together?
+    """
+    path = data_dir / "headline_diff.json"
+    if not path.is_file():
+        return
+    payload = json.loads(path.read_text())
+    lift = payload.get("skill_lift")
+    if not lift or lift.get("n_joint", 0) == 0:
+        return
+
+    labels = ["old skill-lift", "new skill-lift", "delta\n(new − old)"]
+    values = [lift["old_pp"], lift["new_pp"], lift["delta_pp"]]
+    cis = [lift["old_pp_ci95"], lift["new_pp_ci95"], lift["delta_pp_ci95"]]
+    colors = [WONG["bs"], WONG["ws"], WONG["delta_pos"] if values[2] >= 0 else WONG["delta_neg"]]
+    err_low = [v - c[0] for v, c in zip(values, cis, strict=True)]
+    err_high = [c[1] - v for v, c in zip(values, cis, strict=True)]
+
+    fig, ax = plt.subplots(figsize=SIZE_SINGLE)
+    x = list(range(len(labels)))
+    ax.bar(x, values, color=colors, edgecolor="black", linewidth=0.8)
+    ax.errorbar(
+        x,
+        values,
+        yerr=[err_low, err_high],
+        fmt="none",
+        ecolor="black",
+        capsize=6,
+        linewidth=1.2,
+    )
+    for xi, value, ci in zip(x, values, cis, strict=True):
+        ax.text(
+            xi,
+            value + (1 if value >= 0 else -1) * 1.5,
+            f"{value:+.1f}pp\n[{ci[0]:+.1f}, {ci[1]:+.1f}]",
+            ha="center",
+            va="bottom" if value >= 0 else "top",
+            fontsize=ANNOTATION_FONTSIZE,
+        )
+    ax.axhline(0, color="black", linewidth=0.5)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("skill-lift (pp)")
+    ax.grid(axis="y", **GRID_STYLE)
+    n_joint = lift["n_joint"]
+    title = (
+        f"c08: Skill-lift shift (joint set n={n_joint}); "
+        f"old → new Δ = {lift['delta_pp']:+.1f}pp "
+        f"[CI95 {lift['delta_pp_ci95'][0]:+.1f}, {lift['delta_pp_ci95'][1]:+.1f}]"
+    )
+    ax.set_title(title, fontsize=11)
+
+    notes = []
+    if lift.get("underpowered"):
+        notes.append(f"underpowered (n_joint={n_joint} < 25); CIs are approximate")
+    if not lift.get("complete", True):
+        notes.append(
+            f"joint set is {n_joint} of {lift['n_overlap']} overlap evals "
+            "(missing cells excluded)"
+        )
+    if notes:
+        fig.text(
+            0.5,
+            0.01,
+            " | ".join(notes),
+            ha="center",
+            fontsize=ANNOTATION_FONTSIZE,
+            color=WONG["neutral"],
+        )
+
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    fig.savefig(figures_dir / "c08_did_skill_lift_change.png", dpi=FIGURE_DPI)
+    plt.close(fig)
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:

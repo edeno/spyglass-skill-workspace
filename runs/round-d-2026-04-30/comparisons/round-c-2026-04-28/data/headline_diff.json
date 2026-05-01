@@ -177,6 +177,19 @@
     "old_rate": 18.75,
     "new_rate": 43.75,
     "delta_pp": 25.0,
+    "old_rate_ci95": [
+      0.0,
+      37.5
+    ],
+    "new_rate_ci95": [
+      18.75,
+      68.75
+    ],
+    "delta_pp_ci95": [
+      -6.25,
+      50.0
+    ],
+    "underpowered": true,
     "complete": true
   },
   "bs_full_pass": {
@@ -187,7 +200,46 @@
     "old_rate": 25.0,
     "new_rate": 31.25,
     "delta_pp": 6.25,
+    "old_rate_ci95": [
+      6.25,
+      50.0
+    ],
+    "new_rate_ci95": [
+      6.25,
+      50.0
+    ],
+    "delta_pp_ci95": [
+      -18.75,
+      37.5
+    ],
+    "underpowered": true,
     "complete": true
+  },
+  "skill_lift": {
+    "n_joint": 16,
+    "n_overlap": 16,
+    "complete": true,
+    "ws_pass_old": 3,
+    "bs_pass_old": 4,
+    "ws_pass_new": 7,
+    "bs_pass_new": 5,
+    "old_pp": -6.25,
+    "new_pp": 12.5,
+    "delta_pp": 18.75,
+    "old_pp_ci95": [
+      -31.25,
+      12.5
+    ],
+    "new_pp_ci95": [
+      -12.5,
+      37.5
+    ],
+    "delta_pp_ci95": [
+      0.0,
+      50.0
+    ],
+    "underpowered": true,
+    "note": "skill_lift_pp = (ws_pass_rate - bs_pass_rate) at the run, on the joint set where all 4 cells are present. delta_pp is the shift in skill lift between commits. CIs are 95% percentile bootstrap (1000 paired resamples, seed=0); treat as approximate when n_joint < 25."
   },
   "ws_expectations": {
     "n_evals": 16,

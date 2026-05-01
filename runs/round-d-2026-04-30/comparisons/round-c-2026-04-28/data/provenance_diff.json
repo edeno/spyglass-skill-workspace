@@ -1,0 +1,69 @@
+{
+  "old_run_id": "round-c-2026-04-28",
+  "new_run_id": "round-d-2026-04-30",
+  "fields": {
+    "skill_commit_at_sweep_end": {
+      "old": "8b3fa1b",
+      "new": "7c1e966c",
+      "changed": true,
+      "kind": "causal"
+    },
+    "skill_commit_at_sweep_start": {
+      "old": "874516a",
+      "new": "7c1e966c",
+      "changed": true,
+      "kind": "causal"
+    },
+    "spyglass_src_commit": {
+      "old": "",
+      "new": "caec56bc",
+      "changed": false,
+      "kind": "causal"
+    },
+    "model": {
+      "old": "claude-opus-4-7[1m]",
+      "new": "claude-opus-4-7[1m]",
+      "changed": false,
+      "kind": "causal"
+    },
+    "harness": {
+      "old": "claude-code (VSCode extension)",
+      "new": "claude-code (VSCode extension)",
+      "changed": false,
+      "kind": "causal"
+    },
+    "dispatch_prompt_template": {
+      "old": "Inline (per-batch, typed by orchestrator). Templates extracted post-hoc to skills/spyglass/evals/dispatch_prompts.md.",
+      "new": "skills/spyglass/evals/dispatch_prompts.md (with_skill / without_skill templates, no-bundle-peek + no-grading-peek prohibitions enforced)",
+      "changed": true,
+      "kind": "causal"
+    },
+    "evals_catalog_semantic_sha256": {
+      "old": "72f9723d49f0",
+      "new": "72f9723d49f0",
+      "changed": false,
+      "kind": "causal"
+    },
+    "skill_branch": {
+      "old": "",
+      "new": "round-d",
+      "changed": false,
+      "kind": "metadata"
+    },
+    "round_label": {
+      "old": "round-C",
+      "new": "round-D",
+      "changed": true,
+      "kind": "metadata"
+    },
+    "evals_snapshot_sha256_raw": {
+      "old": "217bef5dab9e",
+      "new": "36faac21b3c6",
+      "changed": true,
+      "kind": "metadata"
+    }
+  },
+  "causal_changed": true,
+  "metadata_changed": true,
+  "note": "causal_changed=true means at least one dimension that can plausibly shift headline / transition deltas (skill, src, model, harness, prompt template, evals catalog) differs between runs; treat headline shifts skeptically. metadata_changed=true reflects label-only differences (round_label, skill_branch) and does NOT undermine attribution by itself."
+}

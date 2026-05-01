@@ -5,26 +5,38 @@
 - n_overlap: **16**  *(underpowered for global significance; treat headline McNemar p as diagnostic only)*
 - old_only eval_ids (114): not in new run
 
+> ⚠ Subset rerun: the new run covers 16 of 130 old-run evals. Treat this comparison as **verification of the targeted evals**, not a claim about global skill quality. Use the parent run's full summary for headline numbers.
+
+- causal provenance dimensions changed: **2**
+  - skill_commit_at_sweep_end, dispatch_prompt_template — see [`data/provenance_diff.json`](data/provenance_diff.json)
+- metadata-only differences (do not undermine attribution): round_label
+
 Read [`data/overlap.json`](data/overlap.json) first to confirm exactly what was compared. Then read [`data/headline_diff.json`](data/headline_diff.json) for the overlap-only shift, and [`data/transitions.csv`](data/transitions.csv) for the per-eval moves with rubric-drift and regression-interpretation columns.
 
 ## Primary Outputs
 
 - [`INDEX.md`](INDEX.md) — audit: Generated guide to comparison outputs grouped by priority.
+- [`data/catalog_diff.json`](data/catalog_diff.json) — audit: Per-eval diff of evals_snapshot.json: added/removed evals plus field-level changes for name / eval_name / stage / tier / difficulty / prompt / expected_output / expectations / assertions / files / expected_refs / expected_scripts. Required reading when provenance_diff shows the causal evals_catalog_semantic_sha256 drifted.
 - [`data/comparison_manifest.json`](data/comparison_manifest.json) — audit: Output family/priority/purpose index for this comparison.
 - [`data/overlap.json`](data/overlap.json) — audit: Overlap audit: old/new totals, n_overlap, old_only/new_only eval ids. Read this first to confirm what was actually compared.
+- [`data/provenance_diff.json`](data/provenance_diff.json) — audit: Skill / src / model / harness / prompt-template / evals-catalog drift between runs. causal_changed=true is the attribution warning; metadata_changed=true flags label-only differences (round_label / skill_branch) that do not undermine attribution.
+- [`data/regression_review.csv`](data/regression_review.csv) — fix_priority: Drill-down for ws regressions and rubric_friction stable_fails: paths to old/new response.md and grading.json so reviewers can open both side-by-side.
 - [`data/headline_diff.json`](data/headline_diff.json) — headline: Overlap-only ws/bs full-pass shift, expectation deltas with rubric_sensitive flags, transition tables, and a diagnostic-only McNemar p-value.
-- [`figures/c01_headline_shift.png`](figures/c01_headline_shift.png) — headline: Paired ws/bs full-pass bars at old vs new with overlap-n callout.
+- [`figures/c01_did_the_headline_improve.png`](figures/c01_did_the_headline_improve.png) — headline: Paired ws/bs full-pass bars at old vs new with overlap-n callout.
+- [`figures/c08_did_skill_lift_change.png`](figures/c08_did_skill_lift_change.png) — headline: Skill-lift (ws_pass_rate - bs_pass_rate) at old vs new with the delta and 95% bootstrap CIs. Headline answer to 'did the skill help differently between commits?'
 - [`data/outcome_2x2_shift.json`](data/outcome_2x2_shift.json) — outcome_flow: 4-cell outcome counts at old vs new on the joint set, plus a 4x4 flow matrix with eval_id examples per cell.
-- [`figures/c03_outcome_flow.png`](figures/c03_outcome_flow.png) — outcome_flow: Sankey-lite flow from old outcome buckets to new outcome buckets.
+- [`figures/c03_where_did_evals_move_in_2x2.png`](figures/c03_where_did_evals_move_in_2x2.png) — outcome_flow: Sankey-lite flow from old outcome buckets to new outcome buckets.
 - [`data/targeted_edits_summary.csv`](data/targeted_edits_summary.csv) — targeted_edits: One row per edit_id with transition counts, rubric-changed counts, and all/regressed rubric-friction counts. Renders c04.
-- [`figures/c04_targeted_edits.png`](figures/c04_targeted_edits.png) — targeted_edits: Per-edit_id outcome counts on overlap evals; hatched red marks rubric_friction.
+- [`figures/c04_did_targeted_edits_explain_movement.png`](figures/c04_did_targeted_edits_explain_movement.png) — targeted_edits: Per-edit_id outcome counts on overlap evals; hatched red marks rubric_friction.
 - [`data/transitions.csv`](data/transitions.csv) — transitions: One row per overlap eval with ws/bs transitions, rubric drift, token deltas, and regression_interpretation (rubric_friction / rubric_drift / content_regression).
-- [`figures/c02_per_eval_transitions.png`](figures/c02_per_eval_transitions.png) — transitions: Per-overlap-eval ws transition strip, hatched on ws_rubric_changed.
+- [`figures/c02_did_outcomes_move_per_eval.png`](figures/c02_did_outcomes_move_per_eval.png) — transitions: Per-overlap-eval ws transition strip, hatched on ws_rubric_changed.
 
 ## Secondary Outputs
 
+- [`data/category_shift.csv`](data/category_shift.csv) — category: Per-(stage, tier) ws + bs full-pass rates and ws transition counts at old vs new with rollups. Answers 'did stage X improve while tier Y regressed?'
+- [`figures/c07_where_does_category_drift.png`](figures/c07_where_does_category_drift.png) — category: Heatmap of ws full-pass rate delta by stage x tier; n/a cells indicate no overlap evals with both ws cells present.
 - [`data/cost_shift.csv`](data/cost_shift.csv) — cost: Per-overlap-eval token deltas for ws and bs with pair-completeness flags so incomplete timing is never silently aggregated.
-- [`figures/c05_cost_shift_by_transition.png`](figures/c05_cost_shift_by_transition.png) — cost: ws token delta per overlap eval, split by ws_transition. Excluded buckets are labeled in a footer rather than rendered as 'no evals'.
+- [`figures/c05_did_improvements_cost_more.png`](figures/c05_did_improvements_cost_more.png) — cost: ws token delta per overlap eval, split by ws_transition. Excluded buckets are labeled in a footer rather than rendered as 'no evals'.
 - [`data/routing_shift.csv`](data/routing_shift.csv) — routing: Per (eval, condition) required-ref / required-script recall and unexpected-resource counts at old vs new. Gated on transcripts on both sides.
-- [`figures/c06_routing_shift.png`](figures/c06_routing_shift.png) — routing: Two stacked bar panels: ws required-ref recall delta and required-script recall delta.
+- [`figures/c06_did_routing_change.png`](figures/c06_did_routing_change.png) — routing: Two stacked bar panels: ws required-ref recall delta and required-script recall delta.
 - [`data/targeted_edits_long.csv`](data/targeted_edits_long.csv) — targeted_edits: Many-to-many (edit_id, eval_id) rows joining each declared edit to its ws/bs transitions and rubric drift flags.

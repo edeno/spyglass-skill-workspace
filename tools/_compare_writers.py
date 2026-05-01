@@ -52,6 +52,48 @@ COMPARISON_MANIFEST_OVERRIDES: dict[str, tuple[str, str, str]] = {
         "Overlap audit: old/new totals, n_overlap, old_only/new_only eval ids. "
         "Read this first to confirm what was actually compared.",
     ),
+    "data/provenance_diff.json": (
+        "audit",
+        "primary",
+        "Skill / src / model / harness / prompt-template / evals-catalog drift "
+        "between runs. causal_changed=true is the attribution warning; "
+        "metadata_changed=true flags label-only differences (round_label / "
+        "skill_branch) that do not undermine attribution.",
+    ),
+    "data/catalog_diff.json": (
+        "audit",
+        "primary",
+        "Per-eval diff of evals_snapshot.json: added/removed evals plus "
+        "field-level changes for name / eval_name / stage / tier / difficulty / "
+        "prompt / expected_output / expectations / assertions / files / "
+        "expected_refs / expected_scripts. Required reading when provenance_diff "
+        "shows the causal evals_catalog_semantic_sha256 drifted.",
+    ),
+    "figures/c08_did_skill_lift_change.png": (
+        "headline",
+        "primary",
+        "Skill-lift (ws_pass_rate - bs_pass_rate) at old vs new with the "
+        "delta and 95% bootstrap CIs. Headline answer to 'did the skill "
+        "help differently between commits?'",
+    ),
+    "data/category_shift.csv": (
+        "category",
+        "secondary",
+        "Per-(stage, tier) ws + bs full-pass rates and ws transition counts at "
+        "old vs new with rollups. Answers 'did stage X improve while tier Y regressed?'",
+    ),
+    "data/regression_review.csv": (
+        "fix_priority",
+        "primary",
+        "Drill-down for ws regressions and rubric_friction stable_fails: paths to "
+        "old/new response.md and grading.json so reviewers can open both side-by-side.",
+    ),
+    "figures/c07_where_does_category_drift.png": (
+        "category",
+        "secondary",
+        "Heatmap of ws full-pass rate delta by stage x tier; n/a cells "
+        "indicate no overlap evals with both ws cells present.",
+    ),
     "data/headline_diff.json": (
         "headline",
         "primary",
@@ -94,33 +136,33 @@ COMPARISON_MANIFEST_OVERRIDES: dict[str, tuple[str, str, str]] = {
         "One row per edit_id with transition counts, rubric-changed counts, and "
         "all/regressed rubric-friction counts. Renders c04.",
     ),
-    "figures/c01_headline_shift.png": (
+    "figures/c01_did_the_headline_improve.png": (
         "headline",
         "primary",
         "Paired ws/bs full-pass bars at old vs new with overlap-n callout.",
     ),
-    "figures/c02_per_eval_transitions.png": (
+    "figures/c02_did_outcomes_move_per_eval.png": (
         "transitions",
         "primary",
         "Per-overlap-eval ws transition strip, hatched on ws_rubric_changed.",
     ),
-    "figures/c03_outcome_flow.png": (
+    "figures/c03_where_did_evals_move_in_2x2.png": (
         "outcome_flow",
         "primary",
         "Sankey-lite flow from old outcome buckets to new outcome buckets.",
     ),
-    "figures/c04_targeted_edits.png": (
+    "figures/c04_did_targeted_edits_explain_movement.png": (
         "targeted_edits",
         "primary",
         "Per-edit_id outcome counts on overlap evals; hatched red marks rubric_friction.",
     ),
-    "figures/c05_cost_shift_by_transition.png": (
+    "figures/c05_did_improvements_cost_more.png": (
         "cost",
         "secondary",
         "ws token delta per overlap eval, split by ws_transition. Excluded buckets "
         "are labeled in a footer rather than rendered as 'no evals'.",
     ),
-    "figures/c06_routing_shift.png": (
+    "figures/c06_did_routing_change.png": (
         "routing",
         "secondary",
         "Two stacked bar panels: ws required-ref recall delta and required-script recall delta.",
@@ -130,6 +172,411 @@ COMPARISON_MANIFEST_OVERRIDES: dict[str, tuple[str, str, str]] = {
 
 def write_overlap_json(out_data: Path, overlap: OverlapAudit) -> None:
     out_data.joinpath("overlap.json").write_text(json.dumps(overlap, indent=2) + "\n")
+
+
+def write_category_shift_csv(out_data: Path, pairs: list[PerEvalPair]) -> None:
+    """Per-(stage, tier) ws + bs aggregate at old vs new on overlap evals.
+
+    Aggregates each overlap eval by its (stage, tier) bucket and reports
+    per-bucket counts of: total evals, ws full pass at old vs new, ws
+    full-pass-rate delta, ws transition counts, and rubric-changed counts.
+    Cells where the corresponding condition is missing on either side are
+    excluded from that condition's full-pass count and tracked in
+    n_ws_with_data / n_bs_with_data so a partial dispatch does not
+    silently shrink the bucket.
+
+    For larger reruns this answers "did stage X improve while tier Y
+    regressed?" without leaving readers to reaggregate transitions.csv.
+    Also includes overall (stage="*", tier="*") roll-up rows.
+    """
+    if not pairs:
+        return
+
+    grouped: dict[tuple[str, str], list[PerEvalPair]] = {}
+    for p in pairs:
+        grouped.setdefault((p["stage"], p["tier"]), []).append(p)
+    # Roll-ups: per stage with tier="*", per tier with stage="*", and overall.
+    by_stage: dict[str, list[PerEvalPair]] = {}
+    by_tier: dict[str, list[PerEvalPair]] = {}
+    for p in pairs:
+        by_stage.setdefault(p["stage"], []).append(p)
+        by_tier.setdefault(p["tier"], []).append(p)
+    rollups: dict[tuple[str, str], list[PerEvalPair]] = {}
+    for stage, plist in by_stage.items():
+        rollups[(stage, "*")] = plist
+    for tier, plist in by_tier.items():
+        rollups[("*", tier)] = plist
+    rollups[("*", "*")] = list(pairs)
+
+    columns = [
+        "stage",
+        "tier",
+        "scope",
+        "n_evals",
+        "n_ws_with_data",
+        "ws_pass_old",
+        "ws_pass_new",
+        "ws_rate_old",
+        "ws_rate_new",
+        "ws_delta_pp",
+        "n_bs_with_data",
+        "bs_pass_old",
+        "bs_pass_new",
+        "bs_rate_old",
+        "bs_rate_new",
+        "bs_delta_pp",
+        "n_improved",
+        "n_regressed",
+        "n_stable_pass",
+        "n_stable_fail",
+        "n_ws_rubric_changed",
+        "n_bs_rubric_changed",
+    ]
+    rows: list[dict[str, object]] = []
+    for (stage, tier), plist in sorted(grouped.items()):
+        rows.append(_category_row(stage, tier, plist, scope="cell"))
+    for (stage, tier), plist in sorted(rollups.items()):
+        rows.append(_category_row(stage, tier, plist, scope="rollup"))
+    _write_csv(out_data / "category_shift.csv", columns, rows)
+
+
+def _category_row(
+    stage: str, tier: str, plist: list[PerEvalPair], *, scope: str
+) -> dict[str, object]:
+    """Compute one category_shift.csv row."""
+    ws_with = [p for p in plist if not p["ws_missing_old"] and not p["ws_missing_new"]]
+    bs_with = [p for p in plist if not p["bs_missing_old"] and not p["bs_missing_new"]]
+    ws_old = sum(1 for p in ws_with if p["ws_pass_old"])
+    ws_new = sum(1 for p in ws_with if p["ws_pass_new"])
+    bs_old = sum(1 for p in bs_with if p["bs_pass_old"])
+    bs_new = sum(1 for p in bs_with if p["bs_pass_new"])
+    ws_rate_old = round(100 * ws_old / len(ws_with), 2) if ws_with else 0.0
+    ws_rate_new = round(100 * ws_new / len(ws_with), 2) if ws_with else 0.0
+    bs_rate_old = round(100 * bs_old / len(bs_with), 2) if bs_with else 0.0
+    bs_rate_new = round(100 * bs_new / len(bs_with), 2) if bs_with else 0.0
+    transitions = Counter(
+        p["ws_transition"] for p in plist if p["ws_transition"] is not None
+    )
+    return {
+        "stage": stage,
+        "tier": tier,
+        "scope": scope,
+        "n_evals": len(plist),
+        "n_ws_with_data": len(ws_with),
+        "ws_pass_old": ws_old,
+        "ws_pass_new": ws_new,
+        "ws_rate_old": ws_rate_old,
+        "ws_rate_new": ws_rate_new,
+        "ws_delta_pp": round(ws_rate_new - ws_rate_old, 2),
+        "n_bs_with_data": len(bs_with),
+        "bs_pass_old": bs_old,
+        "bs_pass_new": bs_new,
+        "bs_rate_old": bs_rate_old,
+        "bs_rate_new": bs_rate_new,
+        "bs_delta_pp": round(bs_rate_new - bs_rate_old, 2),
+        "n_improved": transitions.get("improved", 0),
+        "n_regressed": transitions.get("regressed", 0),
+        "n_stable_pass": transitions.get("stable_pass", 0),
+        "n_stable_fail": transitions.get("stable_fail", 0),
+        "n_ws_rubric_changed": sum(1 for p in plist if p["ws_rubric_changed"]),
+        "n_bs_rubric_changed": sum(1 for p in plist if p["bs_rubric_changed"]),
+    }
+
+
+def write_regression_review_csv(
+    out_data: Path,
+    pairs: list[PerEvalPair],
+    old: RunBundle,
+    new: RunBundle,
+) -> None:
+    """Drill-down CSV: one row per ws-regressed or rubric_friction-labeled eval.
+
+    Columns include the regression_interpretation, ws/bs transitions, ws
+    token + duration deltas (when timing is complete), and concrete
+    relative paths to the old and new ``response.md`` and ``grading.json``
+    so a reviewer can open the artifacts for both runs side by side.
+
+    Skipped if no overlap eval needs review.
+    """
+    review_rows: list[dict[str, object]] = []
+    for p in pairs:
+        if not (
+            p["ws_transition"] == "regressed"
+            or p["failure_type_new"] == "rubric_friction"
+        ):
+            continue
+        review_rows.append(
+            {
+                "eval_id": p["eval_id"],
+                "eval_name": p["eval_name"],
+                "stage": p["stage"],
+                "tier": p["tier"],
+                "ws_transition": p["ws_transition"] or "",
+                "bs_transition": p["bs_transition"] or "",
+                "regression_interpretation": p["regression_interpretation"],
+                "failure_type_old": p["failure_type_old"],
+                "failure_type_new": p["failure_type_new"],
+                "ws_rubric_changed": _b(p["ws_rubric_changed"]),
+                "bs_rubric_changed": _b(p["bs_rubric_changed"]),
+                "ws_passed_old": p["ws_passed_old"],
+                "ws_total_old": p["ws_total_old"],
+                "ws_passed_new": p["ws_passed_new"],
+                "ws_total_new": p["ws_total_new"],
+                "token_delta_ws": _delta(p["tokens_ws_old"], p["tokens_ws_new"]),
+                "duration_delta_ws": _delta_round(
+                    p["duration_ws_old"], p["duration_ws_new"], 1
+                ),
+                "old_response_path": _eval_artifact_path(old, p, "with_skill", "outputs/response.md"),
+                "new_response_path": _eval_artifact_path(new, p, "with_skill", "outputs/response.md"),
+                "old_grading_path": _eval_artifact_path(old, p, "with_skill", "grading.json"),
+                "new_grading_path": _eval_artifact_path(new, p, "with_skill", "grading.json"),
+            }
+        )
+    if not review_rows:
+        return
+    columns = list(review_rows[0].keys())
+    _write_csv(out_data / "regression_review.csv", columns, review_rows)
+
+
+def _eval_artifact_path(
+    bundle: RunBundle, pair: PerEvalPair, condition: str, suffix: str
+) -> str:
+    """Return a path to an artifact like outputs/response.md, or "" if absent.
+
+    Looks under each iteration-N/ for an ``eval-{eid:03d}-{name}/{cond}/{suffix}``
+    file. Returns the first match as a path *relative to the workspace
+    root* so the comparison output stays stable regardless of where it
+    was generated. Returns "" when nothing matches (e.g. partial dispatch).
+    """
+    eid = pair["eval_id"]
+    workspace_root = bundle["run_dir"].parent.parent  # repo root or absolute parent
+    for batch in bundle["batch_order"]:
+        for cand in (bundle["run_dir"] / f"iteration-{batch}").glob(f"eval-{eid:03d}-*"):
+            target = cand / condition / suffix
+            if target.is_file():
+                try:
+                    return str(target.relative_to(workspace_root))
+                except ValueError:
+                    return str(target)
+    return ""
+
+
+def write_catalog_diff_json(
+    out_data: Path,
+    old_catalog: dict[int, dict],
+    new_catalog: dict[int, dict],
+) -> None:
+    """Per-eval diff of evals_snapshot.json between two runs.
+
+    Surfaces what *specifically* changed when provenance_diff.json reports
+    that the evals_snapshot hash drifted. Reports added / removed / changed
+    eval ids and per-eval field changes for: name, stage, tier, difficulty,
+    expectations text + count, expected_refs (required/optional/distractor),
+    expected_scripts. Skipped (no file written) when both catalogs are empty.
+    """
+    if not old_catalog and not new_catalog:
+        return
+    old_ids = set(old_catalog)
+    new_ids = set(new_catalog)
+    added = sorted(new_ids - old_ids)
+    removed = sorted(old_ids - new_ids)
+    common = sorted(old_ids & new_ids)
+
+    changed: list[dict[str, object]] = []
+    unchanged_count = 0
+    for eid in common:
+        diff = _eval_field_diff(old_catalog[eid], new_catalog[eid])
+        if diff["fields_changed"]:
+            diff["eval_id"] = eid
+            changed.append(diff)
+        else:
+            unchanged_count += 1
+
+    payload = {
+        "old_catalog_loaded": bool(old_catalog),
+        "new_catalog_loaded": bool(new_catalog),
+        "old_evals_total": len(old_catalog),
+        "new_evals_total": len(new_catalog),
+        "n_added": len(added),
+        "n_removed": len(removed),
+        "n_changed": len(changed),
+        "n_unchanged": unchanged_count,
+        "added_eval_ids": added,
+        "removed_eval_ids": removed,
+        "changed_evals": changed,
+        "note": (
+            "Per-eval diff of evals_snapshot.json. fields_changed lists "
+            "the field names that differ between old and new; the *_old "
+            "and *_new keys carry the actual values for each. expectations_count "
+            "tracks rubric-size changes; expectations_text_changed indicates "
+            "any expectation text differs (rubric content edits)."
+        ),
+    }
+    out_data.joinpath("catalog_diff.json").write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def _eval_field_diff(old: dict, new: dict) -> dict[str, object]:
+    """Compare two eval-catalog entries; return a dict of field-level diffs.
+
+    Returns {"fields_changed": [...], plus per-field <field>_old/<field>_new
+    pairs for each changed field}. Only fields that differ appear.
+    """
+    diff: dict[str, object] = {"fields_changed": []}
+    fields_changed: list[str] = diff["fields_changed"]  # type: ignore[assignment]
+
+    # Scalar text fields the catalog declares per eval. Includes prompt and
+    # expected_output so a silent prompt edit or expected-answer change is
+    # visible. Handle both `name` (older) and `eval_name` (current) shapes.
+    scalar_fields = (
+        "name",
+        "eval_name",
+        "stage",
+        "tier",
+        "difficulty",
+        "prompt",
+        "expected_output",
+    )
+    for key in scalar_fields:
+        old_val = old.get(key)
+        new_val = new.get(key)
+        if old_val != new_val:
+            fields_changed.append(key)
+            diff[f"{key}_old"] = old_val
+            diff[f"{key}_new"] = new_val
+
+    old_exp = list(old.get("expectations", []) or [])
+    new_exp = list(new.get("expectations", []) or [])
+    if len(old_exp) != len(new_exp):
+        fields_changed.append("expectations_count")
+        diff["expectations_count_old"] = len(old_exp)
+        diff["expectations_count_new"] = len(new_exp)
+    old_texts = sorted(_expectation_text(e) for e in old_exp)
+    new_texts = sorted(_expectation_text(e) for e in new_exp)
+    if old_texts != new_texts:
+        if "expectations_count" not in fields_changed:
+            fields_changed.append("expectations_text")
+        diff["expectations_added"] = sorted(set(new_texts) - set(old_texts))
+        diff["expectations_removed"] = sorted(set(old_texts) - set(new_texts))
+
+    # List fields (assertions, files): track added / removed entries set-wise.
+    # Each entry may be a string or a dict; canonical-text via JSON for dicts.
+    for list_field in ("assertions", "files"):
+        old_items = _canonical_list_texts(old.get(list_field) or [])
+        new_items = _canonical_list_texts(new.get(list_field) or [])
+        if old_items != new_items:
+            fields_changed.append(list_field)
+            diff[f"{list_field}_added"] = sorted(set(new_items) - set(old_items))
+            diff[f"{list_field}_removed"] = sorted(set(old_items) - set(new_items))
+            if len(old_items) != len(new_items):
+                diff[f"{list_field}_count_old"] = len(old_items)
+                diff[f"{list_field}_count_new"] = len(new_items)
+
+    for kind in ("expected_refs", "expected_scripts"):
+        old_block = old.get(kind) or {}
+        new_block = new.get(kind) or {}
+        for slot in ("required", "optional", "distractor"):
+            old_set = set(old_block.get(slot, []) or [])
+            new_set = set(new_block.get(slot, []) or [])
+            if old_set != new_set:
+                field = f"{kind}.{slot}"
+                fields_changed.append(field)
+                diff[f"{field}_added"] = sorted(new_set - old_set)
+                diff[f"{field}_removed"] = sorted(old_set - new_set)
+    return diff
+
+
+def _canonical_list_texts(values: object) -> list[str]:
+    """Render a list of strings or dicts to a stable list of text representations."""
+    if not isinstance(values, list):
+        return []
+    out = []
+    for v in values:
+        if isinstance(v, dict):
+            out.append(json.dumps(v, sort_keys=True, ensure_ascii=False))
+        else:
+            out.append(str(v))
+    return out
+
+
+def _expectation_text(expectation: object) -> str:
+    """Best-effort string representation of one expectation row.
+
+    Round-c shape is `{text, kind, ...}`; round-d uses similar.
+    Falls back to repr() when the shape is unrecognized.
+    """
+    if isinstance(expectation, dict):
+        text = expectation.get("text")
+        if isinstance(text, str):
+            return text
+        return json.dumps(expectation, sort_keys=True)
+    return repr(expectation)
+
+
+def write_provenance_diff_json(out_data: Path, old: RunBundle, new: RunBundle) -> None:
+    """Emit a provenance comparison so silent skill / catalog / model drift is visible.
+
+    Fields are split into two buckets:
+    - causal: things whose change can plausibly move headline / transition
+      deltas (skill commit, src commit, model, harness, prompt template,
+      evals catalog hash).
+    - metadata: things that change naturally between runs without affecting
+      what was measured (round_label, branch).
+
+    Each field reports old, new, and changed (true when the strings differ
+    and both are non-empty). Top-level `causal_changed` summarizes only the
+    causal bucket — that's the flag readers should consult before
+    attributing headline shifts to skill changes. `metadata_changed` is
+    surfaced separately so label-only differences are visible without
+    triggering attribution warnings.
+    """
+    causal_fields = [
+        "skill_commit_at_sweep_end",
+        "skill_commit_at_sweep_start",
+        "spyglass_src_commit",
+        "model",
+        "harness",
+        "dispatch_prompt_template",
+        # Hash of the canonical *semantic* representation of the evals catalog
+        # (id / name / stage / tier / difficulty / expectations / expected
+        # refs+scripts), stable under wrapper / formatting noise. Drift here
+        # corresponds to real eval changes — see catalog_diff.json for the
+        # added / removed / changed eval ids and field-level deltas.
+        "evals_catalog_semantic_sha256",
+    ]
+    # Metadata-only: round_label / skill_branch are labels; the raw snapshot
+    # bytes hash flips on reformatting / source-path changes that do NOT
+    # correspond to actual eval drift, so it stays out of causal_changed.
+    metadata_fields = ["skill_branch", "round_label", "evals_snapshot_sha256_raw"]
+    rows: dict[str, dict[str, object]] = {}
+    causal_changed = False
+    metadata_changed = False
+    for field in causal_fields + metadata_fields:
+        old_v = old["provenance"].get(field, "")
+        new_v = new["provenance"].get(field, "")
+        changed = bool(old_v) and bool(new_v) and old_v != new_v
+        kind = "causal" if field in causal_fields else "metadata"
+        rows[field] = {"old": old_v, "new": new_v, "changed": changed, "kind": kind}
+        if changed and kind == "causal":
+            causal_changed = True
+        if changed and kind == "metadata":
+            metadata_changed = True
+    payload = {
+        "old_run_id": old["run_id"],
+        "new_run_id": new["run_id"],
+        "fields": rows,
+        "causal_changed": causal_changed,
+        "metadata_changed": metadata_changed,
+        "note": (
+            "causal_changed=true means at least one dimension that can "
+            "plausibly shift headline / transition deltas (skill, src, "
+            "model, harness, prompt template, evals catalog) differs "
+            "between runs; treat headline shifts skeptically. "
+            "metadata_changed=true reflects label-only differences "
+            "(round_label, skill_branch) and does NOT undermine "
+            "attribution by itself."
+        ),
+    }
+    out_data.joinpath("provenance_diff.json").write_text(json.dumps(payload, indent=2) + "\n")
 
 
 def write_outcome_2x2_shift_json(out_data: Path, pairs: list[PerEvalPair]) -> None:
@@ -142,7 +589,7 @@ def write_outcome_2x2_shift_json(out_data: Path, pairs: list[PerEvalPair]) -> No
 
     The flow matrix is keyed by old outcome -> new outcome with all 16
     combinations always present (zero-filled). Diagonal cells are stable;
-    off-diagonal cells drive c03_outcome_flow.png.
+    off-diagonal cells drive c03_where_did_evals_move_in_2x2.png.
     """
     joint = [
         p
@@ -198,12 +645,15 @@ def _rates(counts: dict[str, int], n: int) -> dict[str, float]:
 
 
 def write_cost_shift_csv(out_data: Path, pairs: list[PerEvalPair]) -> None:
-    """Per-overlap-eval token deltas for ws and bs, joined with ws_transition.
+    """Per-overlap-eval token + duration deltas for ws and bs, joined with ws_transition.
 
-    One row per overlap eval. token_delta_* is blank when either side's
-    timing.json is absent (the corresponding *_pair_complete flag is false),
-    so figure code can filter partial pairs without re-checking missing-cell
-    flags. Skipped if there are no overlap pairs.
+    One row per overlap eval. token_delta_* / duration_delta_* are blank
+    when either side's timing.json is absent or the corresponding fields
+    are missing; the *_pair_complete flag tracks token-pair completeness
+    so cost-by-transition figures can filter without re-checking
+    missing-cell flags. duration_*_pair_complete is tracked separately
+    because round-c-era timing.json predates the duration field.
+    Skipped if there are no overlap pairs.
     """
     if not pairs:
         return
@@ -223,11 +673,21 @@ def write_cost_shift_csv(out_data: Path, pairs: list[PerEvalPair]) -> None:
         "tokens_bs_old",
         "tokens_bs_new",
         "token_delta_bs",
+        "ws_duration_pair_complete",
+        "duration_ws_old",
+        "duration_ws_new",
+        "duration_delta_ws",
+        "bs_duration_pair_complete",
+        "duration_bs_old",
+        "duration_bs_new",
+        "duration_delta_bs",
     ]
     rows: list[dict[str, object]] = []
     for p in pairs:
         ws_complete = p["tokens_ws_old"] is not None and p["tokens_ws_new"] is not None
         bs_complete = p["tokens_bs_old"] is not None and p["tokens_bs_new"] is not None
+        ws_dur_complete = p["duration_ws_old"] is not None and p["duration_ws_new"] is not None
+        bs_dur_complete = p["duration_bs_old"] is not None and p["duration_bs_new"] is not None
         rows.append(
             {
                 "eval_id": p["eval_id"],
@@ -245,9 +705,31 @@ def write_cost_shift_csv(out_data: Path, pairs: list[PerEvalPair]) -> None:
                 "tokens_bs_old": _maybe_int(p["tokens_bs_old"]),
                 "tokens_bs_new": _maybe_int(p["tokens_bs_new"]),
                 "token_delta_bs": _delta(p["tokens_bs_old"], p["tokens_bs_new"]),
+                "ws_duration_pair_complete": _b(ws_dur_complete),
+                "duration_ws_old": _maybe_round(p["duration_ws_old"], 1),
+                "duration_ws_new": _maybe_round(p["duration_ws_new"], 1),
+                "duration_delta_ws": _delta_round(
+                    p["duration_ws_old"], p["duration_ws_new"], 1
+                ),
+                "bs_duration_pair_complete": _b(bs_dur_complete),
+                "duration_bs_old": _maybe_round(p["duration_bs_old"], 1),
+                "duration_bs_new": _maybe_round(p["duration_bs_new"], 1),
+                "duration_delta_bs": _delta_round(
+                    p["duration_bs_old"], p["duration_bs_new"], 1
+                ),
             }
         )
     _write_csv(out_data / "cost_shift.csv", columns, rows)
+
+
+def _maybe_round(value, ndigits: int):
+    return "" if value is None else round(value, ndigits)
+
+
+def _delta_round(old, new, ndigits: int):
+    if old is None or new is None:
+        return ""
+    return round(new - old, ndigits)
 
 
 def write_headline_diff_json(
@@ -267,6 +749,17 @@ def write_headline_diff_json(
 
     ws_pairs = [p for p in pairs if not p["ws_missing_old"] and not p["ws_missing_new"]]
     bs_pairs = [p for p in pairs if not p["bs_missing_old"] and not p["bs_missing_new"]]
+    # Joint pairs: all 4 cells present (ws old, ws new, bs old, bs new). This
+    # is the set used for skill-lift shift so old and new lifts share a
+    # denominator and are directly comparable.
+    joint_pairs = [
+        p
+        for p in pairs
+        if not p["ws_missing_old"]
+        and not p["ws_missing_new"]
+        and not p["bs_missing_old"]
+        and not p["bs_missing_new"]
+    ]
     n_ws = len(ws_pairs)
     n_bs = len(bs_pairs)
 
@@ -306,6 +799,7 @@ def write_headline_diff_json(
         "missing_cells": _missing_cell_summary(pairs),
         "ws_full_pass": _full_pass_block(ws_pairs, "ws_pass_old", "ws_pass_new", n_ws, n),
         "bs_full_pass": _full_pass_block(bs_pairs, "bs_pass_old", "bs_pass_new", n_bs, n),
+        "skill_lift": _skill_lift_block(joint_pairs, n_overlap=n),
         "ws_expectations": _expectation_block(ws_pairs, "ws", ws_rubric_sensitive),
         "bs_expectations": _expectation_block(bs_pairs, "bs", bs_rubric_sensitive),
         "ws_transition_table": _transition_table(ws_transitions),
@@ -573,10 +1067,20 @@ def _full_pass_block(
             "delta_pp": 0.0,
             "complete": False,
         }
-    old_pass = sum(1 for p in pairs if p[pass_old_key])
-    new_pass = sum(1 for p in pairs if p[pass_new_key])
+    old_vec = [int(bool(p[pass_old_key])) for p in pairs]
+    new_vec = [int(bool(p[pass_new_key])) for p in pairs]
+    old_pass = sum(old_vec)
+    new_pass = sum(new_vec)
     old_rate = round(100 * old_pass / n_with_data, 2)
     new_rate = round(100 * new_pass / n_with_data, 2)
+    # Paired bootstrap CIs: resample evals with replacement, recompute the
+    # rate or delta on the resampled set. Useful at full-run scale; flagged
+    # underpowered when n_with_data < 25.
+    old_ci = _bootstrap_paired_ci(old_vec, old_vec, lambda a, _b: sum(a) / n_with_data)
+    new_ci = _bootstrap_paired_ci(new_vec, new_vec, lambda a, _b: sum(a) / n_with_data)
+    delta_ci = _bootstrap_paired_ci(
+        old_vec, new_vec, lambda o, n: (sum(n) - sum(o)) / n_with_data
+    )
     return {
         "old": old_pass,
         "new": new_pass,
@@ -585,6 +1089,10 @@ def _full_pass_block(
         "old_rate": old_rate,
         "new_rate": new_rate,
         "delta_pp": round(new_rate - old_rate, 2),
+        "old_rate_ci95": [round(100 * old_ci[0], 2), round(100 * old_ci[1], 2)],
+        "new_rate_ci95": [round(100 * new_ci[0], 2), round(100 * new_ci[1], 2)],
+        "delta_pp_ci95": [round(100 * delta_ci[0], 2), round(100 * delta_ci[1], 2)],
+        "underpowered": n_with_data < 25,
         "complete": n_with_data == n_overlap,
     }
 
@@ -596,6 +1104,141 @@ def _missing_cell_summary(pairs: list[PerEvalPair]) -> dict:
         "bs_missing_old_eval_ids": [p["eval_id"] for p in pairs if p["bs_missing_old"]],
         "bs_missing_new_eval_ids": [p["eval_id"] for p in pairs if p["bs_missing_new"]],
     }
+
+
+def _skill_lift_block(joint_pairs: list[PerEvalPair], n_overlap: int) -> dict:
+    """Skill-lift = ws_pass_rate - bs_pass_rate, computed at old vs new on the joint set.
+
+    Joint set = overlap evals where all 4 cells (ws_old, ws_new, bs_old,
+    bs_new) are present, so old and new lifts share a denominator and the
+    delta is directly comparable. Bootstrap 95% CIs (1000 paired
+    resamples, deterministic seed) accompany each rate and the delta;
+    they are exact when n_joint is large and approximate-but-honest when
+    small. The delta_pp answers the comparison's central question: did
+    the skill help differently between commits?
+    """
+    n = len(joint_pairs)
+    if n == 0:
+        return {
+            "n_joint": 0,
+            "n_overlap": n_overlap,
+            "complete": False,
+            "old_pp": 0.0,
+            "new_pp": 0.0,
+            "delta_pp": 0.0,
+            "note": "n_joint=0; no overlap eval has all 4 cells present.",
+        }
+    ws_old = [int(p["ws_pass_old"]) for p in joint_pairs]
+    bs_old = [int(p["bs_pass_old"]) for p in joint_pairs]
+    ws_new = [int(p["ws_pass_new"]) for p in joint_pairs]
+    bs_new = [int(p["bs_pass_new"]) for p in joint_pairs]
+    ws_pass_old = sum(ws_old)
+    bs_pass_old = sum(bs_old)
+    ws_pass_new = sum(ws_new)
+    bs_pass_new = sum(bs_new)
+    old_pp = 100 * (ws_pass_old - bs_pass_old) / n
+    new_pp = 100 * (ws_pass_new - bs_pass_new) / n
+    delta_pp = new_pp - old_pp
+
+    old_lift_ci = _bootstrap_paired_ci(
+        ws_old, bs_old, lambda ws, bs: (sum(ws) - sum(bs)) / n
+    )
+    new_lift_ci = _bootstrap_paired_ci(
+        ws_new, bs_new, lambda ws, bs: (sum(ws) - sum(bs)) / n
+    )
+    delta_ci = _bootstrap_skill_lift_delta_ci(joint_pairs)
+
+    return {
+        "n_joint": n,
+        "n_overlap": n_overlap,
+        "complete": n == n_overlap,
+        "ws_pass_old": ws_pass_old,
+        "bs_pass_old": bs_pass_old,
+        "ws_pass_new": ws_pass_new,
+        "bs_pass_new": bs_pass_new,
+        "old_pp": round(old_pp, 2),
+        "new_pp": round(new_pp, 2),
+        "delta_pp": round(delta_pp, 2),
+        "old_pp_ci95": [round(100 * old_lift_ci[0], 2), round(100 * old_lift_ci[1], 2)],
+        "new_pp_ci95": [round(100 * new_lift_ci[0], 2), round(100 * new_lift_ci[1], 2)],
+        "delta_pp_ci95": [round(100 * delta_ci[0], 2), round(100 * delta_ci[1], 2)],
+        "underpowered": n < 25,
+        "note": (
+            "skill_lift_pp = (ws_pass_rate - bs_pass_rate) at the run, on the "
+            "joint set where all 4 cells are present. delta_pp is the shift "
+            "in skill lift between commits. CIs are 95% percentile "
+            "bootstrap (1000 paired resamples, seed=0); treat as approximate "
+            "when n_joint < 25."
+        ),
+    }
+
+
+def _bootstrap_paired_ci(
+    a: list[int],
+    b: list[int],
+    statistic,
+    *,
+    n_resamples: int = 1000,
+    confidence: float = 0.95,
+) -> tuple[float, float]:
+    """Percentile bootstrap CI for a paired statistic over (a, b).
+
+    Resamples eval indices with replacement (preserving the (a[i], b[i])
+    pairing), recomputes the statistic, returns (low, high) percentiles.
+    Deterministic seed so the JSON output is reproducible.
+    """
+    import random  # local import keeps unrelated callers cheap
+
+    n = len(a)
+    if n == 0:
+        return (0.0, 0.0)
+    rng = random.Random(0)
+    samples = []
+    for _ in range(n_resamples):
+        idx = [rng.randrange(n) for _ in range(n)]
+        sa = [a[i] for i in idx]
+        sb = [b[i] for i in idx]
+        samples.append(statistic(sa, sb))
+    samples.sort()
+    alpha = (1 - confidence) / 2
+    lo_idx = max(0, int(round(alpha * n_resamples)) - 1)
+    hi_idx = min(n_resamples - 1, int(round((1 - alpha) * n_resamples)) - 1)
+    return (samples[lo_idx], samples[hi_idx])
+
+
+def _bootstrap_skill_lift_delta_ci(
+    joint_pairs: list[PerEvalPair],
+    *,
+    n_resamples: int = 1000,
+    confidence: float = 0.95,
+) -> tuple[float, float]:
+    """Percentile bootstrap CI for the skill-lift delta on the joint set.
+
+    Resamples eval indices with replacement, then recomputes both old and
+    new skill-lift on the same resampled indices and reports the delta.
+    Pairing across all 4 cells is preserved per resample.
+    """
+    import random
+
+    n = len(joint_pairs)
+    if n == 0:
+        return (0.0, 0.0)
+    ws_old = [int(p["ws_pass_old"]) for p in joint_pairs]
+    bs_old = [int(p["bs_pass_old"]) for p in joint_pairs]
+    ws_new = [int(p["ws_pass_new"]) for p in joint_pairs]
+    bs_new = [int(p["bs_pass_new"]) for p in joint_pairs]
+    rng = random.Random(0)
+    samples = []
+    for _ in range(n_resamples):
+        idx = [rng.randrange(n) for _ in range(n)]
+        old_lift = (sum(ws_old[i] for i in idx) - sum(bs_old[i] for i in idx)) / n
+        new_lift = (sum(ws_new[i] for i in idx) - sum(bs_new[i] for i in idx)) / n
+        samples.append(new_lift - old_lift)
+    samples.sort()
+    alpha = (1 - confidence) / 2
+    lo_idx = max(0, int(round(alpha * n_resamples)) - 1)
+    hi_idx = min(n_resamples - 1, int(round((1 - alpha) * n_resamples)) - 1)
+    return (samples[lo_idx], samples[hi_idx])
 
 
 def _transition_table(transitions: Counter) -> dict[str, int]:
@@ -931,6 +1574,13 @@ def _write_comparison_index_md(
     """
     n = overlap["n_overlap"]
     underpowered = n < 25
+    # Subset-rerun: when the new run is markedly smaller than the old run,
+    # the comparison is verification of *those specific evals*, not a claim
+    # about global skill quality. Threshold matches the round-d shape (16/130).
+    is_subset_rerun = (
+        overlap["new_total"] > 0
+        and overlap["new_total"] < 0.5 * overlap["old_total"]
+    )
     lines = [
         f"# Comparison: {old['run_id']} → {new['run_id']}",
         "",
@@ -946,6 +1596,52 @@ def _write_comparison_index_md(
         lines.append(f"- old_only eval_ids ({len(overlap['old_only'])}): not in new run")
     if overlap["new_only"]:
         lines.append(f"- new_only eval_ids ({len(overlap['new_only'])}): not in old run")
+    if is_subset_rerun:
+        lines.extend(
+            [
+                "",
+                f"> ⚠ Subset rerun: the new run covers {overlap['new_total']} of "
+                f"{overlap['old_total']} old-run evals. Treat this comparison as "
+                "**verification of the targeted evals**, not a claim about global "
+                "skill quality. Use the parent run's full summary for headline numbers.",
+            ]
+        )
+    # Provenance summary: surface causal drift (skill / src / model /
+    # harness / prompt template / evals catalog) up front so movement
+    # isn't accidentally attributed to skill changes when something else
+    # also changed. round_label / skill_branch are label-only and tracked
+    # separately so they don't trigger attribution warnings.
+    causal_keys = (
+        "skill_commit_at_sweep_end",
+        "spyglass_src_commit",
+        "model",
+        "harness",
+        "dispatch_prompt_template",
+        "evals_catalog_semantic_sha256",
+    )
+    drifted = [
+        field
+        for field in causal_keys
+        if old["provenance"].get(field) and new["provenance"].get(field)
+        and old["provenance"][field] != new["provenance"][field]
+    ]
+    metadata_drifted = [
+        field
+        for field in ("round_label", "skill_branch")
+        if old["provenance"].get(field) and new["provenance"].get(field)
+        and old["provenance"][field] != new["provenance"][field]
+    ]
+    lines.extend(["", f"- causal provenance dimensions changed: **{len(drifted)}**"])
+    if drifted:
+        lines.append(
+            f"  - {', '.join(drifted)} — see [`data/provenance_diff.json`](data/provenance_diff.json)"
+        )
+    else:
+        lines.append("  - none — see [`data/provenance_diff.json`](data/provenance_diff.json)")
+    if metadata_drifted:
+        lines.append(
+            f"- metadata-only differences (do not undermine attribution): {', '.join(metadata_drifted)}"
+        )
     lines.extend(
         [
             "",

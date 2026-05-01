@@ -12,6 +12,7 @@ are subsets of prior full runs.
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
 import shutil
@@ -25,6 +26,7 @@ from _eval_io import (
     load_eval_categories_from_run,
     load_expected_refs_from_catalog,
     load_expected_scripts_from_catalog,
+    load_per_eval_duration_s,
     load_per_eval_timing,
 )
 from _schemas import EvalCategories, ExpectedResources, TranscriptRecord
@@ -41,12 +43,14 @@ class RunBundle(TypedDict):
     batch_order: list[int]
     benchmarks: dict[int, dict]
     timing: dict[tuple[int, int, str], int]
+    duration: dict[tuple[int, int, str], float]
     categories: EvalCategories
     per_eval: dict[int, dict]  # eval_id -> per-eval row (last batch wins)
     failure_taxonomy: dict[int, dict[str, str]]
     edit_to_evals: dict[str, list[int]]
     has_transcripts: bool
     skill_commit: str | None
+    provenance: dict[str, str]
 
 
 class OverlapAudit(TypedDict):
@@ -89,6 +93,10 @@ class PerEvalPair(TypedDict):
     tokens_ws_new: int | None
     tokens_bs_old: int | None
     tokens_bs_new: int | None
+    duration_ws_old: float | None
+    duration_ws_new: float | None
+    duration_bs_old: float | None
+    duration_bs_new: float | None
     outcome_old: str
     outcome_new: str
     ws_transition: Transition | None
@@ -112,6 +120,7 @@ def load_run_bundle(run_dir: Path) -> RunBundle:
         raise SystemExit(f"No iteration-N/ dirs found under {run_dir}")
     benchmarks = load_benchmarks(run_dir, batch_order)
     timing = load_per_eval_timing(run_dir, batch_order)
+    duration = load_per_eval_duration_s(run_dir, batch_order)
     categories = load_eval_categories_from_run(run_dir, batch_order)
     per_eval = _flatten_per_eval(benchmarks)
     run_meta = _load_run_meta(run_dir)
@@ -121,6 +130,7 @@ def load_run_bundle(run_dir: Path) -> RunBundle:
         "batch_order": batch_order,
         "benchmarks": benchmarks,
         "timing": timing,
+        "duration": duration,
         "categories": categories,
         "per_eval": per_eval,
         "failure_taxonomy": _load_failure_taxonomy(run_dir),
@@ -128,6 +138,7 @@ def load_run_bundle(run_dir: Path) -> RunBundle:
         "has_transcripts": _has_transcripts(run_dir),
         "skill_commit": run_meta.get("skill_commit_at_sweep_end")
         or run_meta.get("skill_commit_at_sweep_start"),
+        "provenance": _provenance_block(run_dir, run_meta),
     }
 
 
@@ -219,10 +230,14 @@ def build_per_eval_pairs(
             "ws_rubric_changed": ws_rubric_changed,
             "bs_rubric_changed": bs_rubric_changed,
             "rubric_changed": ws_rubric_changed or bs_rubric_changed,
-            "tokens_ws_old": _sum_tokens(old["timing"], eid, "with_skill"),
-            "tokens_ws_new": _sum_tokens(new["timing"], eid, "with_skill"),
-            "tokens_bs_old": _sum_tokens(old["timing"], eid, "without_skill"),
-            "tokens_bs_new": _sum_tokens(new["timing"], eid, "without_skill"),
+            "tokens_ws_old": _sum_numeric(old["timing"], eid, "with_skill"),
+            "tokens_ws_new": _sum_numeric(new["timing"], eid, "with_skill"),
+            "tokens_bs_old": _sum_numeric(old["timing"], eid, "without_skill"),
+            "tokens_bs_new": _sum_numeric(new["timing"], eid, "without_skill"),
+            "duration_ws_old": _sum_numeric(old["duration"], eid, "with_skill"),
+            "duration_ws_new": _sum_numeric(new["duration"], eid, "with_skill"),
+            "duration_bs_old": _sum_numeric(old["duration"], eid, "without_skill"),
+            "duration_bs_new": _sum_numeric(new["duration"], eid, "without_skill"),
             "outcome_old": outcome_old,
             "outcome_new": outcome_new,
             "ws_transition": ws_transition,
@@ -319,10 +334,14 @@ def _has_transcripts(run_dir: Path) -> bool:
     return snap.is_dir() and any(snap.iterdir())
 
 
-def _sum_tokens(
-    timing: dict[tuple[int, int, str], int], eid: int, cond: str
-) -> int | None:
-    matches = [v for (_, e, c), v in timing.items() if e == eid and c == cond]
+def _sum_numeric(table, eid: int, cond: str):
+    """Sum the cells of a (batch, eval_id, cond) -> numeric table for one (eid, cond).
+
+    Used for both tokens (int) and duration (float). Returns None when no
+    cell exists for the given (eid, cond) so missing-data flows through as
+    a blank rather than zero. Numeric type matches the input.
+    """
+    matches = [v for (_, e, c), v in table.items() if e == eid and c == cond]
     return sum(matches) if matches else None
 
 
@@ -368,6 +387,179 @@ def _interpret_regression(
     if rubric_changed:
         return "rubric_drift"
     return "content_regression"
+
+
+def _provenance_block(run_dir: Path, run_meta: dict) -> dict[str, str]:
+    """Pull comparable provenance fields from run.json + evals snapshot.
+
+    Captures the dimensions that drive cross-run drift in skill quality
+    measurements: skill commit, upstream Spyglass src commit, model,
+    dispatch-prompt template, harness, plus two evals-catalog hashes:
+
+    - ``evals_catalog_semantic_sha256``: hash of a canonical normalized
+      representation of the catalog that ignores wrapper / formatting noise
+      (``source`` field, key order, whitespace) and only covers the semantic
+      fields per eval (id, name, stage/tier/difficulty, expectations,
+      expected_refs, expected_scripts). This is the **causal** dimension —
+      it changes only when actual eval content changes.
+    - ``evals_snapshot_sha256_raw``: hash of the raw snapshot bytes. Useful
+      for forensics but tagged metadata-only because reformatting / source
+      path changes flip it without changing what was measured.
+
+    Empty string when a field is absent on a given run.
+    """
+    keys = (
+        "skill_commit_at_sweep_start",
+        "skill_commit_at_sweep_end",
+        "skill_branch",
+        "spyglass_src_commit",
+        "model",
+        "harness",
+        "dispatch_prompt_template",
+        "round_label",
+    )
+    # Normalize null / missing to empty string so a run.json with `"key": null`
+    # is treated as "absent" rather than the literal string "None". Without
+    # this, a missing field on one side reads as a drift against a present
+    # value on the other side.
+    out: dict[str, str] = {}
+    for key in keys:
+        value = run_meta.get(key)
+        out[key] = "" if value is None else str(value)
+    out["evals_catalog_semantic_sha256"] = _evals_catalog_semantic_hash(run_dir)
+    out["evals_snapshot_sha256_raw"] = _evals_snapshot_raw_hash(run_dir)
+    return out
+
+
+_SEMANTIC_SCALAR_FIELDS: tuple[str, ...] = (
+    "name",
+    "eval_name",
+    "stage",
+    "tier",
+    "difficulty",
+    "prompt",
+    "expected_output",
+)
+_SEMANTIC_LIST_FIELDS: tuple[str, ...] = ("assertions", "files")
+_SEMANTIC_RESOURCE_FIELDS: tuple[str, ...] = ("expected_refs", "expected_scripts")
+
+
+def _evals_catalog_semantic_hash(run_dir: Path) -> str:
+    """sha256 of a canonical normalized representation of the eval catalog.
+
+    Stable under wrapper / formatting changes: ignores the snapshot's
+    ``source`` field, key order, and whitespace. Hashes every semantic
+    per-eval field — id, scalar text fields (name, eval_name, stage, tier,
+    difficulty, prompt, expected_output), list fields (assertions, files),
+    expectations, and the expected_refs / expected_scripts blocks. This is
+    the hash that should drive the causal_changed flag in
+    provenance_diff.json — drift here means an actual eval was added,
+    removed, or had its content edited.
+    """
+    catalog = _load_run_catalog(run_dir)
+    if catalog is None:
+        return ""
+    canonical = [_canonical_eval(e) for e in catalog if _eval_id(e) is not None]
+    canonical.sort(key=lambda e: e["id"])
+    payload = json.dumps(
+        canonical, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
+
+
+def _eval_id(entry: object) -> int | None:
+    if not isinstance(entry, dict):
+        return None
+    try:
+        return int(entry["id"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _canonical_eval(entry: dict) -> dict:
+    """Normalize one eval entry to its semantic payload, sorted/canonical."""
+    norm: dict = {"id": _eval_id(entry)}
+    for field in _SEMANTIC_SCALAR_FIELDS:
+        norm[field] = entry.get(field, "") if entry.get(field) is not None else ""
+    for field in _SEMANTIC_LIST_FIELDS:
+        value = entry.get(field) or []
+        norm[field] = _canonical_list(value)
+    norm["expectations"] = _canonical_expectations(entry.get("expectations") or [])
+    for field in _SEMANTIC_RESOURCE_FIELDS:
+        norm[field] = _canonical_resource_block(entry.get(field))
+    return norm
+
+
+def _canonical_list(values: object) -> list:
+    """Normalize a list-of-strings (or list-of-dicts) field for hashing/diffing."""
+    if not isinstance(values, list):
+        return []
+    out = []
+    for v in values:
+        if isinstance(v, dict):
+            out.append({k: v[k] for k in sorted(v)})
+        else:
+            out.append(str(v))
+    out.sort(key=lambda x: json.dumps(x, sort_keys=True, ensure_ascii=False))
+    return out
+
+
+def _canonical_expectations(expectations: list) -> list:
+    """Normalize a list of expectation rows: sort by stable text representation."""
+    norm = []
+    for exp in expectations:
+        if isinstance(exp, dict):
+            # sort_keys is applied later, but a dict comparison wants a stable
+            # repr for sorting; use the JSON form.
+            norm.append({k: exp[k] for k in sorted(exp)})
+        else:
+            norm.append({"_repr": repr(exp)})
+    return sorted(norm, key=lambda d: json.dumps(d, sort_keys=True, ensure_ascii=False))
+
+
+def _canonical_resource_block(block: object) -> dict:
+    """Normalize a {required, optional, distractor} resource block."""
+    if not isinstance(block, dict):
+        return {"required": [], "optional": [], "distractor": []}
+    return {
+        slot: sorted(str(v) for v in (block.get(slot) or []))
+        for slot in ("required", "optional", "distractor")
+    }
+
+
+def _load_run_catalog(run_dir: Path) -> list[dict] | None:
+    """Read the run-local evals_snapshot.json and return its evals list, or None."""
+    for candidate in (
+        run_dir / "evals_snapshot.json",
+        run_dir / "summary" / "data" / "evals_snapshot.json",
+    ):
+        if candidate.is_file():
+            try:
+                payload = json.loads(candidate.read_text())
+            except (json.JSONDecodeError, OSError):
+                return None
+            evals = payload.get("evals")
+            if isinstance(evals, list):
+                return evals
+            return None
+    return None
+
+
+def _evals_snapshot_raw_hash(run_dir: Path) -> str:
+    """sha256 of the raw bytes of the run-local evals_snapshot.json.
+
+    Returns "" if no snapshot exists on this run. Hashing raw bytes (not
+    parsed JSON) so a reformatted-but-content-equal file still hashes
+    differently — useful for forensics but **does not** drive causal_changed
+    because reformatting / source path changes are not real eval drift.
+    """
+    for candidate in (
+        run_dir / "evals_snapshot.json",
+        run_dir / "summary" / "data" / "evals_snapshot.json",
+    ):
+        if candidate.is_file():
+            return hashlib.sha256(candidate.read_bytes()).hexdigest()[:12]
+    return ""
 
 
 def load_routing_records(bundle: RunBundle) -> dict[tuple[int, str], TranscriptRecord]:
@@ -425,3 +617,24 @@ def load_expected_resources(bundle: RunBundle) -> tuple[ExpectedResources, Expec
         load_expected_refs_from_catalog(catalog),
         load_expected_scripts_from_catalog(catalog),
     )
+
+
+def load_eval_catalog(bundle: RunBundle) -> dict[int, dict]:
+    """Load a run's evals_snapshot.json keyed by eval id.
+
+    Returns ``{}`` if the run has no snapshot (older runs predate the
+    snapshot convention; comparison should still proceed but catalog_diff
+    will note the missing inputs).
+    """
+    fallback = bundle["run_dir"] / "_unused_evals.json"
+    try:
+        catalog, _, _ = load_eval_catalog_for_run(bundle["run_dir"], fallback)
+    except FileNotFoundError:
+        return {}
+    out: dict[int, dict] = {}
+    for entry in catalog:
+        try:
+            out[int(entry["id"])] = entry
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out

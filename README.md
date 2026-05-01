@@ -178,15 +178,37 @@ uv run python3 tools/compare_runs.py \
 
 Outputs are staged through `.data_tmp/` / `.figures_tmp/` / `.INDEX.tmp` and committed atomically alongside an `INDEX.md` and a `comparison_manifest.json`. A failed run leaves committed outputs untouched and removes the staging dirs.
 
-**Read order for a comparison:**
+**Each comparison output answers one question, mirroring the within-run `q*` pattern:**
 
-1. **[`INDEX.md`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/INDEX.md)** — generated guide. The header reports `n_overlap`, both skill commits, and a sample-size caveat (`underpowered` when `n_overlap < 25`). Outputs are grouped by primary / secondary / appendix priority.
-2. **[`overlap.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/overlap.json)** — confirm exactly which eval_ids are in the overlap and which are old-only / new-only. Guards against accidentally comparing full-old to subset-new.
-3. **[`transitions.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/transitions.csv)** — one row per overlap eval. The `regression_interpretation` column separates `rubric_friction` (annotator-labeled) from `rubric_drift` (counts changed but no annotation) from `content_regression` (rubric stable). The `ws_rubric_changed` / `bs_rubric_changed` columns are per-condition; a baseline-only rubric change does not make a with-skill regression look rubric-sensitive.
-4. **[`headline_diff.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/headline_diff.json)** — overlap-only ws/bs full-pass shift, expectation deltas with per-condition `rubric_sensitive` flags, and a McNemar p-value tagged `diagnostic_only: true` with `underpowered: true` when `n_discordant < 25`. The transition table is the headline; the p-value is suggestive only.
-5. **[`outcome_2x2_shift.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/outcome_2x2_shift.json) / [`c03`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c03_outcome_flow.png)** — 4-cell counts at old vs new plus a 4x4 flow matrix showing where evals moved between buckets.
-6. **Targeted reruns** (round-D-style): set `run.json["subset"]["edit_to_evals"]` to declare which evals each edit was meant to verify. The comparison emits [`targeted_edits_long.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/targeted_edits_long.csv) (many-to-many — one eval can appear under multiple edits) and [`targeted_edits_summary.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/targeted_edits_summary.csv) with per-edit transition + rubric counts. [`c04`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c04_targeted_edits.png) renders the summary.
-7. **Cost and routing** are secondary: [`cost_shift.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/cost_shift.csv) carries per-condition `*_pair_complete` flags so figures don't silently mix complete and partial timing; [`routing_shift.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/routing_shift.csv) is gated on transcripts being present in both runs. [`c06`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c06_routing_shift.png) shows ws ref-recall and script-recall deltas using `required_opened / max(required_total, 1)` per the routing definitions in [`_compare_writers.py`](tools/_compare_writers.py).
+| # | Question | Output |
+| --- | --- | --- |
+| — | Are we comparing the same evals? | [`overlap.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/overlap.json) |
+| — | Did anything else drift between runs? | [`provenance_diff.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/provenance_diff.json) |
+| — | What changed in the eval catalog? | [`catalog_diff.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/catalog_diff.json) |
+| c01 | Did the headline improve? | [`c01_did_the_headline_improve.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c01_did_the_headline_improve.png) + [`headline_diff.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/headline_diff.json) |
+| c02 | Did outcomes move per eval? | [`c02_did_outcomes_move_per_eval.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c02_did_outcomes_move_per_eval.png) + [`transitions.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/transitions.csv) |
+| c03 | Where did evals move in the 2x2 outcome space? | [`c03_where_did_evals_move_in_2x2.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c03_where_did_evals_move_in_2x2.png) + [`outcome_2x2_shift.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/outcome_2x2_shift.json) |
+| c04 | Did targeted edits explain the movement? | [`c04_did_targeted_edits_explain_movement.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c04_did_targeted_edits_explain_movement.png) + [`targeted_edits_summary.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/targeted_edits_summary.csv) |
+| c05 | Did improvements cost more? | [`c05_did_improvements_cost_more.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c05_did_improvements_cost_more.png) + [`cost_shift.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/cost_shift.csv) |
+| c06 | Did routing change? | [`c06_did_routing_change.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c06_did_routing_change.png) + [`routing_shift.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/routing_shift.csv) |
+| c07 | Where does category-level pass rate drift? | [`c07_where_does_category_drift.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c07_where_does_category_drift.png) + [`category_shift.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/category_shift.csv) |
+| c08 | Did the skill help differently between commits? | [`c08_did_skill_lift_change.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c08_did_skill_lift_change.png) + `headline_diff.json::skill_lift` |
+| — | Which regressions need a manual review? | [`regression_review.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/regression_review.csv) |
+
+**Recommended read order:**
+
+1. **`INDEX.md`** for the auto-generated headline (n_overlap, skill commits, provenance drift count, subset-rerun caveat when applicable).
+2. **`overlap.json`** to confirm what was actually compared. Guards against silently comparing full-old to subset-new.
+3. **`provenance_diff.json`** — `causal_changed=true` is the attribution warning: when true, at least one of skill / src / model / harness / prompt template / evals catalog differs and headline shifts cannot be cleanly attributed to skill changes alone. `metadata_changed=true` flags label-only differences (round_label / skill_branch) and is informational only.
+4. **`catalog_diff.json`** — required when `provenance_diff.json` reports the causal `evals_catalog_semantic_sha256` drifted: shows the actual added/removed evals plus per-eval field-level changes (name, eval_name, stage, tier, difficulty, prompt, expected_output, expectation count + text, assertions, files, expected refs/scripts). The `evals_snapshot_sha256_raw` field is kept as forensic metadata only — it flips on snapshot reformatting / source-path noise that doesn't change what was measured.
+5. **`transitions.csv`** for per-eval moves. The `regression_interpretation` column separates `rubric_friction` (annotator-labeled) from `rubric_drift` (rubric counts changed) from `content_regression` (rubric stable). `ws_rubric_changed` / `bs_rubric_changed` are per-condition.
+6. **`headline_diff.json`** for the overlap-only shift; the `skill_lift` block (rendered as `c08`) is the named answer to "did the skill help differently between commits?" — old skill-lift, new skill-lift, and the delta with 95% bootstrap CIs. McNemar p is `diagnostic_only` when `n_discordant < 25`.
+7. **`c03` / `outcome_2x2_shift.json`** to see the 4-cell flow.
+8. **`c04` / `targeted_edits_summary.csv`** for targeted reruns (when the new run declares `subset.edit_to_evals` in `run.json`). Many-to-many: one eval can appear under multiple edits.
+9. **`c07` / `category_shift.csv`** for stage × tier drift — answers "did stage X improve while tier Y regressed?". Includes per-stage and per-tier rollups.
+10. **`c05` / `cost_shift.csv`** for token + duration deltas split by `ws_transition`. Pair-completeness flags keep partial timing out of aggregates.
+11. **`c06` / `routing_shift.csv`** for required-ref and required-script recall deltas (ws). Gated on transcripts being present in both runs.
+12. **`regression_review.csv`** as the drill-down: one row per ws regression or rubric_friction stable_fail, with paths to the old/new `response.md` and `grading.json` so reviewers can open both side-by-side.
 
 **Key design choices** (verified against the round-D vs round-C overlap):
 

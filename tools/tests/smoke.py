@@ -419,7 +419,27 @@ def _build_compare_run(
             )
             tokens = timing_by_eid_cond.get((eid, cond))
             if tokens is not None:
-                write_json(eval_dir / cond / "timing.json", {"total_tokens": tokens})
+                # Synthetic duration: tokens / 100 seconds, deterministic.
+                write_json(
+                    eval_dir / cond / "timing.json",
+                    {
+                        "total_tokens": tokens,
+                        "total_duration_seconds": tokens / 100.0,
+                    },
+                )
+            # Minimal response.md + grading.json so regression_review.csv can
+            # link to per-condition artifacts.
+            response = eval_dir / cond / "outputs" / "response.md"
+            response.parent.mkdir(parents=True, exist_ok=True)
+            response.write_text(f"synthetic response for eval {eid} {cond}\n")
+            write_json(
+                eval_dir / cond / "grading.json",
+                {
+                    "eval_id": eid,
+                    "all_passed": r["all_passed"],
+                    "expectations": [],
+                },
+            )
     if failure_taxonomy:
         path = run_dir / "summary/data/failure_taxonomy.csv"
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -434,9 +454,12 @@ def _build_compare_run(
                 writer.writerow(row)
 
     if eval_catalog is not None:
+        # Use a fixed source string (not run-dir-dependent) so two
+        # runs with identical catalogs produce byte-identical snapshots
+        # — exercises the provenance hash's stability guarantee.
         write_json(
             run_dir / "evals_snapshot.json",
-            {"source": str(run_dir / "evals_snapshot.json"), "evals": eval_catalog},
+            {"source": "synthetic://eval-catalog", "evals": eval_catalog},
         )
 
     if transcripts:
@@ -534,6 +557,30 @@ def _smoke_compare_runs(base: Path) -> None:
         # Eval 4 has no required refs/scripts -> has_required_refs=false.
         {"id": 4, "name": "delta", "stage": "pipeline-usage", "tier": "joins", "difficulty": "easy"},
     ]
+    # New-run catalog differs from old on multiple semantic dimensions to
+    # exercise the broader catalog_diff coverage:
+    #   - eval 2: difficulty easy -> hard
+    #   - eval 3: prompt edited (silent prompt-change case)
+    #   - eval 6: added in new run only
+    # Old-run catalog adds prompt/assertions to evals 1-3 so the diff has
+    # something concrete to detect.
+    for entry in eval_catalog:
+        entry.setdefault("prompt", f"baseline prompt for {entry['name']}")
+        entry.setdefault("assertions", [f"assertion-{entry['id']}-a"])
+    new_eval_catalog = [dict(e) for e in eval_catalog]
+    new_eval_catalog[1] = {**eval_catalog[1], "difficulty": "hard"}
+    new_eval_catalog[2] = {**eval_catalog[2], "prompt": "edited prompt for eval 3"}
+    new_eval_catalog.append(
+        {
+            "id": 6,
+            "name": "zeta",
+            "stage": "pipeline-usage",
+            "tier": "joins",
+            "difficulty": "easy",
+            "prompt": "new eval prompt",
+            "assertions": ["assertion-6-a"],
+        }
+    )
     # Old transcripts: eval 1 ws/bs both find ref + script; eval 2 ws fails to
     # open required ref; eval 3 ws/bs both find ref + script; eval 4 ws has a
     # transcript with no resources used.
@@ -626,7 +673,7 @@ def _smoke_compare_runs(base: Path) -> None:
             {"eval_id": "3", "failure_type": "rubric_friction", "notes": ""},
             {"eval_id": "4", "failure_type": "rubric_friction", "notes": ""},
         ],
-        eval_catalog=eval_catalog,
+        eval_catalog=new_eval_catalog,
         transcripts=new_transcripts,
     )
 
@@ -656,6 +703,8 @@ def _smoke_compare_runs(base: Path) -> None:
         "INDEX.md",
         "data/comparison_manifest.json",
         "data/overlap.json",
+        "data/provenance_diff.json",
+        "data/catalog_diff.json",
         "data/headline_diff.json",
         "data/transitions.csv",
         "data/targeted_edits_long.csv",
@@ -663,12 +712,16 @@ def _smoke_compare_runs(base: Path) -> None:
         "data/outcome_2x2_shift.json",
         "data/cost_shift.csv",
         "data/routing_shift.csv",
-        "figures/c01_headline_shift.png",
-        "figures/c02_per_eval_transitions.png",
-        "figures/c03_outcome_flow.png",
-        "figures/c04_targeted_edits.png",
-        "figures/c05_cost_shift_by_transition.png",
-        "figures/c06_routing_shift.png",
+        "data/category_shift.csv",
+        "data/regression_review.csv",
+        "figures/c01_did_the_headline_improve.png",
+        "figures/c02_did_outcomes_move_per_eval.png",
+        "figures/c03_where_did_evals_move_in_2x2.png",
+        "figures/c04_did_targeted_edits_explain_movement.png",
+        "figures/c05_did_improvements_cost_more.png",
+        "figures/c06_did_routing_change.png",
+        "figures/c07_where_does_category_drift.png",
+        "figures/c08_did_skill_lift_change.png",
     ]
     missing = [name for name in required if not (out / name).exists()]
     if missing:
@@ -869,8 +922,8 @@ def _smoke_compare_runs(base: Path) -> None:
         "data/transitions.csv",
         "data/cost_shift.csv",
         "data/routing_shift.csv",
-        "figures/c01_headline_shift.png",
-        "figures/c06_routing_shift.png",
+        "figures/c01_did_the_headline_improve.png",
+        "figures/c06_did_routing_change.png",
     ):
         if required_entry not in by_filename:
             raise AssertionError(
@@ -893,9 +946,75 @@ def _smoke_compare_runs(base: Path) -> None:
         raise AssertionError(f"INDEX.md missing n_overlap header:\n{index_text[:400]}")
     if "underpowered" not in index_text:
         raise AssertionError("INDEX.md missing underpowered caveat for n=4")
-    for link in ("data/overlap.json", "data/transitions.csv", "figures/c01_headline_shift.png"):
+    for link in ("data/overlap.json", "data/transitions.csv", "figures/c01_did_the_headline_improve.png"):
         if f"({link})" not in index_text:
             raise AssertionError(f"INDEX.md missing link to {link}")
+
+    # skill_lift block in headline_diff.json: joint set has 3 evals (eval 4
+    # is excluded because bs_new is missing). On those 3 joint evals:
+    #   ws_pass_old = eval 1 + eval 3 = 2;  bs_pass_old = eval 1 = 1
+    #   ws_pass_new = eval 1 + eval 2 = 2;  bs_pass_new = eval 1 = 1
+    # Both lifts equal +1/3, so delta_pp ≈ 0.
+    headline_full = json.loads((out / "data/headline_diff.json").read_text())
+    lift = headline_full["skill_lift"]
+    if lift["n_joint"] != 3:
+        raise AssertionError(f"skill_lift n_joint should be 3: {lift}")
+    if lift["complete"]:
+        raise AssertionError(
+            f"skill_lift.complete should be false (eval 4 excluded): {lift}"
+        )
+    if lift["ws_pass_old"] != 2 or lift["bs_pass_old"] != 1:
+        raise AssertionError(f"skill_lift old counts wrong: {lift}")
+    if lift["ws_pass_new"] != 2 or lift["bs_pass_new"] != 1:
+        raise AssertionError(f"skill_lift new counts wrong: {lift}")
+    if abs(lift["delta_pp"]) > 0.5:
+        raise AssertionError(
+            f"skill_lift delta should be ~0 (both lifts equal +33.3pp): {lift}"
+        )
+    if not lift["underpowered"]:
+        raise AssertionError("skill_lift should flag underpowered (n_joint=3 < 25)")
+    for ci_key in ("old_pp_ci95", "new_pp_ci95", "delta_pp_ci95"):
+        ci = lift[ci_key]
+        if not (isinstance(ci, list) and len(ci) == 2 and ci[0] <= ci[1]):
+            raise AssertionError(f"skill_lift {ci_key} should be a 2-list lo<=hi: {ci}")
+
+    # ws_full_pass and bs_full_pass should now carry CI lists too.
+    ws_fp = headline_full["ws_full_pass"]
+    if "old_rate_ci95" not in ws_fp or "delta_pp_ci95" not in ws_fp:
+        raise AssertionError(
+            f"ws_full_pass should carry bootstrap CI keys: {sorted(ws_fp)}"
+        )
+
+    # catalog_diff.json: eval 2 difficulty changed, eval 3 prompt edited,
+    # eval 6 added. Verifies the broader semantic field coverage (prompt is
+    # one of the "silent edit" fields the previous version missed).
+    catalog_diff = json.loads((out / "data/catalog_diff.json").read_text())
+    if catalog_diff["n_added"] != 1 or catalog_diff["added_eval_ids"] != [6]:
+        raise AssertionError(f"catalog_diff added wrong: {catalog_diff}")
+    if catalog_diff["n_removed"] != 0:
+        raise AssertionError(f"catalog_diff removed should be 0: {catalog_diff}")
+    if catalog_diff["n_changed"] != 2:
+        raise AssertionError(f"catalog_diff should have 2 changed evals: {catalog_diff}")
+    by_id = {ce["eval_id"]: ce for ce in catalog_diff["changed_evals"]}
+    if 2 not in by_id or 3 not in by_id:
+        raise AssertionError(f"changed evals should include 2 and 3: {by_id.keys()}")
+    eval2_diff = by_id[2]
+    if "difficulty" not in eval2_diff["fields_changed"]:
+        raise AssertionError(
+            f"eval 2 difficulty change should be detected: {eval2_diff}"
+        )
+    if eval2_diff.get("difficulty_old") != "easy" or eval2_diff.get("difficulty_new") != "hard":
+        raise AssertionError(
+            f"eval 2 difficulty old/new wrong: {eval2_diff}"
+        )
+    eval3_diff = by_id[3]
+    if "prompt" not in eval3_diff["fields_changed"]:
+        raise AssertionError(
+            f"eval 3 prompt edit should be detected (silent-prompt-change case): "
+            f"{eval3_diff}"
+        )
+    if eval3_diff.get("prompt_new") != "edited prompt for eval 3":
+        raise AssertionError(f"eval 3 prompt_new wrong: {eval3_diff}")
 
     # Many-to-many: eval 2 should appear under both edit_a and edit_b.
     with (out / "data/targeted_edits_long.csv").open(newline="") as f:
@@ -903,6 +1022,117 @@ def _smoke_compare_runs(base: Path) -> None:
     eval2_edits = sorted(r["edit_id"] for r in long_rows if r["eval_id"] == "2")
     if eval2_edits != ["edit_a", "edit_b"]:
         raise AssertionError(f"eval 2 should appear under both edits: {eval2_edits}")
+
+    # provenance_diff.json: skill commits differ between synthetic fixtures
+    # (`sha-old-run` vs `sha-new-run`) so causal_changed should be true and
+    # the skill_commit_at_sweep_end field should be flagged changed and
+    # tagged kind="causal". metadata_changed will be true because the
+    # *raw* snapshot hash drifts (catalogs differ on eval 2 difficulty +
+    # eval 6, both real edits — but the raw bytes hash is metadata-only;
+    # the causal signal lives in evals_catalog_semantic_sha256).
+    prov = json.loads((out / "data/provenance_diff.json").read_text())
+    if not prov["causal_changed"]:
+        raise AssertionError(
+            f"provenance_diff should flag causal_changed=true on synthetic fixture: {prov}"
+        )
+    if "any_changed" in prov:
+        raise AssertionError(
+            "provenance_diff should not emit a back-compat any_changed key"
+        )
+    skill_field = prov["fields"]["skill_commit_at_sweep_end"]
+    if (
+        not skill_field["changed"]
+        or skill_field["old"] == skill_field["new"]
+        or skill_field.get("kind") != "causal"
+    ):
+        raise AssertionError(
+            f"skill_commit_at_sweep_end should be flagged changed/causal: {skill_field}"
+        )
+    # evals_catalog_semantic_sha256: synthetic new run differs from old
+    # (eval 2 difficulty bumped, eval 6 added) so the *semantic* hash MUST
+    # be flagged changed and tagged kind="causal". catalog_diff.json
+    # (asserted below) explains what specifically moved. The raw bytes
+    # hash also differs, but it is tagged metadata-only so it does not
+    # contribute to causal_changed.
+    semantic_field = prov["fields"]["evals_catalog_semantic_sha256"]
+    if not semantic_field["changed"] or semantic_field.get("kind") != "causal":
+        raise AssertionError(
+            f"evals_catalog_semantic_sha256 should be flagged changed/causal "
+            f"on real eval drift: {semantic_field}"
+        )
+    raw_field = prov["fields"]["evals_snapshot_sha256_raw"]
+    if raw_field.get("kind") != "metadata":
+        raise AssertionError(
+            f"evals_snapshot_sha256_raw should be tagged metadata: {raw_field}"
+        )
+    # Fields that are absent on both runs (e.g. spyglass_src_commit, model)
+    # must NOT be flagged changed even though the writer normalizes None to
+    # "" — guards against the "None" stringification false positive.
+    src = prov["fields"]["spyglass_src_commit"]
+    if src["changed"] or src["old"] == "None" or src["new"] == "None":
+        raise AssertionError(
+            f"spyglass_src_commit (absent on synthetic fixture) should be empty/unchanged: {src}"
+        )
+
+    # cost_shift.csv duration columns: eval 2 ws timing went 1100 -> 1500
+    # tokens, so duration went 11.0s -> 15.0s for a +4.0s delta.
+    # Eval 1 ws timing is missing on new -> duration_pair_complete=false too.
+    eval2_cost = cost_by_id[2]
+    if (
+        eval2_cost["ws_duration_pair_complete"] != "true"
+        or float(eval2_cost["duration_delta_ws"]) != 4.0
+    ):
+        raise AssertionError(f"eval 2 ws duration delta should be +4.0s: {eval2_cost}")
+    eval1_cost = cost_by_id[1]
+    if eval1_cost["ws_duration_pair_complete"] != "false":
+        raise AssertionError(f"eval 1 ws duration should be incomplete: {eval1_cost}")
+
+    # category_shift.csv: 4 overlap evals all under (pipeline-usage, joins).
+    # Expect 1 cell row + 1 stage rollup + 1 tier rollup + 1 overall = 4 rows.
+    with (out / "data/category_shift.csv").open(newline="") as f:
+        cat_rows = list(csv.DictReader(f))
+    cells = [r for r in cat_rows if r["scope"] == "cell"]
+    rollups = [r for r in cat_rows if r["scope"] == "rollup"]
+    if len(cells) != 1 or cells[0]["stage"] != "pipeline-usage" or cells[0]["tier"] != "joins":
+        raise AssertionError(f"unexpected category cells: {cells}")
+    if int(cells[0]["n_evals"]) != 4:
+        raise AssertionError(f"category cell should cover 4 evals: {cells[0]}")
+    overall = next((r for r in rollups if r["stage"] == "*" and r["tier"] == "*"), None)
+    if overall is None or int(overall["n_evals"]) != 4:
+        raise AssertionError(f"overall rollup missing or wrong: {overall}")
+    # ws_pass_old=2 (evals 1, 3 with ws_pass_old=true), ws_pass_new=2 (evals 1, 2),
+    # so ws_delta_pp should be 0 even though individual evals moved.
+    if float(overall["ws_pass_old"]) != 2 or float(overall["ws_pass_new"]) != 2:
+        raise AssertionError(f"overall ws pass counts wrong: {overall}")
+
+    # regression_review.csv: eval 3 (regressed, rubric_friction) + eval 4
+    # (failure_type_new=rubric_friction, stable_fail) = 2 rows. Eval 2 is
+    # improved, eval 1 is stable_pass — neither should appear.
+    with (out / "data/regression_review.csv").open(newline="") as f:
+        review_rows = list(csv.DictReader(f))
+    review_ids = sorted(int(r["eval_id"]) for r in review_rows)
+    if review_ids != [3, 4]:
+        raise AssertionError(
+            f"regression_review should cover only evals 3 and 4: {review_ids}"
+        )
+    eval3_review = next(r for r in review_rows if int(r["eval_id"]) == 3)
+    if eval3_review["ws_transition"] != "regressed":
+        raise AssertionError(f"eval 3 review row wrong transition: {eval3_review}")
+    if not eval3_review["new_response_path"] or not eval3_review["old_response_path"]:
+        raise AssertionError(
+            f"eval 3 review row should have both response paths: {eval3_review}"
+        )
+
+    # INDEX.md: provenance summary line should always be present; the
+    # subset-rerun warning should *not* fire here because old=5 and new=5
+    # are equal-sized (the warning needs new < 0.5 * old). Round-D vs
+    # round-C real-data exercises the warning path separately.
+    if "causal provenance dimensions changed" not in index_text:
+        raise AssertionError("INDEX.md missing causal-provenance summary line")
+    if "Subset rerun" in index_text:
+        raise AssertionError(
+            "INDEX.md should NOT warn about subset rerun on equal-sized synthetic runs"
+        )
 
     # Failed comparison should not corrupt existing committed outputs.
     sentinel_data = out / "data/headline_diff.json"

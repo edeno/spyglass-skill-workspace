@@ -16,26 +16,33 @@ import shutil
 from pathlib import Path
 
 from _compare_figures import (
+    plot_category_shift,
     plot_cost_shift_by_transition,
     plot_headline_shift,
     plot_outcome_flow,
     plot_per_eval_transitions,
     plot_routing_shift,
+    plot_skill_lift_change,
     plot_targeted_edits,
 )
 from _compare_io import (
     build_per_eval_pairs,
     compute_overlap,
+    load_eval_catalog,
     load_expected_resources,
     load_routing_records,
     load_run_bundle,
 )
 from _compare_writers import (
+    write_catalog_diff_json,
+    write_category_shift_csv,
     write_comparison_manifest_json,
     write_cost_shift_csv,
     write_headline_diff_json,
     write_outcome_2x2_shift_json,
     write_overlap_json,
+    write_provenance_diff_json,
+    write_regression_review_csv,
     write_routing_shift_csv,
     write_targeted_edits_csvs,
     write_transitions_csv,
@@ -91,11 +98,15 @@ def main() -> None:
         pairs = build_per_eval_pairs(old, new, overlap)
 
         write_overlap_json(staged_data, overlap)
+        write_provenance_diff_json(staged_data, old, new)
+        write_catalog_diff_json(staged_data, load_eval_catalog(old), load_eval_catalog(new))
         write_headline_diff_json(staged_data, overlap, pairs, old, new)
         write_transitions_csv(staged_data, pairs)
         write_targeted_edits_csvs(staged_data, pairs, new["edit_to_evals"])
         write_outcome_2x2_shift_json(staged_data, pairs)
         write_cost_shift_csv(staged_data, pairs)
+        write_category_shift_csv(staged_data, pairs)
+        write_regression_review_csv(staged_data, pairs, old, new)
 
         # Routing shift: gated on both runs having transcripts. Expected
         # resources sourced from the new run's evals_snapshot.json (the
@@ -123,6 +134,8 @@ def main() -> None:
         plot_targeted_edits(staged_figures, staged_data)
         plot_cost_shift_by_transition(staged_figures, staged_data)
         plot_routing_shift(staged_figures, staged_data)
+        plot_category_shift(staged_figures, staged_data)
+        plot_skill_lift_change(staged_figures, staged_data)
 
         # Manifest + INDEX.md must be written last so they enumerate every
         # staged output. Both are committed atomically alongside data/ and

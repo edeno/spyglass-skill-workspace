@@ -85,6 +85,38 @@ def load_per_eval_timing(
     return out
 
 
+def load_per_eval_duration_s(
+    workspace: Path, batch_order: list[int]
+) -> dict[tuple[int, int, str], float]:
+    """Map (batch, eval_id, condition) -> duration in seconds from timing.json.
+
+    Prefers ``total_duration_seconds`` (round-d shape); falls back to
+    ``duration_ms`` / 1000 for older runs. Cells without either field are
+    omitted, matching the existing token loader's ``no row when missing``
+    contract.
+    """
+    out: dict[tuple[int, int, str], float] = {}
+    for i in batch_order:
+        for eval_dir in (workspace / f"iteration-{i}").glob("eval-*"):
+            try:
+                eid = int(eval_dir.name.split("-")[1])
+            except (IndexError, ValueError):
+                continue
+            for cond in ("with_skill", "without_skill"):
+                tp = eval_dir / cond / "timing.json"
+                if not tp.is_file():
+                    continue
+                try:
+                    obj = json.loads(tp.read_text())
+                except (json.JSONDecodeError, OSError):
+                    continue
+                if "total_duration_seconds" in obj:
+                    out[(i, eid, cond)] = float(obj["total_duration_seconds"])
+                elif "duration_ms" in obj:
+                    out[(i, eid, cond)] = float(obj["duration_ms"]) / 1000.0
+    return out
+
+
 def load_expected_refs(evals_path: Path) -> ExpectedResources:
     """Read optional `expected_refs` annotations from evals.json."""
     return load_expected_refs_from_catalog(load_eval_catalog(evals_path))

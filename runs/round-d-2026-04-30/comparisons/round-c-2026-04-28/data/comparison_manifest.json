@@ -162,6 +162,20 @@
       "classification_source": "override"
     },
     {
+      "filename": "data/catalog_diff.json",
+      "family": "audit",
+      "priority": "primary",
+      "purpose": "Per-eval diff of evals_snapshot.json: added/removed evals plus field-level changes for name / eval_name / stage / tier / difficulty / prompt / expected_output / expectations / assertions / files / expected_refs / expected_scripts. Required reading when provenance_diff shows the causal evals_catalog_semantic_sha256 drifted.",
+      "classification_source": "override"
+    },
+    {
+      "filename": "data/category_shift.csv",
+      "family": "category",
+      "priority": "secondary",
+      "purpose": "Per-(stage, tier) ws + bs full-pass rates and ws transition counts at old vs new with rollups. Answers 'did stage X improve while tier Y regressed?'",
+      "classification_source": "override"
+    },
+    {
       "filename": "data/comparison_manifest.json",
       "family": "audit",
       "priority": "primary",
@@ -197,6 +211,20 @@
       "classification_source": "override"
     },
     {
+      "filename": "data/provenance_diff.json",
+      "family": "audit",
+      "priority": "primary",
+      "purpose": "Skill / src / model / harness / prompt-template / evals-catalog drift between runs. causal_changed=true is the attribution warning; metadata_changed=true flags label-only differences (round_label / skill_branch) that do not undermine attribution.",
+      "classification_source": "override"
+    },
+    {
+      "filename": "data/regression_review.csv",
+      "family": "fix_priority",
+      "priority": "primary",
+      "purpose": "Drill-down for ws regressions and rubric_friction stable_fails: paths to old/new response.md and grading.json so reviewers can open both side-by-side.",
+      "classification_source": "override"
+    },
+    {
       "filename": "data/routing_shift.csv",
       "family": "routing",
       "priority": "secondary",
@@ -225,45 +253,59 @@
       "classification_source": "override"
     },
     {
-      "filename": "figures/c01_headline_shift.png",
+      "filename": "figures/c01_did_the_headline_improve.png",
       "family": "headline",
       "priority": "primary",
       "purpose": "Paired ws/bs full-pass bars at old vs new with overlap-n callout.",
       "classification_source": "override"
     },
     {
-      "filename": "figures/c02_per_eval_transitions.png",
+      "filename": "figures/c02_did_outcomes_move_per_eval.png",
       "family": "transitions",
       "priority": "primary",
       "purpose": "Per-overlap-eval ws transition strip, hatched on ws_rubric_changed.",
       "classification_source": "override"
     },
     {
-      "filename": "figures/c03_outcome_flow.png",
+      "filename": "figures/c03_where_did_evals_move_in_2x2.png",
       "family": "outcome_flow",
       "priority": "primary",
       "purpose": "Sankey-lite flow from old outcome buckets to new outcome buckets.",
       "classification_source": "override"
     },
     {
-      "filename": "figures/c04_targeted_edits.png",
+      "filename": "figures/c04_did_targeted_edits_explain_movement.png",
       "family": "targeted_edits",
       "priority": "primary",
       "purpose": "Per-edit_id outcome counts on overlap evals; hatched red marks rubric_friction.",
       "classification_source": "override"
     },
     {
-      "filename": "figures/c05_cost_shift_by_transition.png",
+      "filename": "figures/c05_did_improvements_cost_more.png",
       "family": "cost",
       "priority": "secondary",
       "purpose": "ws token delta per overlap eval, split by ws_transition. Excluded buckets are labeled in a footer rather than rendered as 'no evals'.",
       "classification_source": "override"
     },
     {
-      "filename": "figures/c06_routing_shift.png",
+      "filename": "figures/c06_did_routing_change.png",
       "family": "routing",
       "priority": "secondary",
       "purpose": "Two stacked bar panels: ws required-ref recall delta and required-script recall delta.",
+      "classification_source": "override"
+    },
+    {
+      "filename": "figures/c07_where_does_category_drift.png",
+      "family": "category",
+      "priority": "secondary",
+      "purpose": "Heatmap of ws full-pass rate delta by stage x tier; n/a cells indicate no overlap evals with both ws cells present.",
+      "classification_source": "override"
+    },
+    {
+      "filename": "figures/c08_did_skill_lift_change.png",
+      "family": "headline",
+      "priority": "primary",
+      "purpose": "Skill-lift (ws_pass_rate - bs_pass_rate) at old vs new with the delta and 95% bootstrap CIs. Headline answer to 'did the skill help differently between commits?'",
       "classification_source": "override"
     }
   ]

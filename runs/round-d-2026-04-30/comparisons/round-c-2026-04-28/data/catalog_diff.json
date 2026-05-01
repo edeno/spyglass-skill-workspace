@@ -1,0 +1,14 @@
+{
+  "old_catalog_loaded": true,
+  "new_catalog_loaded": true,
+  "old_evals_total": 130,
+  "new_evals_total": 130,
+  "n_added": 0,
+  "n_removed": 0,
+  "n_changed": 0,
+  "n_unchanged": 130,
+  "added_eval_ids": [],
+  "removed_eval_ids": [],
+  "changed_evals": [],
+  "note": "Per-eval diff of evals_snapshot.json. fields_changed lists the field names that differ between old and new; the *_old and *_new keys carry the actual values for each. expectations_count tracks rubric-size changes; expectations_text_changed indicates any expectation text differs (rubric content edits)."
+}
