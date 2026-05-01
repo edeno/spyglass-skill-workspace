@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import csv
 import json
 import shutil
 from collections import Counter, defaultdict
@@ -26,6 +25,8 @@ from _schemas import (
     TranscriptRecord,
 )
 from _transcripts import TRACKED_SCRIPT_ROLES, TRACKED_SCRIPTS, write_transcript_stats
+from _util import read_csv as _util_read_csv
+from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 
 _UNCONFIGURED = Path("/__not_configured__")
 OUT: Path = _UNCONFIGURED
@@ -35,6 +36,10 @@ DATA: Path = _UNCONFIGURED
 WORKSPACE: Path = _UNCONFIGURED
 BATCH_ORDER: list[int] = []
 BATCH_LABELS: dict[int, str] = {}
+
+_DIVERGING_CMAP = LinearSegmentedColormap.from_list(
+    "wong_delta", [WONG["delta_neg"], "#F7F7F7", WONG["delta_pos"]]
+)
 
 
 def configure_figures(
@@ -553,8 +558,15 @@ def plot_difficulty_x_stage_heatmap(
                 delta[i, j] = 100 * (ws_p - bs_p) / n
 
     fig, ax = plt.subplots(figsize=(8, 9), constrained_layout=True)
-    cmap = plt.cm.RdYlGn
-    im = ax.imshow(delta, cmap=cmap, vmin=-50, vmax=100, aspect="auto")
+    abs_max = max(25.0, float(np.nanmax(np.abs(delta))) if np.isfinite(delta).any() else 25.0)
+    cmap = _DIVERGING_CMAP.copy()
+    cmap.set_bad("#E6E6E6")
+    im = ax.imshow(
+        delta,
+        cmap=cmap,
+        norm=TwoSlopeNorm(vmin=-abs_max, vcenter=0.0, vmax=abs_max),
+        aspect="auto",
+    )
     ax.set_xticks(np.arange(len(diff_order)))
     ax.set_xticklabels(diff_order, fontsize=11)
     ax.set_yticks(np.arange(len(stage_order)))
@@ -568,7 +580,7 @@ def plot_difficulty_x_stage_heatmap(
                 )
             else:
                 d = delta[i, j]
-                color = "white" if d < -10 or d > 50 else "black"
+                color = "white" if abs(d) > 0.6 * abs_max else "black"
                 ax.text(
                     j,
                     i,
@@ -988,11 +1000,7 @@ def unlink_figure(name: str) -> None:
 
 
 def _read_csv(name: str) -> list[dict[str, str]]:
-    path = data_path(name)
-    if not path.exists():
-        return []
-    with path.open(newline="") as f:
-        return list(csv.DictReader(f))
+    return _util_read_csv(data_path(name))
 
 
 def _split_items(cell: str) -> list[str]:
@@ -1016,7 +1024,7 @@ def plot_reference_effectiveness() -> None:
 
     fig, ax = plt.subplots(figsize=(11, 9), constrained_layout=True)
     y = np.arange(len(refs))
-    cmap = plt.cm.RdYlGn
+    cmap = plt.cm.get_cmap("cividis")
     bars = ax.barh(y, loads, color=[cmap(r / 100) for r in rates], edgecolor="white")
     for i, (bar, rate, n_pass, n_fail) in enumerate(
         zip(bars, rates, passed, failed, strict=True)
@@ -1346,8 +1354,8 @@ def plot_reference_expected_used() -> None:
     by_key = {(r["reference"], r["status"]): r for r in rows}
     fig, axes = plt.subplots(1, 2, figsize=(13, max(4, len(refs) * 0.4)), constrained_layout=True)
     for ax, metric, title, cmap in [
-        (axes[0], "discoverability", "discoverability (used / expected)", "Greens"),
-        (axes[1], "effectiveness", "pass rate when expected ref was used", "RdYlGn"),
+        (axes[0], "discoverability", "discoverability (used / expected)", "Blues"),
+        (axes[1], "effectiveness", "pass rate when expected ref was used", "cividis"),
     ]:
         matrix = np.full((len(refs), len(statuses)), np.nan)
         sizes = np.zeros((len(refs), len(statuses)), dtype=int)

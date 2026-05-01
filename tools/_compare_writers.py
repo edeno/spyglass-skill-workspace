@@ -23,8 +23,6 @@ both flags plus a combined `any` so consumers can pick the granularity they need
 
 from __future__ import annotations
 
-import csv
-import io
 import json
 from collections import Counter
 from collections.abc import Mapping
@@ -32,9 +30,16 @@ from pathlib import Path
 
 from _aggregations import exact_mcnemar_p
 from _compare_io import OverlapAudit, PerEvalPair, RunBundle
-from _schemas import ExpectedResources, TranscriptRecord
-
-_OUTCOME_BUCKETS = ("both_pass", "skill_only", "baseline_only", "both_fail")
+from _schemas import (
+    INTENT_VOCAB,
+    REGRESSION_ROOT_CAUSES,
+    ExpectedResources,
+    TranscriptRecord,
+)
+from _schemas import (
+    OUTCOME_BUCKETS as _OUTCOME_BUCKETS,
+)
+from _util import write_csv as _write_csv
 
 # (family, priority, purpose) for each comparison output. New writers/figures
 # should add entries here; anything missing falls back to appendix priority
@@ -594,17 +599,7 @@ def _expectation_text(expectation: object) -> str:
     return repr(expectation)
 
 
-_INTENT_ORDER = (
-    "should_trigger",
-    "should_not_trigger",
-    "near_miss_negative",
-    "destructive_operation_caution",
-    "setup",
-    "ingestion",
-    "debugging",
-    "custom_pipeline_authoring",
-    "unknown",
-)
+_INTENT_ORDER = INTENT_VOCAB
 
 
 def write_intent_balance_csv(
@@ -942,17 +937,7 @@ def write_regression_root_cause_csv(
         "n_review_items": len(rows),
         "n_ws_regressions": n_ws_regressions,
         "n_rubric_friction_stable_fail": n_rubric_friction_stable_fail,
-        "buckets": {
-            bucket: summary.get(bucket, 0)
-            for bucket in (
-                "rubric",
-                "routing",
-                "source_selection",
-                "tooling",
-                "synthesis",
-                "unknown",
-            )
-        },
+        "buckets": {bucket: summary.get(bucket, 0) for bucket in REGRESSION_ROOT_CAUSES},
         "note": (
             "n_review_items is the size of the review queue: ws regressions "
             "(ws_transition=regressed) plus rubric_friction stable_fails. "
@@ -1672,13 +1657,15 @@ def _skill_lift_block(joint_pairs: list[PerEvalPair], n_overlap: int) -> dict:
     new_pp = 100 * (ws_pass_new - bs_pass_new) / n
     delta_pp = new_pp - old_pp
 
-    old_lift_ci = _bootstrap_paired_ci(
-        ws_old, bs_old, lambda ws, bs: (sum(ws) - sum(bs)) / n
+    def lift(idx, vec_w, vec_b):
+        return (sum(vec_w[i] for i in idx) - sum(vec_b[i] for i in idx)) / n
+
+    old_lift_ci = _bootstrap_ci(n, lambda idx: lift(idx, ws_old, bs_old))
+    new_lift_ci = _bootstrap_ci(n, lambda idx: lift(idx, ws_new, bs_new))
+    delta_ci = _bootstrap_ci(
+        n,
+        lambda idx: lift(idx, ws_new, bs_new) - lift(idx, ws_old, bs_old),
     )
-    new_lift_ci = _bootstrap_paired_ci(
-        ws_new, bs_new, lambda ws, bs: (sum(ws) - sum(bs)) / n
-    )
-    delta_ci = _bootstrap_skill_lift_delta_ci(joint_pairs)
 
     return {
         "n_joint": n,
@@ -1705,72 +1692,39 @@ def _skill_lift_block(joint_pairs: list[PerEvalPair], n_overlap: int) -> dict:
     }
 
 
-def _bootstrap_paired_ci(
-    a: list[int],
-    b: list[int],
+def _bootstrap_ci(
+    n: int,
     statistic,
     *,
     n_resamples: int = 1000,
     confidence: float = 0.95,
+    seed: int = 0,
 ) -> tuple[float, float]:
-    """Percentile bootstrap CI for a paired statistic over (a, b).
+    """Percentile bootstrap CI: resample n indices and apply ``statistic(idx)``.
 
-    Resamples eval indices with replacement (preserving the (a[i], b[i])
-    pairing), recomputes the statistic, returns (low, high) percentiles.
-    Deterministic seed so the JSON output is reproducible.
+    Caller pre-extracts the vectors it needs (typically lists of pass-fail
+    ints) and provides a callback that takes the resampled index list and
+    returns the per-sample statistic. This single helper subsumes the
+    paired-pair and four-vector skill-lift cases and keeps a deterministic
+    seed so the emitted CIs are reproducible.
     """
+    if n == 0:
+        return (0.0, 0.0)
     import random  # local import keeps unrelated callers cheap
 
+    rng = random.Random(seed)
+    samples = [statistic([rng.randrange(n) for _ in range(n)]) for _ in range(n_resamples)]
+    samples.sort()
+    alpha = (1 - confidence) / 2
+    lo_idx = max(0, int(round(alpha * n_resamples)) - 1)
+    hi_idx = min(n_resamples - 1, int(round((1 - alpha) * n_resamples)) - 1)
+    return (samples[lo_idx], samples[hi_idx])
+
+
+def _bootstrap_paired_ci(a: list[int], b: list[int], statistic) -> tuple[float, float]:
+    """Wrapper for paired (a, b) bootstraps using `_bootstrap_ci`."""
     n = len(a)
-    if n == 0:
-        return (0.0, 0.0)
-    rng = random.Random(0)
-    samples = []
-    for _ in range(n_resamples):
-        idx = [rng.randrange(n) for _ in range(n)]
-        sa = [a[i] for i in idx]
-        sb = [b[i] for i in idx]
-        samples.append(statistic(sa, sb))
-    samples.sort()
-    alpha = (1 - confidence) / 2
-    lo_idx = max(0, int(round(alpha * n_resamples)) - 1)
-    hi_idx = min(n_resamples - 1, int(round((1 - alpha) * n_resamples)) - 1)
-    return (samples[lo_idx], samples[hi_idx])
-
-
-def _bootstrap_skill_lift_delta_ci(
-    joint_pairs: list[PerEvalPair],
-    *,
-    n_resamples: int = 1000,
-    confidence: float = 0.95,
-) -> tuple[float, float]:
-    """Percentile bootstrap CI for the skill-lift delta on the joint set.
-
-    Resamples eval indices with replacement, then recomputes both old and
-    new skill-lift on the same resampled indices and reports the delta.
-    Pairing across all 4 cells is preserved per resample.
-    """
-    import random
-
-    n = len(joint_pairs)
-    if n == 0:
-        return (0.0, 0.0)
-    ws_old = [int(p["ws_pass_old"]) for p in joint_pairs]
-    bs_old = [int(p["bs_pass_old"]) for p in joint_pairs]
-    ws_new = [int(p["ws_pass_new"]) for p in joint_pairs]
-    bs_new = [int(p["bs_pass_new"]) for p in joint_pairs]
-    rng = random.Random(0)
-    samples = []
-    for _ in range(n_resamples):
-        idx = [rng.randrange(n) for _ in range(n)]
-        old_lift = (sum(ws_old[i] for i in idx) - sum(bs_old[i] for i in idx)) / n
-        new_lift = (sum(ws_new[i] for i in idx) - sum(bs_new[i] for i in idx)) / n
-        samples.append(new_lift - old_lift)
-    samples.sort()
-    alpha = (1 - confidence) / 2
-    lo_idx = max(0, int(round(alpha * n_resamples)) - 1)
-    hi_idx = min(n_resamples - 1, int(round((1 - alpha) * n_resamples)) - 1)
-    return (samples[lo_idx], samples[hi_idx])
+    return _bootstrap_ci(n, lambda idx: statistic([a[i] for i in idx], [b[i] for i in idx]))
 
 
 def _transition_table(transitions: Counter) -> dict[str, int]:
@@ -1783,9 +1737,14 @@ def _transition_table(transitions: Counter) -> dict[str, int]:
 
 
 def _run_block(run: RunBundle) -> dict:
+    prov = run["provenance"]
     return {
         "run_id": run["run_id"],
-        "skill_commit": run["skill_commit"],
+        "skill_commit": (
+            prov.get("skill_commit_at_sweep_end")
+            or prov.get("skill_commit_at_sweep_start")
+            or None
+        ),
         "has_transcripts": run["has_transcripts"],
         "n_evals_total": len(run["per_eval"]),
     }
@@ -1852,13 +1811,6 @@ def _maybe_int(value) -> int | str:
     return "" if value is None else value
 
 
-def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, object]]) -> None:
-    buf = io.StringIO()
-    writer = csv.DictWriter(buf, fieldnames=fieldnames, lineterminator="\n")
-    writer.writeheader()
-    for row in rows:
-        writer.writerow(row)
-    path.write_text(buf.getvalue())
 
 
 def write_routing_shift_csv(
@@ -1953,22 +1905,22 @@ def write_routing_shift_csv(
                     "n_required_refs": len(ref_block["required"]),
                     "n_optional_refs": len(ref_block["optional"]),
                     "has_required_refs": _b(bool(ref_block["required"])),
-                    "required_ref_recall_old": _fmt_recall(ref_old, "recall"),
-                    "required_ref_recall_new": _fmt_recall(ref_new, "recall"),
+                    "required_ref_recall_old": _fmt_metric(ref_old, "recall"),
+                    "required_ref_recall_new": _fmt_metric(ref_new, "recall"),
                     "required_ref_recall_delta": _fmt_delta(ref_old, ref_new, "recall"),
-                    "unexpected_ref_count_old": _fmt_count(ref_old, "unexpected"),
-                    "unexpected_ref_count_new": _fmt_count(ref_new, "unexpected"),
+                    "unexpected_ref_count_old": _fmt_metric(ref_old, "unexpected"),
+                    "unexpected_ref_count_new": _fmt_metric(ref_new, "unexpected"),
                     "unexpected_ref_count_delta": _fmt_delta(ref_old, ref_new, "unexpected"),
                     "n_required_scripts": len(script_block["required"]),
                     "n_optional_scripts": len(script_block["optional"]),
                     "has_required_scripts": _b(bool(script_block["required"])),
-                    "required_script_recall_old": _fmt_recall(script_old, "recall"),
-                    "required_script_recall_new": _fmt_recall(script_new, "recall"),
+                    "required_script_recall_old": _fmt_metric(script_old, "recall"),
+                    "required_script_recall_new": _fmt_metric(script_new, "recall"),
                     "required_script_recall_delta": _fmt_delta(
                         script_old, script_new, "recall"
                     ),
-                    "unexpected_script_count_old": _fmt_count(script_old, "unexpected"),
-                    "unexpected_script_count_new": _fmt_count(script_new, "unexpected"),
+                    "unexpected_script_count_old": _fmt_metric(script_old, "unexpected"),
+                    "unexpected_script_count_new": _fmt_metric(script_new, "unexpected"),
                     "unexpected_script_count_delta": _fmt_delta(
                         script_old, script_new, "unexpected"
                     ),
@@ -2007,16 +1959,9 @@ def _routing_metrics(
     }
 
 
-def _fmt_recall(metrics: dict | None, key: str) -> object:
-    if metrics is None:
-        return ""
-    return metrics[key]
-
-
-def _fmt_count(metrics: dict | None, key: str) -> object:
-    if metrics is None:
-        return ""
-    return metrics[key]
+def _fmt_metric(metrics: dict | None, key: str) -> object:
+    """Return ``metrics[key]`` or empty string when ``metrics`` is None."""
+    return "" if metrics is None else metrics[key]
 
 
 def _fmt_delta(old: dict | None, new: dict | None, key: str) -> object:
@@ -2113,12 +2058,14 @@ def _write_comparison_index_md(
         overlap["new_total"] > 0
         and overlap["new_total"] < 0.5 * overlap["old_total"]
     )
+    old_skill = _run_block(old)["skill_commit"]
+    new_skill = _run_block(new)["skill_commit"]
     lines = [
         f"# Comparison: {old['run_id']} → {new['run_id']}",
         "",
-        f"- old_run: `{old['run_id']}` (skill_commit `{old['skill_commit']}`, "
+        f"- old_run: `{old['run_id']}` (skill_commit `{old_skill}`, "
         f"n_evals={overlap['old_total']})",
-        f"- new_run: `{new['run_id']}` (skill_commit `{new['skill_commit']}`, "
+        f"- new_run: `{new['run_id']}` (skill_commit `{new_skill}`, "
         f"n_evals={overlap['new_total']})",
         f"- n_overlap: **{n}**"
         + ("  *(underpowered for global significance; treat headline McNemar p as diagnostic only)*"

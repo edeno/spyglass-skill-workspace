@@ -44,12 +44,22 @@ class RunBundle(TypedDict):
     benchmarks: dict[int, dict]
     timing: dict[tuple[int, int, str], int]
     duration: dict[tuple[int, int, str], float]
+    # Pre-bucketed timing / duration so per-eval lookups stay O(1) instead
+    # of scanning the full table per call.
+    timing_by_eid_cond: dict[tuple[int, str], list[int]]
+    duration_by_eid_cond: dict[tuple[int, str], list[float]]
     categories: EvalCategories
     per_eval: dict[int, dict]  # eval_id -> per-eval row (last batch wins)
+    # eval_id -> snapshot entry, parsed once. Empty if the run has no
+    # evals_snapshot.json. Used by build_per_eval_pairs (intent),
+    # write_catalog_diff_json, and the semantic-hash helper so the
+    # snapshot is parsed at most once per run.
+    catalog: dict[int, dict]
+    # Raw bytes hash of the snapshot file (forensic, metadata-only); the
+    # semantic hash lives in `provenance["evals_catalog_semantic_sha256"]`.
     failure_taxonomy: dict[int, dict[str, str]]
     edit_to_evals: dict[str, list[int]]
     has_transcripts: bool
-    skill_commit: str | None
     provenance: dict[str, str]
 
 
@@ -125,6 +135,7 @@ def load_run_bundle(run_dir: Path) -> RunBundle:
     categories = load_eval_categories_from_run(run_dir, batch_order)
     per_eval = _flatten_per_eval(benchmarks)
     run_meta = _load_run_meta(run_dir)
+    catalog = _load_run_catalog_dict(run_dir)
     return {
         "run_dir": run_dir,
         "run_id": run_meta.get("run_id") or run_dir.name,
@@ -132,15 +143,29 @@ def load_run_bundle(run_dir: Path) -> RunBundle:
         "benchmarks": benchmarks,
         "timing": timing,
         "duration": duration,
+        "timing_by_eid_cond": _bucket_by_eid_cond(timing),
+        "duration_by_eid_cond": _bucket_by_eid_cond(duration),
         "categories": categories,
         "per_eval": per_eval,
+        "catalog": catalog,
         "failure_taxonomy": _load_failure_taxonomy(run_dir),
         "edit_to_evals": _load_edit_to_evals(run_meta),
         "has_transcripts": _has_transcripts(run_dir),
-        "skill_commit": run_meta.get("skill_commit_at_sweep_end")
-        or run_meta.get("skill_commit_at_sweep_start"),
-        "provenance": _provenance_block(run_dir, run_meta),
+        "provenance": _provenance_block(run_dir, run_meta, catalog),
     }
+
+
+def _bucket_by_eid_cond(table):
+    """Pre-bucket a (batch, eval_id, cond) -> value table by (eval_id, cond).
+
+    Lets `_sum_numeric` look up an eval's tokens or duration in O(1)
+    instead of scanning the whole table per call. Same return shape works
+    for ints (timing) and floats (duration).
+    """
+    out: dict[tuple[int, str], list] = {}
+    for (_, eid, cond), value in table.items():
+        out.setdefault((eid, cond), []).append(value)
+    return out
 
 
 def compute_overlap(old: RunBundle, new: RunBundle) -> OverlapAudit:
@@ -170,9 +195,9 @@ def build_per_eval_pairs(
     """
     # Catalog-sourced metadata (intent and any future per-eval annotations)
     # comes from the run's evals_snapshot, not the per-dispatch
-    # eval_metadata.json. Prefer the new run's catalog; fall back to old.
-    new_catalog = load_eval_catalog(new)
-    old_catalog = load_eval_catalog(old)
+    # eval_metadata.json. Already cached on each bundle by load_run_bundle.
+    new_catalog = new["catalog"]
+    old_catalog = old["catalog"]
     pairs: list[PerEvalPair] = []
     for eid in overlap["overlap_eval_ids"]:
         old_row = old["per_eval"][eid]
@@ -239,14 +264,14 @@ def build_per_eval_pairs(
             "ws_rubric_changed": ws_rubric_changed,
             "bs_rubric_changed": bs_rubric_changed,
             "rubric_changed": ws_rubric_changed or bs_rubric_changed,
-            "tokens_ws_old": _sum_numeric(old["timing"], eid, "with_skill"),
-            "tokens_ws_new": _sum_numeric(new["timing"], eid, "with_skill"),
-            "tokens_bs_old": _sum_numeric(old["timing"], eid, "without_skill"),
-            "tokens_bs_new": _sum_numeric(new["timing"], eid, "without_skill"),
-            "duration_ws_old": _sum_numeric(old["duration"], eid, "with_skill"),
-            "duration_ws_new": _sum_numeric(new["duration"], eid, "with_skill"),
-            "duration_bs_old": _sum_numeric(old["duration"], eid, "without_skill"),
-            "duration_bs_new": _sum_numeric(new["duration"], eid, "without_skill"),
+            "tokens_ws_old": _bucketed_sum(old["timing_by_eid_cond"], eid, "with_skill"),
+            "tokens_ws_new": _bucketed_sum(new["timing_by_eid_cond"], eid, "with_skill"),
+            "tokens_bs_old": _bucketed_sum(old["timing_by_eid_cond"], eid, "without_skill"),
+            "tokens_bs_new": _bucketed_sum(new["timing_by_eid_cond"], eid, "without_skill"),
+            "duration_ws_old": _bucketed_sum(old["duration_by_eid_cond"], eid, "with_skill"),
+            "duration_ws_new": _bucketed_sum(new["duration_by_eid_cond"], eid, "with_skill"),
+            "duration_bs_old": _bucketed_sum(old["duration_by_eid_cond"], eid, "without_skill"),
+            "duration_bs_new": _bucketed_sum(new["duration_by_eid_cond"], eid, "without_skill"),
             "outcome_old": outcome_old,
             "outcome_new": outcome_new,
             "ws_transition": ws_transition,
@@ -343,15 +368,14 @@ def _has_transcripts(run_dir: Path) -> bool:
     return snap.is_dir() and any(snap.iterdir())
 
 
-def _sum_numeric(table, eid: int, cond: str):
-    """Sum the cells of a (batch, eval_id, cond) -> numeric table for one (eid, cond).
+def _bucketed_sum(by_eid_cond, eid: int, cond: str):
+    """Sum the values for one (eid, cond) bucket; None when the bucket is empty.
 
-    Used for both tokens (int) and duration (float). Returns None when no
-    cell exists for the given (eid, cond) so missing-data flows through as
-    a blank rather than zero. Numeric type matches the input.
+    Reads from a pre-bucketed dict produced by `_bucket_by_eid_cond`. Replaces
+    the previous O(n_table) per-call linear scan with O(1) lookup.
     """
-    matches = [v for (_, e, c), v in table.items() if e == eid and c == cond]
-    return sum(matches) if matches else None
+    values = by_eid_cond.get((eid, cond))
+    return sum(values) if values else None
 
 
 def _outcome_label(
@@ -398,7 +422,9 @@ def _interpret_regression(
     return "content_regression"
 
 
-def _provenance_block(run_dir: Path, run_meta: dict) -> dict[str, str]:
+def _provenance_block(
+    run_dir: Path, run_meta: dict, catalog: dict[int, dict] | None = None
+) -> dict[str, str]:
     """Pull comparable provenance fields from run.json + evals snapshot.
 
     Captures the dimensions that drive cross-run drift in skill quality
@@ -453,7 +479,7 @@ def _provenance_block(run_dir: Path, run_meta: dict) -> dict[str, str]:
     for key in keys:
         value = run_meta.get(key)
         out[key] = "" if value is None else str(value)
-    out["evals_catalog_semantic_sha256"] = _evals_catalog_semantic_hash(run_dir)
+    out["evals_catalog_semantic_sha256"] = _evals_catalog_semantic_hash(run_dir, catalog)
     out["evals_snapshot_sha256_raw"] = _evals_snapshot_raw_hash(run_dir)
     return out
 
@@ -476,7 +502,9 @@ _SEMANTIC_LIST_FIELDS: tuple[str, ...] = ("assertions", "files")
 _SEMANTIC_RESOURCE_FIELDS: tuple[str, ...] = ("expected_refs", "expected_scripts")
 
 
-def _evals_catalog_semantic_hash(run_dir: Path) -> str:
+def _evals_catalog_semantic_hash(
+    run_dir: Path, catalog: dict[int, dict] | None = None
+) -> str:
     """sha256 of a canonical normalized representation of the eval catalog.
 
     Stable under wrapper / formatting changes: ignores the snapshot's
@@ -487,11 +515,18 @@ def _evals_catalog_semantic_hash(run_dir: Path) -> str:
     the hash that should drive the causal_changed flag in
     provenance_diff.json — drift here means an actual eval was added,
     removed, or had its content edited.
+
+    Accepts a pre-parsed ``catalog`` dict (eval_id -> entry) so callers
+    that already loaded the snapshot don't pay for a second JSON parse.
     """
-    catalog = _load_run_catalog(run_dir)
     if catalog is None:
-        return ""
-    canonical = [_canonical_eval(e) for e in catalog if _eval_id(e) is not None]
+        loaded = _load_run_catalog(run_dir)
+        if loaded is None:
+            return ""
+        entries = loaded
+    else:
+        entries = list(catalog.values())
+    canonical = [_canonical_eval(e) for e in entries if _eval_id(e) is not None]
     canonical.sort(key=lambda e: e["id"])
     payload = json.dumps(
         canonical, sort_keys=True, ensure_ascii=False, separators=(",", ":")
@@ -617,17 +652,10 @@ def load_routing_records(bundle: RunBundle) -> dict[tuple[int, str], TranscriptR
 
     configure_transcripts insists on creating an OUT/.data_tmp dir. We never
     write transcript output here, so we route that through a tempfile and
-    remove it before returning so the run dirs stay clean. Also reaps any
-    leftover .compare_transcripts_tmp dirs from older versions of this code.
+    remove it before returning so the run dirs stay clean.
     """
     if not bundle["has_transcripts"]:
         return {}
-    # Reap a stale dir from earlier versions of this function that staged
-    # inside the run directory.
-    legacy_tmp = bundle["run_dir"] / ".compare_transcripts_tmp"
-    if legacy_tmp.is_dir():
-        shutil.rmtree(legacy_tmp, ignore_errors=True)
-
     snap = bundle["run_dir"] / "transcripts_snapshot"
     staging_root = Path(tempfile.mkdtemp(prefix="compare-transcripts-"))
     try:
@@ -647,33 +675,30 @@ def load_routing_records(bundle: RunBundle) -> dict[tuple[int, str], TranscriptR
 
 
 def load_expected_resources(bundle: RunBundle) -> tuple[ExpectedResources, ExpectedResources]:
-    """Load expected_refs / expected_scripts from a run's eval catalog snapshot.
-
-    Prefers the run-local evals_snapshot.json so a comparison against a stale
-    sibling spyglass-skill checkout still uses the catalog the run was
-    measured against. Falls back to an empty mapping if no snapshot is found.
-    """
-    fallback = bundle["run_dir"] / "_unused_evals.json"  # never read
-    try:
-        catalog, _, _ = load_eval_catalog_for_run(bundle["run_dir"], fallback)
-    except FileNotFoundError:
-        return {}, {}
+    """Return expected_refs / expected_scripts from the run's cached catalog."""
+    catalog_entries = list(bundle["catalog"].values())
     return (
-        load_expected_refs_from_catalog(catalog),
-        load_expected_scripts_from_catalog(catalog),
+        load_expected_refs_from_catalog(catalog_entries),
+        load_expected_scripts_from_catalog(catalog_entries),
     )
 
 
 def load_eval_catalog(bundle: RunBundle) -> dict[int, dict]:
-    """Load a run's evals_snapshot.json keyed by eval id.
+    """Return the run's evals_snapshot keyed by eval id.
 
-    Returns ``{}`` if the run has no snapshot (older runs predate the
-    snapshot convention; comparison should still proceed but catalog_diff
-    will note the missing inputs).
+    The snapshot is parsed once when the bundle is constructed
+    (`load_run_bundle`) and cached on `bundle["catalog"]`; this function
+    is kept as the public accessor so callers don't reach into the
+    TypedDict directly.
     """
-    fallback = bundle["run_dir"] / "_unused_evals.json"
+    return bundle["catalog"]
+
+
+def _load_run_catalog_dict(run_dir: Path) -> dict[int, dict]:
+    """Read evals_snapshot.json and key it by eval id; `{}` if absent."""
+    fallback = run_dir / "_unused_evals.json"  # never read
     try:
-        catalog, _, _ = load_eval_catalog_for_run(bundle["run_dir"], fallback)
+        catalog, _, _ = load_eval_catalog_for_run(run_dir, fallback)
     except FileNotFoundError:
         return {}
     out: dict[int, dict] = {}

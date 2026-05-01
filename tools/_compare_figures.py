@@ -18,8 +18,6 @@ call sites.
 
 from __future__ import annotations
 
-import csv
-import io
 import json
 from collections import Counter
 from pathlib import Path
@@ -29,11 +27,15 @@ from _schemas import (
     ANNOTATION_FONTSIZE,
     FIGURE_DPI,
     GRID_STYLE,
+    OUTCOME_BUCKETS,
+    RESTRAINT_INTENTS,
     SIZE_SINGLE,
     SIZE_TALL,
     SIZE_WIDE,
     WONG,
 )
+from _util import read_csv as _read_csv
+from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 
 _TRANSITION_COLOR = {
     "improved": WONG["delta_pos"],
@@ -48,7 +50,12 @@ _OUTCOME_COLOR = {
     "baseline_only": WONG["delta_neg"],
     "both_fail": WONG["both_fail"],
 }
-_OUTCOME_ORDER = ["both_pass", "skill_only", "baseline_only", "both_fail"]
+_OUTCOME_ORDER = list(OUTCOME_BUCKETS)
+_RESTRAINT_INTENTS = RESTRAINT_INTENTS
+
+_DIVERGING_CMAP = LinearSegmentedColormap.from_list(
+    "wong_delta", [WONG["delta_neg"], "#F7F7F7", WONG["delta_pos"]]
+)
 
 
 def plot_headline_shift(figures_dir: Path, data_dir: Path) -> None:
@@ -559,8 +566,9 @@ def plot_routing_shift(figures_dir: Path, data_dir: Path) -> None:
     Reads routing_shift.csv. Two stacked horizontal bar panels for the ws
     condition (the routing question is "did the skill help the ws agent
     find the right resource"), each showing per-overlap-eval deltas
-    (new − old). Bars colored green when recall improved, red when it
-    regressed, gray when stable. Sorted by delta within each panel.
+    (new − old). Bars use the shared delta palette: teal when recall
+    improved, magenta when it regressed, gray when stable. Sorted by delta
+    within each panel.
 
     Filters to evals where the eval has at least one required ref/script
     AND routing_complete is true on the ws cell. Excluded counts surface
@@ -728,15 +736,14 @@ def plot_category_shift(figures_dir: Path, data_dir: Path) -> None:
     import numpy as np  # local import keeps matplotlib-free callers cheap
 
     arr = np.array(grid, dtype=float)
-    cmap = plt.cm.get_cmap("RdYlGn")
+    cmap = _DIVERGING_CMAP.copy()
     cmap.set_bad(WONG["neutral"])
     masked = np.ma.masked_invalid(arr)
     abs_max = max(10.0, float(np.nanmax(np.abs(arr))) if np.isfinite(arr).any() else 10.0)
     im = ax.imshow(
         masked,
         cmap=cmap,
-        vmin=-abs_max,
-        vmax=abs_max,
+        norm=TwoSlopeNorm(vmin=-abs_max, vcenter=0.0, vmax=abs_max),
         aspect="auto",
     )
     ax.set_xticks(range(len(tiers)))
@@ -744,6 +751,7 @@ def plot_category_shift(figures_dir: Path, data_dir: Path) -> None:
     ax.set_yticks(range(len(stages)))
     ax.set_yticklabels(stages)
     for i, j, label in annotations:
+        value = arr[i, j] if i < arr.shape[0] and j < arr.shape[1] else float("nan")
         ax.text(
             j,
             i,
@@ -751,11 +759,11 @@ def plot_category_shift(figures_dir: Path, data_dir: Path) -> None:
             ha="center",
             va="center",
             fontsize=ANNOTATION_FONTSIZE - 1,
-            color="black",
+            color="white" if np.isfinite(value) and abs(value) > 0.6 * abs_max else "black",
         )
     ax.set_title(
         "c07: ws full-pass rate Δ by stage × tier (overlap only)\n"
-        "Green = improved, red = regressed; cells with no ws data on either side are 'n/a'.",
+        "Teal = improved, magenta = regressed; cells with no ws data on either side are 'n/a'.",
         fontsize=11,
     )
     fig.colorbar(im, ax=ax, label="ws_delta_pp (new − old)")
@@ -910,13 +918,40 @@ def plot_regression_root_causes(figures_dir: Path, data_dir: Path) -> None:
     plt.close(fig)
 
 
-_RESTRAINT_INTENTS = {"should_not_trigger", "near_miss_negative"}
+_ENGAGEMENT_INTENTS = {
+    "should_trigger",
+    "destructive_operation_caution",
+    "setup",
+    "ingestion",
+    "debugging",
+    "custom_pipeline_authoring",
+}
+
+_ACTIVATION_COLUMNS = [
+    ("ws_skill_md_open_rate_new", "SKILL.md"),
+    ("ws_required_ref_open_rate_new", "required ref"),
+    ("ws_any_spyglass_ref_open_rate_new", "any ref"),
+    ("ws_script_execution_rate_new", "script"),
+    ("ws_source_touch_rate_new", "source"),
+]
+
+
+def _is_known_intent(intent: str) -> bool:
+    return intent in _RESTRAINT_INTENTS or intent in _ENGAGEMENT_INTENTS
+
+
+def _intent_count_color(intent: str) -> str:
+    if intent in _RESTRAINT_INTENTS:
+        return WONG["delta_neg"]
+    if intent in _ENGAGEMENT_INTENTS:
+        return WONG["ws"]
+    return WONG["neutral"]
 
 
 def plot_intent_balance(figures_dir: Path, data_dir: Path) -> None:
-    """c10: per-intent eval count and skill-lift on the overlap.
+    """c10: per-intent eval count, skill-lift, and activation on the overlap.
 
-    Reads intent_balance.csv. Two stacked panels:
+    Reads intent_balance.csv. Three stacked panels:
 
     1. **Bucket size** — n_evals_overlap per intent. Reveals balance:
        a 130-eval set with zero ``should_not_trigger`` evals can't measure
@@ -925,6 +960,9 @@ def plot_intent_balance(figures_dir: Path, data_dir: Path) -> None:
        new run, with a hatched edge on restraint intents
        (``should_not_trigger``, ``near_miss_negative``) where a *positive*
        lift may actually mean the agent is over-eager rather than helpful.
+    3. **New-run activation rates** — direct transcript-derived activation
+       metrics, so restraint behavior is visible directly rather than only
+       inferred from pass rates.
 
     Skipped silently when intent_balance.csv has no rows.
     """
@@ -936,16 +974,16 @@ def plot_intent_balance(figures_dir: Path, data_dir: Path) -> None:
     lift_new = [float(r["skill_lift_new_pp"]) for r in rows]
     lift_delta = [float(r["skill_lift_delta_pp"]) for r in rows]
 
-    fig, (ax_count, ax_lift) = plt.subplots(
-        2, 1, figsize=(SIZE_WIDE[0], max(SIZE_WIDE[1], 1.0 * len(intents) + 3.0))
+    fig, (ax_count, ax_lift, ax_activation) = plt.subplots(
+        3,
+        1,
+        figsize=(SIZE_WIDE[0], max(SIZE_WIDE[1] * 1.45, 1.35 * len(intents) + 5.5)),
+        gridspec_kw={"height_ratios": [1.0, 1.0, 1.25]},
     )
     y = list(range(len(intents)))
 
     # Panel 1: bucket size
-    bar_colors = [
-        WONG["delta_neg"] if intent in _RESTRAINT_INTENTS else WONG["ws"]
-        for intent in intents
-    ]
+    bar_colors = [_intent_count_color(intent) for intent in intents]
     bars = ax_count.barh(y, n_evals, color=bar_colors, edgecolor="black", linewidth=0.5)
     ax_count.set_yticks(y)
     ax_count.set_yticklabels(intents)
@@ -963,13 +1001,18 @@ def plot_intent_balance(figures_dir: Path, data_dir: Path) -> None:
         )
     ax_count.set_title(
         "c10a: Eval-set balance by intent\n"
-        "Red = restraint intents (skill should NOT engage); blue = should-help intents",
+        "Blue = intended skill engagement; magenta = restraint; gray = unknown / other",
         fontsize=11,
     )
 
     # Panel 2: new skill-lift per intent
     lift_colors = [
-        WONG["delta_pos"] if val >= 0 else WONG["delta_neg"] for val in lift_new
+        WONG["neutral"]
+        if not _is_known_intent(intent)
+        else WONG["delta_pos"]
+        if val >= 0
+        else WONG["delta_neg"]
+        for intent, val in zip(intents, lift_new, strict=True)
     ]
     lift_bars = ax_lift.barh(y, lift_new, color=lift_colors, edgecolor="black", linewidth=0.5)
     for bar, intent in zip(lift_bars, intents, strict=True):
@@ -996,6 +1039,47 @@ def plot_intent_balance(figures_dir: Path, data_dir: Path) -> None:
         "Hatched bars = restraint intents — positive lift can mean over-eager, not helpful",
         fontsize=11,
     )
+
+    # Panel 3: activation rates from new-run ws transcripts.
+    import numpy as np  # local import keeps non-plot callers cheap
+
+    activation = np.full((len(intents), len(_ACTIVATION_COLUMNS)), np.nan, dtype=float)
+    for i, row in enumerate(rows):
+        for j, (column, _label) in enumerate(_ACTIVATION_COLUMNS):
+            raw = row.get(column, "")
+            if raw != "":
+                activation[i, j] = float(raw)
+    cmap = plt.cm.get_cmap("cividis").copy()
+    cmap.set_bad("#E6E6E6")
+    im = ax_activation.imshow(activation, cmap=cmap, vmin=0, vmax=100, aspect="auto")
+    ax_activation.set_xticks(range(len(_ACTIVATION_COLUMNS)))
+    ax_activation.set_xticklabels([label for _column, label in _ACTIVATION_COLUMNS])
+    ax_activation.set_yticks(y)
+    ax_activation.set_yticklabels(intents)
+    for i in range(len(intents)):
+        for j in range(len(_ACTIVATION_COLUMNS)):
+            value = activation[i, j]
+            if np.isfinite(value):
+                text = f"{value:.0f}%"
+                color = "white" if value >= 60 else "black"
+            else:
+                text = "n/a"
+                color = WONG["neutral"]
+            ax_activation.text(
+                j,
+                i,
+                text,
+                ha="center",
+                va="center",
+                fontsize=ANNOTATION_FONTSIZE - 1,
+                color=color,
+            )
+    ax_activation.set_title(
+        "c10c: New-run with_skill activation rates by intent\n"
+        "Direct transcript signals; for restraint intents lower is usually better",
+        fontsize=11,
+    )
+    fig.colorbar(im, ax=ax_activation, label="activation rate (%)", shrink=0.75, pad=0.02)
 
     total_overlap = sum(n_evals)
     n_unknown = next(
@@ -1030,12 +1114,6 @@ def plot_intent_balance(figures_dir: Path, data_dir: Path) -> None:
     fig.tight_layout(rect=(0, bottom_pad, 1, 1))
     fig.savefig(figures_dir / "c10_is_intent_balanced.png", dpi=FIGURE_DPI)
     plt.close(fig)
-
-
-def _read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.is_file():
-        return []
-    return list(csv.DictReader(io.StringIO(path.read_text())))
 
 
 def _transition_value(transition: str) -> int:

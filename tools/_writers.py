@@ -37,6 +37,7 @@ from _schemas import (
 )
 from _staging import commit_staged_outputs
 from _transcripts import TRACKED_SCRIPT_ROLES, TRACKED_SCRIPTS
+from _util import write_csv as _write_csv
 
 _UNCONFIGURED = Path("/__not_configured__")
 OUT: Path = _UNCONFIGURED
@@ -112,15 +113,6 @@ def commit_summary_outputs() -> None:
     DATA = final_data
     FIGURES = final_figures
 
-
-def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, object]]) -> None:
-    """Write CSV rows with stable field order and robust quoting."""
-    buf = io.StringIO()
-    writer = csv.DictWriter(buf, fieldnames=fieldnames, lineterminator="\n")
-    writer.writeheader()
-    for row in rows:
-        writer.writerow(row)
-    path.write_text(buf.getvalue())
 
 def _join_items(items) -> str:
     """Stable semicolon-delimited cell for list-like CSV fields."""

@@ -2,8 +2,27 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import os
 from pathlib import Path
+
+
+def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, object]]) -> None:
+    """Write CSV rows with stable field order and `\\n` line endings."""
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=fieldnames, lineterminator="\n")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow(row)
+    path.write_text(buf.getvalue())
+
+
+def read_csv(path: Path) -> list[dict[str, str]]:
+    """Read a CSV file into a list of dict rows; `[]` if the file is missing."""
+    if not path.is_file():
+        return []
+    return list(csv.DictReader(io.StringIO(path.read_text())))
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 

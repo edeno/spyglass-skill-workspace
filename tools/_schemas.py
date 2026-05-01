@@ -86,6 +86,36 @@ FIX_PRIORITY_ACTION_ORDER = {
 
 EVAL_METADATA_COLUMNS = ["eval_id", "batch", "eval_name", "stage", "tier", "difficulty"]
 
+# 4-cell ws/bs outcome buckets used by single-run summaries and cross-run flow.
+OUTCOME_BUCKETS: tuple[str, ...] = ("both_pass", "skill_only", "baseline_only", "both_fail")
+
+# Eval-intent vocabulary used by intent_balance.csv / c10. Evals declaring an
+# intent outside this list still get plotted (under their declared label);
+# evals that omit intent fall back to "unknown".
+INTENT_VOCAB: tuple[str, ...] = (
+    "should_trigger",
+    "should_not_trigger",
+    "near_miss_negative",
+    "destructive_operation_caution",
+    "setup",
+    "ingestion",
+    "debugging",
+    "custom_pipeline_authoring",
+    "unknown",
+)
+# Intents where positive skill-lift may indicate over-eagerness rather than help.
+RESTRAINT_INTENTS: frozenset[str] = frozenset({"should_not_trigger", "near_miss_negative"})
+
+# Root-cause buckets in classifier priority order.
+REGRESSION_ROOT_CAUSES: tuple[str, ...] = (
+    "rubric",
+    "routing",
+    "source_selection",
+    "tooling",
+    "synthesis",
+    "unknown",
+)
+
 FIGURE_DPI = 160
 SIZE_SINGLE = (10, 5.5)
 SIZE_WIDE = (13, 5.5)
