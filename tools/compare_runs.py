@@ -19,6 +19,7 @@ from _compare_figures import (
     plot_category_shift,
     plot_cost_shift_by_transition,
     plot_headline_shift,
+    plot_intent_balance,
     plot_outcome_flow,
     plot_per_eval_transitions,
     plot_regression_root_causes,
@@ -40,6 +41,7 @@ from _compare_writers import (
     write_comparison_manifest_json,
     write_cost_shift_csv,
     write_headline_diff_json,
+    write_intent_balance_csv,
     write_outcome_2x2_shift_json,
     write_overlap_json,
     write_provenance_diff_json,
@@ -110,17 +112,17 @@ def main() -> None:
         write_category_shift_csv(staged_data, pairs)
         write_regression_review_csv(staged_data, pairs, old, new)
 
-        # Routing shift + regression root-cause classifier: routing depends
-        # on transcripts on both sides. The classifier always runs; with
-        # missing transcripts / expected sets it falls back to "unknown"
-        # buckets but still distinguishes rubric / synthesis (independent
-        # of routing).
+        # Routing-shift comparison genuinely needs both sides (it's a
+        # delta), but intent_balance's activation-rate columns only need
+        # the new run's ws transcripts. Load each side independently so a
+        # comparison with old-side missing transcripts doesn't blank the
+        # activation view that the new side could have populated.
+        expected_refs, expected_scripts = load_expected_resources(new)
+        if not expected_refs and not expected_scripts:
+            expected_refs, expected_scripts = load_expected_resources(old)
+        old_routing = load_routing_records(old) if old["has_transcripts"] else {}
+        new_routing = load_routing_records(new) if new["has_transcripts"] else {}
         if old["has_transcripts"] and new["has_transcripts"]:
-            expected_refs, expected_scripts = load_expected_resources(new)
-            if not expected_refs and not expected_scripts:
-                expected_refs, expected_scripts = load_expected_resources(old)
-            old_routing = load_routing_records(old)
-            new_routing = load_routing_records(new)
             write_routing_shift_csv(
                 staged_data,
                 pairs,
@@ -131,11 +133,6 @@ def main() -> None:
                 old_has_transcripts=True,
                 new_has_transcripts=True,
             )
-        else:
-            old_routing = {}
-            new_routing = {}
-            expected_refs = {}
-            expected_scripts = {}
         write_regression_root_cause_csv(
             staged_data,
             pairs,
@@ -144,6 +141,9 @@ def main() -> None:
             expected_refs,
             expected_scripts,
         )
+        # intent_balance reads new_routing only — runs whenever the new
+        # side has transcripts, even if the old side does not.
+        write_intent_balance_csv(staged_data, pairs, new_routing, expected_refs)
 
         plot_headline_shift(staged_figures, staged_data)
         plot_per_eval_transitions(staged_figures, staged_data)
@@ -154,6 +154,7 @@ def main() -> None:
         plot_category_shift(staged_figures, staged_data)
         plot_skill_lift_change(staged_figures, staged_data)
         plot_regression_root_causes(staged_figures, staged_data)
+        plot_intent_balance(staged_figures, staged_data)
 
         # Manifest + INDEX.md must be written last so they enumerate every
         # staged output. Both are committed atomically alongside data/ and

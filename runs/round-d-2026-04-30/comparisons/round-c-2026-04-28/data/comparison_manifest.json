@@ -197,6 +197,13 @@
       "classification_source": "override"
     },
     {
+      "filename": "data/intent_balance.csv",
+      "family": "category",
+      "priority": "primary",
+      "purpose": "Per-eval-intent counts and skill-lift on the overlap. Tracks whether the eval set is balanced for activation behavior \u2014 restraint intents (should_not_trigger / near_miss_negative) test whether the skill stays quiet on off-topic prompts; should_trigger tests helpfulness.",
+      "classification_source": "override"
+    },
+    {
       "filename": "data/outcome_2x2_shift.json",
       "family": "outcome_flow",
       "priority": "primary",
@@ -327,6 +334,13 @@
       "family": "fix_priority",
       "priority": "primary",
       "purpose": "Distribution of regression root causes (rubric / routing / source_selection / tooling / synthesis / unknown).",
+      "classification_source": "override"
+    },
+    {
+      "filename": "figures/c10_is_intent_balanced.png",
+      "family": "category",
+      "priority": "primary",
+      "purpose": "Two-panel view of eval-set balance and per-intent skill-lift; restraint intents are hatched so a positive lift does not read as a win without inspection.",
       "classification_source": "override"
     }
   ]

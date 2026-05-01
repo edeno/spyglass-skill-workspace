@@ -194,6 +194,7 @@ Outputs are staged through `.data_tmp/` / `.figures_tmp/` / `.INDEX.tmp` and com
 | c07 | Where does category-level pass rate drift? | [`c07_where_does_category_drift.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c07_where_does_category_drift.png) + [`category_shift.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/category_shift.csv) |
 | c08 | Did the skill help differently between commits? | [`c08_did_skill_lift_change.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c08_did_skill_lift_change.png) + `headline_diff.json::skill_lift` |
 | c09 | What is the root-cause distribution of regressions? | [`c09_regression_root_causes.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c09_regression_root_causes.png) + [`regression_root_cause.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/regression_root_cause.csv) |
+| c10 | Is the eval set balanced for activation behavior, and is skill-lift the right sign per intent? | [`c10_is_intent_balanced.png`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c10_is_intent_balanced.png) + [`intent_balance.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/intent_balance.csv) |
 | — | Which regressions need a manual review? | [`regression_review.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/regression_review.csv) |
 
 **Recommended read order:**
@@ -210,7 +211,8 @@ Outputs are staged through `.data_tmp/` / `.figures_tmp/` / `.INDEX.tmp` and com
 10. **`c05` / `cost_shift.csv`** for token + duration deltas split by `ws_transition`. Pair-completeness flags keep partial timing out of aggregates.
 11. **`c06` / `routing_shift.csv`** for required-ref and required-script recall deltas (ws). Gated on transcripts being present in both runs.
 12. **`c09` / `regression_root_cause.csv`** to triage the review queue: each ws regression *and* each rubric_friction stable_fail is bucketed into `rubric` / `routing` / `source_selection` / `tooling` / `synthesis` / `unknown`. `regression_root_cause_summary.json` reports `n_review_items` (queue size) plus the strict counts `n_ws_regressions` and `n_rubric_friction_stable_fail` so the rubric-friction contribution is never miscounted as content drift. The `synthesis` count is the headline "real reasoning regressions"; everything else has a more specific cause to chase.
-13. **`regression_review.csv`** as the per-eval drill-down: one row per ws regression or rubric_friction stable_fail, with paths to the old/new `response.md` and `grading.json` so reviewers can open both side-by-side.
+13. **`c10` / `intent_balance.csv`** to check whether the eval set is balanced for activation *behavior* — declare an `intent` field per eval in evals.json (`should_trigger`, `should_not_trigger`, `near_miss_negative`, `destructive_operation_caution`, `setup`, `ingestion`, `debugging`, `custom_pipeline_authoring`). Restraint intents (`should_not_trigger`, `near_miss_negative`) test whether the skill stays quiet on off-topic prompts; on those, a *positive* skill-lift can mean over-eager rather than helpful. Catalog edits to `intent` are also caught by `catalog_diff.json`.
+14. **`regression_review.csv`** as the per-eval drill-down: one row per ws regression or rubric_friction stable_fail, with paths to the old/new `response.md` and `grading.json` so reviewers can open both side-by-side.
 
 **Key design choices** (verified against the round-D vs round-C overlap):
 

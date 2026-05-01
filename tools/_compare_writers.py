@@ -102,6 +102,21 @@ COMPARISON_MANIFEST_OVERRIDES: dict[str, tuple[str, str, str]] = {
         "Per-(stage, tier) ws + bs full-pass rates and ws transition counts at "
         "old vs new with rollups. Answers 'did stage X improve while tier Y regressed?'",
     ),
+    "data/intent_balance.csv": (
+        "category",
+        "primary",
+        "Per-eval-intent counts and skill-lift on the overlap. Tracks whether "
+        "the eval set is balanced for activation behavior — restraint intents "
+        "(should_not_trigger / near_miss_negative) test whether the skill "
+        "stays quiet on off-topic prompts; should_trigger tests helpfulness.",
+    ),
+    "figures/c10_is_intent_balanced.png": (
+        "category",
+        "primary",
+        "Two-panel view of eval-set balance and per-intent skill-lift; "
+        "restraint intents are hatched so a positive lift does not read as "
+        "a win without inspection.",
+    ),
     "data/regression_review.csv": (
         "fix_priority",
         "primary",
@@ -453,6 +468,7 @@ def _eval_field_diff(old: dict, new: dict) -> dict[str, object]:
         "stage",
         "tier",
         "difficulty",
+        "intent",
         "prompt",
         "expected_output",
     )
@@ -576,6 +592,232 @@ def _expectation_text(expectation: object) -> str:
             return text
         return json.dumps(expectation, sort_keys=True)
     return repr(expectation)
+
+
+_INTENT_ORDER = (
+    "should_trigger",
+    "should_not_trigger",
+    "near_miss_negative",
+    "destructive_operation_caution",
+    "setup",
+    "ingestion",
+    "debugging",
+    "custom_pipeline_authoring",
+    "unknown",
+)
+
+
+def write_intent_balance_csv(
+    out_data: Path,
+    pairs: list[PerEvalPair],
+    new_routing: dict[tuple[int, str], TranscriptRecord] | None = None,
+    expected_refs: ExpectedResources | None = None,
+) -> None:
+    """Per-intent eval counts, skill-lift, and ws activation rates on the overlap.
+
+    Eval *intent* (declared per-eval in evals.json under the ``intent``
+    key) tracks whether the eval set is balanced for activation behavior:
+    should_trigger evals test helpfulness; should_not_trigger and
+    near_miss_negative test restraint (the skill should NOT activate on
+    off-topic / lookalike prompts); destructive_operation_caution tests
+    safeguards. Pass-rate skill-lift alone cannot answer "did the skill
+    stay quiet?" — for that we also need direct activation signals from
+    the new-run transcripts.
+
+    Emits one row per intent bucket with these columns:
+
+    - ``n_evals_overlap`` — overlap evals tagged with this intent
+    - ``n_evals_with_all_cells`` — joint set used for skill_lift_*
+      (excludes evals with any of ws_old / ws_new / bs_old / bs_new
+      missing)
+    - ``ws_pass_old`` / ``ws_pass_new`` / ``bs_pass_old`` / ``bs_pass_new``
+      and the corresponding ``*_rate_*`` and ``skill_lift_*`` values
+    - ``n_ws_regressions`` / ``n_rubric_friction_stable_fail``
+    - **Activation columns (new run, requires transcripts)** — denominator
+      is ``ws_with_transcript_new`` (overlap evals where the new run has
+      a ws transcript record):
+
+      - ``ws_skill_md_open_rate_new``
+      - ``ws_required_ref_open_rate_new`` (any required ref opened;
+        denominator restricted to evals declaring a non-empty
+        ``expected_refs.required`` for that intent)
+      - ``ws_any_spyglass_ref_open_rate_new``
+      - ``ws_script_execution_rate_new`` (any tracked script executed
+        via Bash, not just source-read)
+      - ``ws_source_touch_rate_new`` (touched ``/spyglass/src/``)
+
+    Activation columns are blank when the new run has no transcripts.
+    For restraint intents (should_not_trigger, near_miss_negative) the
+    desired direction is *low* activation rates — they directly answer
+    "did the skill stay quiet?". For should_trigger the desired
+    direction is *high* required-ref open rate.
+
+    Skipped only when there are no overlap evals.
+    """
+    if not pairs:
+        return
+    routing = new_routing or {}
+    refs = expected_refs or {}
+    intents = sorted({p["intent"] for p in pairs})
+    # Stable order: known intents in the canonical order, then any extras.
+    ordered = [i for i in _INTENT_ORDER if i in intents]
+    ordered += [i for i in intents if i not in _INTENT_ORDER]
+
+    columns = [
+        "intent",
+        "n_evals_overlap",
+        "n_evals_with_all_cells",
+        "ws_pass_old",
+        "ws_pass_new",
+        "bs_pass_old",
+        "bs_pass_new",
+        "ws_rate_old",
+        "ws_rate_new",
+        "bs_rate_old",
+        "bs_rate_new",
+        "skill_lift_old_pp",
+        "skill_lift_new_pp",
+        "skill_lift_delta_pp",
+        "n_ws_regressions",
+        "n_rubric_friction_stable_fail",
+        "ws_with_transcript_new",
+        "ws_skill_md_open_rate_new",
+        "ws_required_ref_open_rate_new",
+        "ws_any_spyglass_ref_open_rate_new",
+        "ws_script_execution_rate_new",
+        "ws_source_touch_rate_new",
+    ]
+    n_unknown = sum(1 for p in pairs if p["intent"] == "unknown")
+    if pairs and n_unknown / len(pairs) >= 0.5:
+        # Loud stdout warning so a CI / CLI run surfaces the gap. The c10
+        # figure also reads intent_balance.csv and shows the unknown
+        # bucket; this print covers consumers that only look at logs.
+        print(
+            f"Warning: {n_unknown}/{len(pairs)} overlap evals have "
+            f"intent='unknown' — c10 cannot answer activation-balance "
+            "questions until evals declare an `intent` field."
+        )
+    rows: list[dict[str, object]] = []
+    for intent in ordered:
+        bucket = [p for p in pairs if p["intent"] == intent]
+        joint = [
+            p
+            for p in bucket
+            if not p["ws_missing_old"]
+            and not p["ws_missing_new"]
+            and not p["bs_missing_old"]
+            and not p["bs_missing_new"]
+        ]
+        n_joint = len(joint)
+        ws_old = sum(1 for p in joint if p["ws_pass_old"])
+        ws_new = sum(1 for p in joint if p["ws_pass_new"])
+        bs_old = sum(1 for p in joint if p["bs_pass_old"])
+        bs_new = sum(1 for p in joint if p["bs_pass_new"])
+        ws_rate_old = round(100 * ws_old / n_joint, 2) if n_joint else 0.0
+        ws_rate_new = round(100 * ws_new / n_joint, 2) if n_joint else 0.0
+        bs_rate_old = round(100 * bs_old / n_joint, 2) if n_joint else 0.0
+        bs_rate_new = round(100 * bs_new / n_joint, 2) if n_joint else 0.0
+        lift_old = ws_rate_old - bs_rate_old
+        lift_new = ws_rate_new - bs_rate_new
+        n_ws_regressed = sum(
+            1 for p in bucket if p["ws_transition"] == "regressed"
+        )
+        n_rubric_sf = sum(
+            1
+            for p in bucket
+            if p["ws_transition"] == "stable_fail"
+            and p["failure_type_new"] == "rubric_friction"
+        )
+        activation = _intent_activation_rates(bucket, routing, refs)
+        rows.append(
+            {
+                "intent": intent,
+                "n_evals_overlap": len(bucket),
+                "n_evals_with_all_cells": n_joint,
+                "ws_pass_old": ws_old,
+                "ws_pass_new": ws_new,
+                "bs_pass_old": bs_old,
+                "bs_pass_new": bs_new,
+                "ws_rate_old": ws_rate_old,
+                "ws_rate_new": ws_rate_new,
+                "bs_rate_old": bs_rate_old,
+                "bs_rate_new": bs_rate_new,
+                "skill_lift_old_pp": round(lift_old, 2),
+                "skill_lift_new_pp": round(lift_new, 2),
+                "skill_lift_delta_pp": round(lift_new - lift_old, 2),
+                "n_ws_regressions": n_ws_regressed,
+                "n_rubric_friction_stable_fail": n_rubric_sf,
+                **activation,
+            }
+        )
+    _write_csv(out_data / "intent_balance.csv", columns, rows)
+
+
+def _intent_activation_rates(
+    bucket: list[PerEvalPair],
+    routing: dict[tuple[int, str], TranscriptRecord],
+    expected_refs: ExpectedResources,
+) -> dict[str, object]:
+    """Compute per-intent ws activation rates on the new run.
+
+    Each rate is ``# evals in bucket where the signal fired / # evals in
+    bucket with a ws transcript record``. Empty cells when no eval in the
+    bucket has a transcript record (transcripts gated on routing data
+    being available); ws_required_ref_open_rate uses a separate
+    denominator restricted to evals declaring a required ref so a bucket
+    of evals without required-ref annotations doesn't read as 0%.
+    """
+    with_transcript = [
+        p for p in bucket if (p["eval_id"], "with_skill") in routing
+    ]
+    n = len(with_transcript)
+    if n == 0:
+        return {
+            "ws_with_transcript_new": 0,
+            "ws_skill_md_open_rate_new": "",
+            "ws_required_ref_open_rate_new": "",
+            "ws_any_spyglass_ref_open_rate_new": "",
+            "ws_script_execution_rate_new": "",
+            "ws_source_touch_rate_new": "",
+        }
+    skill_md_hits = 0
+    any_ref_hits = 0
+    script_hits = 0
+    source_hits = 0
+    required_denom = 0
+    required_hits = 0
+    for p in with_transcript:
+        rec = routing[(p["eval_id"], "with_skill")]
+        ref_opens = rec.get("ref_opens") or {}
+        if ref_opens.get("SKILL.md", 0) > 0:
+            skill_md_hits += 1
+        # Exclude SKILL.md from "any spyglass ref" so opening only the skill
+        # entrypoint doesn't read as 100% reference activation; that would
+        # double-count against ws_skill_md_open_rate_new. Mirrors the
+        # within-run reference analysis (see tools/_writers.py).
+        if any(name != "SKILL.md" and count > 0 for name, count in ref_opens.items()):
+            any_ref_hits += 1
+        if any(v > 0 for v in (rec.get("script_executions") or {}).values()):
+            script_hits += 1
+        if int(rec.get("spyglass_src_reads", 0)) > 0:
+            source_hits += 1
+        required = list((expected_refs.get(p["eval_id"]) or {}).get("required", []))
+        if required:
+            required_denom += 1
+            if any(ref_opens.get(r, 0) > 0 for r in required):
+                required_hits += 1
+    return {
+        "ws_with_transcript_new": n,
+        "ws_skill_md_open_rate_new": round(100 * skill_md_hits / n, 2),
+        "ws_required_ref_open_rate_new": (
+            round(100 * required_hits / required_denom, 2)
+            if required_denom
+            else ""
+        ),
+        "ws_any_spyglass_ref_open_rate_new": round(100 * any_ref_hits / n, 2),
+        "ws_script_execution_rate_new": round(100 * script_hits / n, 2),
+        "ws_source_touch_rate_new": round(100 * source_hits / n, 2),
+    }
 
 
 def write_regression_root_cause_csv(

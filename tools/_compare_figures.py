@@ -13,6 +13,7 @@ call sites.
 - c07 where does category-level pass rate drift?
 - c08 did the skill-lift change between commits?
 - c09 what is the root-cause distribution of regressions?
+- c10 is the eval set balanced for activation behavior, and is skill-lift the right sign per intent?
 """
 
 from __future__ import annotations
@@ -906,6 +907,128 @@ def plot_regression_root_causes(figures_dir: Path, data_dir: Path) -> None:
     )
     fig.tight_layout()
     fig.savefig(figures_dir / "c09_regression_root_causes.png", dpi=FIGURE_DPI)
+    plt.close(fig)
+
+
+_RESTRAINT_INTENTS = {"should_not_trigger", "near_miss_negative"}
+
+
+def plot_intent_balance(figures_dir: Path, data_dir: Path) -> None:
+    """c10: per-intent eval count and skill-lift on the overlap.
+
+    Reads intent_balance.csv. Two stacked panels:
+
+    1. **Bucket size** — n_evals_overlap per intent. Reveals balance:
+       a 130-eval set with zero ``should_not_trigger`` evals can't measure
+       restraint, only helpfulness.
+    2. **New skill-lift per intent** — ws_pass_rate − bs_pass_rate on the
+       new run, with a hatched edge on restraint intents
+       (``should_not_trigger``, ``near_miss_negative``) where a *positive*
+       lift may actually mean the agent is over-eager rather than helpful.
+
+    Skipped silently when intent_balance.csv has no rows.
+    """
+    rows = _read_csv(data_dir / "intent_balance.csv")
+    if not rows:
+        return
+    intents = [r["intent"] for r in rows]
+    n_evals = [int(r["n_evals_overlap"]) for r in rows]
+    lift_new = [float(r["skill_lift_new_pp"]) for r in rows]
+    lift_delta = [float(r["skill_lift_delta_pp"]) for r in rows]
+
+    fig, (ax_count, ax_lift) = plt.subplots(
+        2, 1, figsize=(SIZE_WIDE[0], max(SIZE_WIDE[1], 1.0 * len(intents) + 3.0))
+    )
+    y = list(range(len(intents)))
+
+    # Panel 1: bucket size
+    bar_colors = [
+        WONG["delta_neg"] if intent in _RESTRAINT_INTENTS else WONG["ws"]
+        for intent in intents
+    ]
+    bars = ax_count.barh(y, n_evals, color=bar_colors, edgecolor="black", linewidth=0.5)
+    ax_count.set_yticks(y)
+    ax_count.set_yticklabels(intents)
+    ax_count.invert_yaxis()
+    ax_count.set_xlabel("evals on overlap")
+    ax_count.grid(axis="x", **GRID_STYLE)
+    for bar, count in zip(bars, n_evals, strict=True):
+        ax_count.text(
+            bar.get_width(),
+            bar.get_y() + bar.get_height() / 2,
+            f"  {count}",
+            va="center",
+            ha="left",
+            fontsize=ANNOTATION_FONTSIZE,
+        )
+    ax_count.set_title(
+        "c10a: Eval-set balance by intent\n"
+        "Red = restraint intents (skill should NOT engage); blue = should-help intents",
+        fontsize=11,
+    )
+
+    # Panel 2: new skill-lift per intent
+    lift_colors = [
+        WONG["delta_pos"] if val >= 0 else WONG["delta_neg"] for val in lift_new
+    ]
+    lift_bars = ax_lift.barh(y, lift_new, color=lift_colors, edgecolor="black", linewidth=0.5)
+    for bar, intent in zip(lift_bars, intents, strict=True):
+        if intent in _RESTRAINT_INTENTS:
+            bar.set_hatch("///")
+            bar.set_edgecolor("white")
+    ax_lift.axvline(0, color="black", linewidth=0.6)
+    ax_lift.set_yticks(y)
+    ax_lift.set_yticklabels(intents)
+    ax_lift.invert_yaxis()
+    ax_lift.set_xlabel("new-run skill_lift_pp (ws − bs)")
+    ax_lift.grid(axis="x", **GRID_STYLE)
+    for bar, value, delta in zip(lift_bars, lift_new, lift_delta, strict=True):
+        ax_lift.text(
+            bar.get_width(),
+            bar.get_y() + bar.get_height() / 2,
+            f"  {value:+.1f}pp (Δ {delta:+.1f}pp)",
+            va="center",
+            ha="left" if value >= 0 else "right",
+            fontsize=ANNOTATION_FONTSIZE,
+        )
+    ax_lift.set_title(
+        "c10b: New-run skill-lift by intent\n"
+        "Hatched bars = restraint intents — positive lift can mean over-eager, not helpful",
+        fontsize=11,
+    )
+
+    total_overlap = sum(n_evals)
+    n_unknown = next(
+        (int(r["n_evals_overlap"]) for r in rows if r["intent"] == "unknown"),
+        0,
+    )
+    notes: list[str] = []
+    if total_overlap and n_unknown / total_overlap >= 0.5:
+        notes.append(
+            f"⚠ {n_unknown}/{total_overlap} overlap evals have intent='unknown'; "
+            "annotate `intent` in evals.json to use this view"
+        )
+    # Sum any activation rate columns that are present (rate columns are
+    # blank when no transcripts) to give a one-line "did anything fire" cue.
+    has_activation = any(
+        r.get("ws_with_transcript_new") and r["ws_with_transcript_new"] != "0"
+        for r in rows
+    )
+    if not has_activation:
+        notes.append("activation columns blank: no new-run ws transcripts available")
+    bottom_pad = 0.0
+    if notes:
+        bottom_pad = 0.04 + 0.025 * len(notes)
+        fig.text(
+            0.5,
+            0.01,
+            "  |  ".join(notes),
+            ha="center",
+            fontsize=ANNOTATION_FONTSIZE,
+            color=WONG["neutral"],
+        )
+    fig.tight_layout(rect=(0, bottom_pad, 1, 1))
+    fig.savefig(figures_dir / "c10_is_intent_balanced.png", dpi=FIGURE_DPI)
     plt.close(fig)
 
 

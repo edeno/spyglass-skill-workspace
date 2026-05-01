@@ -70,6 +70,7 @@ class PerEvalPair(TypedDict):
     stage: str
     tier: str
     difficulty: str
+    intent: str
     ws_missing_old: bool
     ws_missing_new: bool
     bs_missing_old: bool
@@ -167,11 +168,18 @@ def build_per_eval_pairs(
     Tokens are summed across the eval's batches in each run (a given eval is
     typically only in one batch, but the structure tolerates multi-batch).
     """
+    # Catalog-sourced metadata (intent and any future per-eval annotations)
+    # comes from the run's evals_snapshot, not the per-dispatch
+    # eval_metadata.json. Prefer the new run's catalog; fall back to old.
+    new_catalog = load_eval_catalog(new)
+    old_catalog = load_eval_catalog(old)
     pairs: list[PerEvalPair] = []
     for eid in overlap["overlap_eval_ids"]:
         old_row = old["per_eval"][eid]
         new_row = new["per_eval"][eid]
         cats = new["categories"].get(eid) or old["categories"].get(eid) or {}
+        catalog_entry = new_catalog.get(eid) or old_catalog.get(eid) or {}
+        intent = str(catalog_entry.get("intent") or "unknown")
         ws_missing_old = bool(old_row["ws_missing"])
         ws_missing_new = bool(new_row["ws_missing"])
         bs_missing_old = bool(old_row["bs_missing"])
@@ -211,6 +219,7 @@ def build_per_eval_pairs(
             "stage": cats.get("stage", "unknown"),
             "tier": cats.get("tier", "unknown"),
             "difficulty": cats.get("difficulty", "unknown"),
+            "intent": intent,
             "ws_missing_old": ws_missing_old,
             "ws_missing_new": ws_missing_new,
             "bs_missing_old": bs_missing_old,
@@ -455,6 +464,11 @@ _SEMANTIC_SCALAR_FIELDS: tuple[str, ...] = (
     "stage",
     "tier",
     "difficulty",
+    # Eval intent: should_trigger / should_not_trigger / near_miss_negative /
+    # destructive_operation_caution / setup / ingestion / debugging /
+    # custom_pipeline_authoring / unknown. Tracks whether the eval set is
+    # balanced for activation *behavior* (restraint, not just helpfulness).
+    "intent",
     "prompt",
     "expected_output",
 )

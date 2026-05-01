@@ -529,6 +529,9 @@ def _smoke_compare_runs(base: Path) -> None:
     # Eval 2: ws improved (fail->pass), ws_total changed (rubric drift on ws only).
     # Eval 3: ws regressed (pass->fail) and the new run labels it rubric_friction.
     # Eval 4: bs missing on the new run (partial dispatch).
+    # Each eval declares an intent so c10 / intent_balance.csv can group on
+    # it. Eval 4 deliberately omits the field to exercise the "unknown"
+    # fallback bucket.
     eval_catalog = [
         {
             "id": 1,
@@ -536,6 +539,7 @@ def _smoke_compare_runs(base: Path) -> None:
             "stage": "pipeline-usage",
             "tier": "joins",
             "difficulty": "easy",
+            "intent": "should_trigger",
             "expected_refs": {"required": ["common_tables.md"], "optional": [], "distractor": []},
             "expected_scripts": {"required": ["code_graph.py"], "optional": [], "distractor": []},
         },
@@ -545,6 +549,7 @@ def _smoke_compare_runs(base: Path) -> None:
             "stage": "pipeline-usage",
             "tier": "joins",
             "difficulty": "easy",
+            "intent": "should_not_trigger",
             "expected_refs": {"required": ["common_tables.md"], "optional": [], "distractor": []},
             "expected_scripts": {"required": ["code_graph.py"], "optional": [], "distractor": []},
         },
@@ -554,10 +559,11 @@ def _smoke_compare_runs(base: Path) -> None:
             "stage": "pipeline-usage",
             "tier": "joins",
             "difficulty": "easy",
+            "intent": "near_miss_negative",
             "expected_refs": {"required": ["common_tables.md"], "optional": [], "distractor": []},
             "expected_scripts": {"required": ["code_graph.py"], "optional": [], "distractor": []},
         },
-        # Eval 4 has no required refs/scripts -> has_required_refs=false.
+        # Eval 4 omits intent -> falls back to "unknown".
         {"id": 4, "name": "delta", "stage": "pipeline-usage", "tier": "joins", "difficulty": "easy"},
     ]
     # New-run catalog differs from old on multiple semantic dimensions to
@@ -653,7 +659,11 @@ def _smoke_compare_runs(base: Path) -> None:
         (1, "without_skill"): {"ref_opens": ["common_tables.md"], "script_executions": ["code_graph.py"]},
         (2, "with_skill"):    {"ref_opens": ["common_tables.md"], "script_executions": ["code_graph.py"]},
         (2, "without_skill"): {"ref_opens": [],                   "script_executions": []},
-        (3, "with_skill"):    {"ref_opens": ["common_tables.md"], "script_executions": []},
+        # Eval 3 (near_miss_negative): ws transcript opens ONLY SKILL.md
+        # — c10 must not let SKILL.md alone inflate the spyglass-ref
+        # activation rate. Required-ref recall is 0 here (common_tables.md
+        # was not opened), so the previous behavior would double-count.
+        (3, "with_skill"):    {"ref_opens": ["SKILL.md"],         "script_executions": []},
         (3, "without_skill"): {"ref_opens": ["common_tables.md"], "script_executions": []},
         # Eval 4 ws + bs both absent in new run.
     }
@@ -776,6 +786,7 @@ def _smoke_compare_runs(base: Path) -> None:
         "data/cost_shift.csv",
         "data/routing_shift.csv",
         "data/category_shift.csv",
+        "data/intent_balance.csv",
         "data/regression_review.csv",
         "data/regression_root_cause.csv",
         "data/regression_root_cause_summary.json",
@@ -788,6 +799,7 @@ def _smoke_compare_runs(base: Path) -> None:
         "figures/c07_where_does_category_drift.png",
         "figures/c08_did_skill_lift_change.png",
         "figures/c09_regression_root_causes.png",
+        "figures/c10_is_intent_balanced.png",
     ]
     missing = [name for name in required if not (out / name).exists()]
     if missing:
@@ -1348,6 +1360,100 @@ def _smoke_compare_runs(base: Path) -> None:
         raise AssertionError(
             "INDEX.md should NOT warn about subset rerun on equal-sized synthetic runs"
         )
+
+    # intent_balance.csv: 4 overlap evals with 4 distinct intents — eval 1
+    # should_trigger, eval 2 should_not_trigger, eval 3 near_miss_negative,
+    # eval 4 unknown (intent absent on the catalog entry). Joint set
+    # excludes eval 4 (bs missing on new), so the `unknown` row has
+    # n_evals_overlap=1 but n_evals_with_all_cells=0.
+    with (out / "data/intent_balance.csv").open(newline="") as f:
+        intent_rows = list(csv.DictReader(f))
+    intent_by = {r["intent"]: r for r in intent_rows}
+    expected_intents = {"should_trigger", "should_not_trigger", "near_miss_negative", "unknown"}
+    if set(intent_by) != expected_intents:
+        raise AssertionError(
+            f"intent_balance should cover {sorted(expected_intents)}, got {sorted(intent_by)}"
+        )
+    if int(intent_by["should_trigger"]["n_evals_overlap"]) != 1:
+        raise AssertionError(f"should_trigger n_evals_overlap should be 1: {intent_by}")
+    if int(intent_by["should_not_trigger"]["n_evals_overlap"]) != 1:
+        raise AssertionError(f"should_not_trigger n_evals_overlap should be 1: {intent_by}")
+    # Restraint intent (should_not_trigger): eval 2 went bs_fail->bs_fail and
+    # ws_fail->ws_pass, so ws_rate_new=100 and skill_lift_new_pp=+100. The
+    # writer stays neutral and just reports the number; c10 figures hatch it.
+    snt = intent_by["should_not_trigger"]
+    if float(snt["skill_lift_new_pp"]) != 100.0:
+        raise AssertionError(
+            f"should_not_trigger skill_lift_new_pp should be +100 on synthetic: {snt}"
+        )
+    # Activation columns: eval 2's new ws transcript opens common_tables.md
+    # (which is also its required ref) and executes code_graph.py — the
+    # skill is NOT staying quiet on a should_not_trigger eval. Verify
+    # those activation rates surface so c10 can answer the restraint
+    # question directly, not just via pass-rate.
+    if int(snt["ws_with_transcript_new"]) != 1:
+        raise AssertionError(
+            f"should_not_trigger ws_with_transcript_new should be 1: {snt}"
+        )
+    if float(snt["ws_any_spyglass_ref_open_rate_new"]) != 100.0:
+        raise AssertionError(
+            f"should_not_trigger ws_any_spyglass_ref_open_rate_new should be 100 "
+            f"(skill activated on a restraint eval): {snt}"
+        )
+    if float(snt["ws_required_ref_open_rate_new"]) != 100.0:
+        raise AssertionError(
+            f"should_not_trigger ws_required_ref_open_rate_new should be 100: {snt}"
+        )
+    if float(snt["ws_script_execution_rate_new"]) != 100.0:
+        raise AssertionError(
+            f"should_not_trigger ws_script_execution_rate_new should be 100: {snt}"
+        )
+    # Eval 1 (should_trigger) also has new ws transcript with ref + script.
+    st = intent_by["should_trigger"]
+    if float(st["ws_required_ref_open_rate_new"]) != 100.0:
+        raise AssertionError(
+            f"should_trigger ws_required_ref_open_rate_new should be 100: {st}"
+        )
+    # Eval 3 (near_miss_negative): new ws transcript opens ONLY SKILL.md.
+    # ws_skill_md_open_rate_new must be 100, but
+    # ws_any_spyglass_ref_open_rate_new must be 0 — opening only the skill
+    # entrypoint should NOT inflate the spyglass-ref activation count.
+    nmn = intent_by["near_miss_negative"]
+    if float(nmn["ws_skill_md_open_rate_new"]) != 100.0:
+        raise AssertionError(
+            f"near_miss_negative ws_skill_md_open_rate_new should be 100: {nmn}"
+        )
+    if float(nmn["ws_any_spyglass_ref_open_rate_new"]) != 0.0:
+        raise AssertionError(
+            "near_miss_negative ws_any_spyglass_ref_open_rate_new should be 0 "
+            f"(SKILL.md alone must NOT inflate the spyglass-ref rate): {nmn}"
+        )
+    # Required-ref recall should also be 0 — eval 3 declares
+    # common_tables.md as required, but the new ws transcript only
+    # opened SKILL.md.
+    if float(nmn["ws_required_ref_open_rate_new"]) != 0.0:
+        raise AssertionError(
+            f"near_miss_negative ws_required_ref_open_rate_new should be 0: {nmn}"
+        )
+    # Eval 4 (unknown): bs missing on new -> joint excludes it.
+    unk = intent_by["unknown"]
+    if int(unk["n_evals_overlap"]) != 1 or int(unk["n_evals_with_all_cells"]) != 0:
+        raise AssertionError(
+            f"unknown bucket should have 1 overlap, 0 joint (eval 4 bs missing): {unk}"
+        )
+
+    # Catalog hash must cover intent — the new run inherits the same intent
+    # values, so the per-eval intent column being present should not change
+    # the semantic hash relative to a hypothetical run with identical evals.
+    # Verified indirectly by catalog_diff.json reporting eval 1 ∉ changed
+    # (intent matches old/new). Direct check: every changed_evals entry must
+    # NOT list "intent" in its fields_changed since synthetic catalog keeps
+    # intent stable per eval id.
+    for ce in catalog_diff["changed_evals"]:
+        if "intent" in ce.get("fields_changed", []):
+            raise AssertionError(
+                f"intent should not be flagged changed on synthetic fixture: {ce}"
+            )
 
     # Failed comparison should not corrupt existing committed outputs.
     sentinel_data = out / "data/headline_diff.json"

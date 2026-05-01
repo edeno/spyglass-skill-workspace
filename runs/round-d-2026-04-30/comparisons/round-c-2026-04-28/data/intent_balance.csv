@@ -1,0 +1,2 @@
+intent,n_evals_overlap,n_evals_with_all_cells,ws_pass_old,ws_pass_new,bs_pass_old,bs_pass_new,ws_rate_old,ws_rate_new,bs_rate_old,bs_rate_new,skill_lift_old_pp,skill_lift_new_pp,skill_lift_delta_pp,n_ws_regressions,n_rubric_friction_stable_fail,ws_with_transcript_new,ws_skill_md_open_rate_new,ws_required_ref_open_rate_new,ws_any_spyglass_ref_open_rate_new,ws_script_execution_rate_new,ws_source_touch_rate_new
+unknown,16,16,3,7,4,5,18.75,43.75,25.0,31.25,-6.25,12.5,18.75,1,6,16,100.0,100.0,100.0,18.75,62.5
