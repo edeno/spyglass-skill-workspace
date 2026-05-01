@@ -490,8 +490,21 @@ def _canonical_eval(entry: dict) -> dict:
     return norm
 
 
-def _canonical_list(values: object) -> list:
-    """Normalize a list-of-strings (or list-of-dicts) field for hashing/diffing."""
+def _canonical_list(values: object) -> object:
+    """Normalize a list-of-strings/dicts OR a dict-of-lists for hashing/diffing.
+
+    Some fields (assertions in the real catalog shape) are dict-of-lists like
+    ``{"required_substrings": [...], "forbidden_substrings": [...],
+    "behavioral_checks": [...]}`` rather than flat lists. Both shapes need
+    canonical normalization so silent edits to any sub-list flip the hash.
+    Returns a list when input is list-shaped, a sorted-key dict when
+    input is dict-shaped, and ``[]`` when input is anything else.
+    """
+    if isinstance(values, dict):
+        return {
+            str(k): _canonical_list(values[k])
+            for k in sorted(str(k) for k in values)
+        }
     if not isinstance(values, list):
         return []
     out = []

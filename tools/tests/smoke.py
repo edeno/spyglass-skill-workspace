@@ -561,15 +561,58 @@ def _smoke_compare_runs(base: Path) -> None:
     # exercise the broader catalog_diff coverage:
     #   - eval 2: difficulty easy -> hard
     #   - eval 3: prompt edited (silent prompt-change case)
+    #   - eval 4: assertions.required_substrings edited (dict-shape sub-field)
     #   - eval 6: added in new run only
-    # Old-run catalog adds prompt/assertions to evals 1-3 so the diff has
-    # something concrete to detect.
+    # Old-run catalog adds prompt + dict-shape assertions to all evals so
+    # the diff has something concrete to detect, including the real-world
+    # catalog shape where `assertions` is a dict-of-lists. Eval 1 gets two
+    # required_substrings so the new run can reorder them — that order-only
+    # change must NOT surface as drift (the canonical hash sorts and the
+    # diff must agree).
     for entry in eval_catalog:
         entry.setdefault("prompt", f"baseline prompt for {entry['name']}")
-        entry.setdefault("assertions", [f"assertion-{entry['id']}-a"])
+        if entry["id"] == 1:
+            entry.setdefault(
+                "assertions",
+                {
+                    "required_substrings": ["req-1-a", "req-1-b"],
+                    "forbidden_substrings": [],
+                    "behavioral_checks": ["behavioral-1"],
+                },
+            )
+        else:
+            entry.setdefault(
+                "assertions",
+                {
+                    "required_substrings": [f"req-{entry['id']}-a"],
+                    "forbidden_substrings": [],
+                    "behavioral_checks": [f"behavioral-{entry['id']}"],
+                },
+            )
     new_eval_catalog = [dict(e) for e in eval_catalog]
+    # eval 1: reorder required_substrings (b then a) — content unchanged.
+    # Must not surface as a catalog change.
+    new_eval_catalog[0] = {
+        **eval_catalog[0],
+        "assertions": {
+            "required_substrings": ["req-1-b", "req-1-a"],
+            "forbidden_substrings": [],
+            "behavioral_checks": ["behavioral-1"],
+        },
+    }
     new_eval_catalog[1] = {**eval_catalog[1], "difficulty": "hard"}
     new_eval_catalog[2] = {**eval_catalog[2], "prompt": "edited prompt for eval 3"}
+    # eval 4: edit a sub-list of the dict-shape assertions field. This is
+    # the real-shape silent-rubric-change case the previous list-only
+    # implementation missed.
+    new_eval_catalog[3] = {
+        **eval_catalog[3],
+        "assertions": {
+            "required_substrings": ["req-4-a", "req-4-b-NEW"],
+            "forbidden_substrings": [],
+            "behavioral_checks": [f"behavioral-{eval_catalog[3]['id']}"],
+        },
+    }
     new_eval_catalog.append(
         {
             "id": 6,
@@ -578,7 +621,11 @@ def _smoke_compare_runs(base: Path) -> None:
             "tier": "joins",
             "difficulty": "easy",
             "prompt": "new eval prompt",
-            "assertions": ["assertion-6-a"],
+            "assertions": {
+                "required_substrings": ["req-6-a"],
+                "forbidden_substrings": [],
+                "behavioral_checks": [],
+            },
         }
     )
     # Old transcripts: eval 1 ws/bs both find ref + script; eval 2 ws fails to
@@ -986,18 +1033,22 @@ def _smoke_compare_runs(base: Path) -> None:
         )
 
     # catalog_diff.json: eval 2 difficulty changed, eval 3 prompt edited,
-    # eval 6 added. Verifies the broader semantic field coverage (prompt is
-    # one of the "silent edit" fields the previous version missed).
+    # eval 4 assertions.required_substrings edited (dict-shape sub-field
+    # edit), eval 6 added. Verifies the full semantic field coverage,
+    # including the real-shape dict-of-lists case for assertions.
     catalog_diff = json.loads((out / "data/catalog_diff.json").read_text())
     if catalog_diff["n_added"] != 1 or catalog_diff["added_eval_ids"] != [6]:
         raise AssertionError(f"catalog_diff added wrong: {catalog_diff}")
     if catalog_diff["n_removed"] != 0:
         raise AssertionError(f"catalog_diff removed should be 0: {catalog_diff}")
-    if catalog_diff["n_changed"] != 2:
-        raise AssertionError(f"catalog_diff should have 2 changed evals: {catalog_diff}")
+    if catalog_diff["n_changed"] != 3:
+        raise AssertionError(f"catalog_diff should have 3 changed evals: {catalog_diff}")
     by_id = {ce["eval_id"]: ce for ce in catalog_diff["changed_evals"]}
-    if 2 not in by_id or 3 not in by_id:
-        raise AssertionError(f"changed evals should include 2 and 3: {by_id.keys()}")
+    for required in (2, 3, 4):
+        if required not in by_id:
+            raise AssertionError(
+                f"changed evals should include {required}: {sorted(by_id)}"
+            )
     eval2_diff = by_id[2]
     if "difficulty" not in eval2_diff["fields_changed"]:
         raise AssertionError(
@@ -1015,6 +1066,32 @@ def _smoke_compare_runs(base: Path) -> None:
         )
     if eval3_diff.get("prompt_new") != "edited prompt for eval 3":
         raise AssertionError(f"eval 3 prompt_new wrong: {eval3_diff}")
+    eval4_diff = by_id[4]
+    # The dict-shape silent-rubric-change case: assertions is stored as
+    # {required_substrings, forbidden_substrings, behavioral_checks}.
+    # Editing one sub-list MUST surface as assertions.<sub_field> in
+    # fields_changed and as added/removed lists in the diff.
+    if "assertions.required_substrings" not in eval4_diff["fields_changed"]:
+        raise AssertionError(
+            "eval 4 assertions.required_substrings edit should be detected "
+            f"(dict-shape sub-field): {eval4_diff}"
+        )
+    if eval4_diff.get("assertions.required_substrings_added") != ["req-4-b-NEW"]:
+        raise AssertionError(
+            f"eval 4 assertions.required_substrings_added wrong: {eval4_diff}"
+        )
+    if "assertions" in eval4_diff["fields_changed"]:
+        raise AssertionError(
+            "Dict-shape assertions should not surface as a flat 'assertions' "
+            f"field; only the sub-keys: {eval4_diff}"
+        )
+    # Eval 1 reordered its required_substrings between runs but the content
+    # is identical. The canonical hash sorts; the diff MUST agree, so eval 1
+    # should not appear in changed_evals at all.
+    if 1 in by_id:
+        raise AssertionError(
+            f"eval 1 should NOT be flagged changed (order-only edit): {by_id[1]}"
+        )
 
     # Many-to-many: eval 2 should appear under both edit_a and edit_b.
     with (out / "data/targeted_edits_long.csv").open(newline="") as f:

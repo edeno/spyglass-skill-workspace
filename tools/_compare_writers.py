@@ -458,18 +458,25 @@ def _eval_field_diff(old: dict, new: dict) -> dict[str, object]:
         diff["expectations_added"] = sorted(set(new_texts) - set(old_texts))
         diff["expectations_removed"] = sorted(set(old_texts) - set(new_texts))
 
-    # List fields (assertions, files): track added / removed entries set-wise.
-    # Each entry may be a string or a dict; canonical-text via JSON for dicts.
+    # List or dict-of-lists fields. The real catalog shape stores assertions
+    # as ``{"required_substrings": [...], "forbidden_substrings": [...],
+    # "behavioral_checks": [...]}`` rather than a flat list, so we must walk
+    # dict keys per-sub-list. files is a flat list of strings in the
+    # observed shape but the same code path handles both.
     for list_field in ("assertions", "files"):
-        old_items = _canonical_list_texts(old.get(list_field) or [])
-        new_items = _canonical_list_texts(new.get(list_field) or [])
-        if old_items != new_items:
-            fields_changed.append(list_field)
-            diff[f"{list_field}_added"] = sorted(set(new_items) - set(old_items))
-            diff[f"{list_field}_removed"] = sorted(set(old_items) - set(new_items))
+        old_val = old.get(list_field)
+        new_val = new.get(list_field)
+        for sub_field, old_items, new_items in _enumerate_listish_subfields(
+            list_field, old_val, new_val
+        ):
+            if old_items == new_items:
+                continue
+            fields_changed.append(sub_field)
+            diff[f"{sub_field}_added"] = sorted(set(new_items) - set(old_items))
+            diff[f"{sub_field}_removed"] = sorted(set(old_items) - set(new_items))
             if len(old_items) != len(new_items):
-                diff[f"{list_field}_count_old"] = len(old_items)
-                diff[f"{list_field}_count_new"] = len(new_items)
+                diff[f"{sub_field}_count_old"] = len(old_items)
+                diff[f"{sub_field}_count_new"] = len(new_items)
 
     for kind in ("expected_refs", "expected_scripts"):
         old_block = old.get(kind) or {}
@@ -486,7 +493,12 @@ def _eval_field_diff(old: dict, new: dict) -> dict[str, object]:
 
 
 def _canonical_list_texts(values: object) -> list[str]:
-    """Render a list of strings or dicts to a stable list of text representations."""
+    """Render a list of strings or dicts to a stable list of text representations.
+
+    Output is sorted so order-only differences do not surface as catalog
+    drift. This must stay in lockstep with _canonical_list in _compare_io.py
+    so the diff and the semantic hash agree on what counts as a change.
+    """
     if not isinstance(values, list):
         return []
     out = []
@@ -495,7 +507,41 @@ def _canonical_list_texts(values: object) -> list[str]:
             out.append(json.dumps(v, sort_keys=True, ensure_ascii=False))
         else:
             out.append(str(v))
+    out.sort()
     return out
+
+
+def _enumerate_listish_subfields(
+    field: str, old: object, new: object
+) -> list[tuple[str, list[str], list[str]]]:
+    """Yield (label, old_items, new_items) tuples for a list- or dict-shaped field.
+
+    For a flat list (``files``) emits a single tuple with label = ``field``.
+    For a dict-of-lists (``assertions = {"required_substrings": [...], ...}``)
+    emits one tuple per sub-key with label = ``f"{field}.{subkey}"``. Sub-keys
+    that exist on only one side still surface as a tuple so the writer can
+    record them as added/removed. Non-list, non-dict inputs degrade to an
+    empty single-tuple emission.
+    """
+    if isinstance(old, dict) or isinstance(new, dict):
+        old_dict = old if isinstance(old, dict) else {}
+        new_dict = new if isinstance(new, dict) else {}
+        keys = sorted({str(k) for k in old_dict} | {str(k) for k in new_dict})
+        return [
+            (
+                f"{field}.{k}",
+                _canonical_list_texts(old_dict.get(k) or []),
+                _canonical_list_texts(new_dict.get(k) or []),
+            )
+            for k in keys
+        ]
+    return [
+        (
+            field,
+            _canonical_list_texts(old or []),
+            _canonical_list_texts(new or []),
+        )
+    ]
 
 
 def _expectation_text(expectation: object) -> str:
