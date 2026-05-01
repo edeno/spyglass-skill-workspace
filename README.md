@@ -208,6 +208,8 @@ See `runs/round-c-2026-04-28/run.json` for the canonical example.
 
 End-to-end flow for each new sweep:
 
+0. **Pre-flight: dispatch a context probe** (cheap insurance, ~30s, ~$0.01). Before launching the full sweep, dispatch one no-op subagent that asks *"what's in your initial context?"* — list any auto-loaded files (CLAUDE.md, MEMORY.md, project memory) and cross-reference against the sweep's contamination model. Round-d's probe surfaced that `MEMORY.md` auto-loads in subagents and contains references to "graded eval sweeps" — meta-context that biases bs answers. The fix landed in `dispatch_prompts.md` as the auto-memory prohibition; without the probe, the contamination would have silently muddied 32 dispatches. Run this probe whenever the dispatch templates change OR auto-memory contents shift.
+
 1. **Dispatch.** Create `runs/<run-id>/iteration-N/` and dispatch the eval subagents from a Claude Code session rooted at the `spyglass-skill` repo (orchestrator-side; the canonical prompt templates live in `skills/spyglass/evals/dispatch_prompts.md`). Each batch produces:
    - `iteration-N/eval-NNN-<name>/{with_skill,without_skill}/{eval_metadata.json,grading.json,timing.json,outputs/response.md}`
    - `iteration-N/.agent_map.json` (orchestrator-written: agent_id → eval-dir/condition)
@@ -229,9 +231,32 @@ End-to-end flow for each new sweep:
    ```
 
    Writes the generated Markdown index to `runs/<run-id>/summary/`, PNG figures to `summary/figures/`, and CSV/JSON data to `summary/data/`. CSV/JSON outputs are idempotent; PNG bytes can differ across matplotlib versions.
-4. **Author narrative.** Write `BATCHES.md` (per-batch ledger), `findings.md` (cross-batch narrative), and `summary/SUMMARY.md` (analysis + recommendations). Cite numbers directly from the JSON/CSV exports rather than reading them off the figures — every headline number in round-c's SUMMARY.md is in `summary/data/cumulative_summary.json`, `data/batch_summary.csv`, `data/top_skill_wins.csv`, or `data/transcript_stats.json`.
-5. **Fill `run.json`.** Include `skill_commit_at_sweep_start/end`, `spyglass_src_commit`, `n_evals_run`, `headline_results`, contamination notes, and the optional `batches` block for per-batch figure labels.
-6. **Commit and push.**
+4. **Post-run rubric audit (NEW, gated).** Read each grader's `eval_feedback` block in `iteration-N/eval-NNN-*/<condition>/grading.json` and the per-eval expectations breakdown. Round-d found ~50% of evals had at least one rubric-friction pattern that produced false-negative grading; those patterns recur and need targeted retirement, not headline retroactive blame. See [Post-run rubric audit](#post-run-rubric-audit) below for the procedure.
+
+5. **Author narrative.** Write `BATCHES.md` (per-batch ledger), `findings.md` (cross-batch narrative), and `summary/SUMMARY.md` (analysis + recommendations). **Cite numbers via path-to-CSV/JSON, not paraphrase.** Every claim of the form *"X happened on N runs"* should cite the specific summary CSV/JSON that proves it (e.g., *"3/16 ws runs invoked code_graph.py per [`script_utilization.json`](summary/data/script_utilization.json)"* — not *"agents reliably invoked the script"*). Paraphrase drifts; path citations don't. This is the discipline that prevents the round-d-style *"tool invocations confirmed in all four"* error that contradicted the underlying CSV. Every headline number is in `summary/data/cumulative_summary.json`, `batch_summary.csv`, `top_skill_wins.csv`, `routing_diagnosis.csv`, `script_utilization.json`, or `transcript_stats.json`.
+
+6. **External reviewer pass.** Hand `findings.md`, the per-eval `grading.json` files, and any post-run rubric edits to an external reviewer (a fresh Claude session, a teammate, or both). The orchestrator self-review systematically misses three things round-d caught only via external review: derived `expectations` arrays not regenerated after `assertions` edits; stale comments in scripts touched during the run; and rubric-friction in evals beyond the obvious ws-worse-than-bs cases. Address the reviewer's findings before commit.
+
+7. **Fill `run.json`.** Include `skill_commit_at_sweep_start/end`, `spyglass_src_commit`, `n_evals_run`, `headline_results`, contamination notes, and the optional `batches` block for per-batch figure labels. Document any post-run `evals.json` changes in `skill_commit_note` (round-c precedent: *"evals.json received in-flight substring relaxations (commits ...); for 'what skill version was being measured' interpret as the X state."*).
+
+8. **Commit and push.**
+
+## Post-run rubric audit
+
+After every graded sweep, before authoring `findings.md` or claiming any headline, work through this checklist on each `iteration-N/eval-NNN-*/<condition>/grading.json`:
+
+1. **Read every grader's `eval_feedback.suggestions` block.** Graders flag rubric-friction unsolicited; the suggestions are the load-bearing signal. Cross-reference against [skills/spyglass/evals/README.md § Anti-patterns to avoid in eval authoring](https://github.com/edeno/spyglass-skill/blob/master/skills/spyglass/evals/README.md) for the canonical shapes.
+2. **Identify the three known rubric-friction shapes** (each documented in evals/README.md):
+   - Literal reference-filename substrings (`required_substrings: ["destructive_operations.md"]`) — fail responses that correctly applied the pattern without typing the filename.
+   - Compound assertions bundling unrelated content (one `behavioral_checks` string asking for two independent claims joined by `and`) — half-credit responses lose the whole point and the signal becomes noisy.
+   - Forbidden-substrings firing on legitimate disambiguation mentions (`forbidden_substrings: ["SpikeSortingV1"]` fires on responses that mention the trap pedagogically).
+3. **Apply targeted rubric corrections** by editing `skills/spyglass/evals/evals.json`. Remove brittle substrings, split compound assertions, replace forbidden-substring + content-recommendation hybrids with recommend-vs-show behavioral checks.
+4. **Regenerate derived expectations**: `python3 skills/spyglass/evals/scripts/flatten_expectations.py`. The skill-side validator (`./skills/spyglass/scripts/validate_all.sh`) gates on `flatten_expectations.py --check`.
+5. **Document the post-run corrections** in this run's `findings.md` as an explicit "Post-run rubric corrections" section. Each correction names the eval, the friction pattern it retired, and the substantive content the response delivered (rubric-friction ≠ content failure; the writeup should make this distinction explicit).
+6. **Headline numbers stay measured against the OLD rubric.** The corrections take effect on the *next* sweep. The current sweep's `findings.md` should note: *"Re-grading the existing N responses against the corrected rubric would likely raise ws scores on evals X / Y / Z."*
+7. **Don't apply rubric corrections that change what the eval tests** — only retire shapes that produce false negatives. If a substring requirement is a real test (the eval IS asking for that exact identifier), keep it. If a compound is genuinely conjunctive (the eval requires BOTH halves to be valid), keep it.
+
+Empirical record: round-d found 8/16 evals (50%) had rubric-friction. The post-run audit identified 18 corrections across 8 evals; without it, the next sweep would have continued under-counting skill effectiveness on those evals. See [`runs/round-d-2026-04-30/findings.md`](runs/round-d-2026-04-30/findings.md) § "Post-run rubric corrections" for the round-d worked example.
 
 ## Why a separate repo
 

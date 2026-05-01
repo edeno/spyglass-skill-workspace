@@ -1,10 +1,10 @@
 eval_id,batch,eval_name,stage,tier,difficulty,failure_type,notes
-28,1,brain-region-for-curated-sorting,pipeline-usage,joins,medium,,
-41,1,config-key-error-after-pull,setup,config-troubleshooting,medium,,
-85,1,recover-parameter-edit-in-place,pipeline-usage,workflow-recovery,hard,,
-87,1,counterfactual-trodes-pos-params-swap,pipeline-usage,counterfactual,hard,,
-88,1,ambiguity-delete-decoding-results,destructive-operations,disambiguation,medium,,
-89,1,restrict-by-interval-name-no-star,pipeline-usage,joins,medium,,
-105,1,camera-devices-lookup,pipeline-usage,atomic-read,easy,,
-108,1,sorted-spikes-group-hippocampal,pipeline-usage,disambiguation,medium,,
-118,1,counterfactual-decoding-bin-size,parameter-understanding,counterfactual,hard,,
+28,1,brain-region-for-curated-sorting,pipeline-usage,joins,medium,rubric_friction,helper-vs-FK-walk preference: skill led with `CurationV1.get_sort_group_info` (canonical) but rubric expected explicit FK walk; `limit=1` substring missing from prose; rubric corrected
+41,1,config-key-error-after-pull,setup,config-troubleshooting,medium,rubric_friction,compound assertion bundles ALTER privilege mention + drop-and-recreate caveat; skill response covered ALTER privilege but missed drop-and-recreate caveat half; +63pp delta despite both_fail
+85,1,recover-parameter-edit-in-place,pipeline-usage,workflow-recovery,hard,rubric_friction,literal `destructive_operations.md` substring missing from response despite implementing the inspect-before-destroy pattern; compound assertion (cautious_delete + routes-to-md)
+87,1,counterfactual-trodes-pos-params-swap,pipeline-usage,counterfactual,hard,rubric_friction,forbidden-substring `SpikeSortingV1` fires on legitimate v0/v1 disambiguation mention in unaffected-branches list; same pattern as eval-105
+88,1,ambiguity-delete-decoding-results,destructive-operations,disambiguation,medium,rubric_friction,literal `destructive_operations.md` substring + compound assertion (classmethod merge_delete + routes-to-md); skill content correctly applied inspect-before-destroy
+89,1,restrict-by-interval-name-no-star,pipeline-usage,joins,medium,rubric_friction,`& (` literal substring + multi-table-* check; ws used 2-table * join (functionally equivalent); rubric corrected
+105,1,camera-devices-lookup,pipeline-usage,atomic-read,easy,rubric_friction,forbidden-substring fires on labeled `# WRONG` pedagogical anti-pattern example; rubric corrected
+108,1,sorted-spikes-group-hippocampal,pipeline-usage,disambiguation,medium,right_ref_no_verify,loaded SortedSpikesGroup correctly but punted on deriving hippocampal sort_group_ids from BrainRegion — real skill content gap on the region-to-sort-group step
+118,1,counterfactual-decoding-bin-size,parameter-understanding,counterfactual,hard,omitted_step,qualitative-direction half of compound assertion missed (cascade template crowded out the speed/resolution tradeoff); rubric split + skill cascade-template Slot 5 added
