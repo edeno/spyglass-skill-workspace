@@ -1,0 +1,160 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `BrainRegion`.",
+      "passed": true,
+      "evidence": "Substring `BrainRegion` appears 8 times in response.md (e.g. 'ElectrodeGroup ... carries a `BrainRegion` foreign key', `BrainRegion & 'region_name LIKE \"%refrontal%\"'`)."
+    },
+    {
+      "text": "Response contains the substring `Electrode`.",
+      "passed": true,
+      "evidence": "Substring `Electrode` appears multiple times (covers `Electrode`, `ElectrodeGroup`); e.g. line 11 'Electrode — one row per channel; *also* carries a `BrainRegion` foreign key' and line 99 `pfc_via_electrode = Session & (Electrode & pfc_region)`."
+    },
+    {
+      "text": "Response contains the substring `TaskEpoch`.",
+      "passed": true,
+      "evidence": "Substring `TaskEpoch` appears 6 times, e.g. line 16 '`TaskEpoch` — one row per (session, epoch)' and line 69 `wtrack_sessions = Session & (TaskEpoch & wtrack_task)`."
+    },
+    {
+      "text": "Response contains the substring `task_name`.",
+      "passed": true,
+      "evidence": "Substring `task_name` appears 6 times, e.g. line 17 '`Task` — lookup table with `task_name`...' and line 65 `wtrack_task = Task & 'task_name LIKE \"%-track%\"...'`."
+    },
+    {
+      "text": "Response contains the substring `Subject`.",
+      "passed": true,
+      "evidence": "Substring `Subject` appears 4 times, e.g. line 21 '`Subject` — `subject_id` is the primary key' and line 111 `Subject * (dj.U(\"subject_id\") & ...)`."
+    },
+    {
+      "text": "Response contains the substring `region_name`.",
+      "passed": true,
+      "evidence": "Substring `region_name` appears 3 times: line 12 '`BrainRegion` — lookup table holding `region_name`...', line 41 `print(sorted(set(BrainRegion.fetch(\"region_name\"))))`, and line 61 `BrainRegion & 'region_name LIKE \"%refrontal%\"'`."
+    },
+    {
+      "text": "Response contains the substring `subject_id`.",
+      "passed": true,
+      "evidence": "Substring `subject_id` appears 11 times, e.g. line 21 '`subject_id` is the primary key', line 72 `dj.U(\"subject_id\") & (pfc_sessions & wtrack_sessions)`."
+    },
+    {
+      "text": "Response contains the substring `.proj(`.",
+      "passed": false,
+      "evidence": "grep -n '\\.proj(' returns no matches. The response uses `dj.U(\"subject_id\")` (DataJoint's project-to-unique operator) for projection rather than the literal `.proj(` method-call syntax."
+    },
+    {
+      "text": "Response does NOT contain the substring `Session.fetch1('task_name')`.",
+      "passed": true,
+      "evidence": "grep for `Session.fetch1` returns no matches; the response correctly never calls `task_name` on Session."
+    },
+    {
+      "text": "Response does NOT contain the substring `Session.fetch1(\"task_name\")`.",
+      "passed": true,
+      "evidence": "grep for `Session.fetch1` returns no matches (covers both quote variants)."
+    },
+    {
+      "text": "Filters on `region_name` from `BrainRegion` (a secondary varchar column, NOT a PK) and walks through `Electrode` (which FKs to BrainRegion per common_ephys.py:79) to identify sessions with PFC electrodes",
+      "passed": true,
+      "evidence": "Line 61 builds `pfc_region = BrainRegion & 'region_name LIKE \"%refrontal%\"'` and line 62 walks via `pfc_sessions = Session & (ElectrodeGroup & pfc_region)`. The response also explicitly notes (line 11) that `Electrode` has its own `BrainRegion` FK and demonstrates the Electrode-walk path on line 99 `pfc_via_electrode = Session & (Electrode & pfc_region)`. ElectrodeGroup also FKs to BrainRegion (verified at common_ephys.py:37) so this is a valid alternate primary route, and the Electrode-based variant is explicitly covered."
+    },
+    {
+      "text": "Routes the w-track restriction PRIMARILY through `Task.task_name` and/or `TaskEpoch.task_environment` (common_task.py), with `IntervalList.interval_list_name` mentioned only as a fallback / validation clue (the lab-dependent naming convention) — does NOT rely solely on interval-list naming",
+      "passed": true,
+      "evidence": "Line 65 `wtrack_task = Task & 'task_name LIKE \"%-track%\" OR task_name LIKE \"%track%\"'` followed by line 69 `wtrack_sessions = Session & (TaskEpoch & wtrack_task)`. The response routes through `Task.task_name` (primary) and never relies on `IntervalList.interval_list_name`. (It also does not mention `task_environment` as an alternative, which is a slight miss vs. the gold answer but does not violate this assertion since the primary path is correct and interval-list naming is not used.)"
+    },
+    {
+      "text": "Projects each side to `subject_id` (via Session's `-> [nullable] Subject` FK) BEFORE intersecting, rather than attempting a single multi-table `*` join across PFC + w-track + subject (which would either trigger dependent-attribute refusal or produce spurious Cartesian products)",
+      "passed": true,
+      "evidence": "Lines 84-87 explicitly show the project-then-intersect pattern: `pfc_animals = dj.U(\"subject_id\") & pfc_sessions`, `wtrack_animals = dj.U(\"subject_id\") & wtrack_sessions`, `both = pfc_animals & wtrack_animals`. The response calls this 'usually the version you want for a which animals are eligible for this analysis survey.' `dj.U(\"subject_id\") & X` is DataJoint's idiom for projecting X to unique subject_id values — functionally equivalent to `X.proj('subject_id')` followed by deduplication. The response does NOT attempt a single multi-table `*` join across PFC + w-track + Subject."
+    },
+    {
+      "text": "Flags both `region_name` substrings and `task_name` / `task_environment` values as lab-dependent conventions to confirm via `Task.fetch('task_name')` etc. before running the filter",
+      "passed": true,
+      "evidence": "Lines 27-50 — entire 'A practical caution before you query' section: 'PFC and \"w-track\" are both fuzzy across the database — different ingesters use different spellings'; explicit code `print(sorted(set(BrainRegion.fetch(\"region_name\"))))` and `print(sorted(set(Task.fetch(\"task_name\"))))`; lists common variants for both PFC and w-track. (Does not specifically call out `task_environment` but does flag both region_name and task_name as lab-dependent.)"
+    },
+    {
+      "text": "Does NOT claim Session has a `task_name` column directly (it doesn't); the path goes through TaskEpoch -> Task",
+      "passed": true,
+      "evidence": "grep for `Session.*task_name` returns no matches. The response correctly routes via `Session & (TaskEpoch & wtrack_task)` (line 69) where `wtrack_task = Task & 'task_name LIKE...'`. No claim that Session carries task_name as a column."
+    }
+  ],
+  "summary": {
+    "passed": 14,
+    "failed": 1,
+    "total": 15,
+    "pass_rate": 0.93
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Bash": 1,
+      "Read": 4,
+      "Write": 1
+    },
+    "total_tool_calls": 6,
+    "total_steps": 10,
+    "errors_encountered": 0,
+    "output_chars": 5837,
+    "transcript_chars": 0
+  },
+  "timing": {
+    "executor_duration_seconds": 74.9,
+    "executor_total_tokens": 38751,
+    "executor_duration_ms": 74918
+  },
+  "claims": [
+    {
+      "claim": "ElectrodeGroup carries a BrainRegion foreign key",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Verified in common_ephys.py:37 — `-> BrainRegion` appears in the `ElectrodeGroup.definition` after `---`."
+    },
+    {
+      "claim": "Electrode carries its own BrainRegion FK that can differ from the group's",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Verified in common_ephys.py:79 — `-> BrainRegion` is present in `Electrode.definition` independently of ElectrodeGroup's BrainRegion FK."
+    },
+    {
+      "claim": "Session has subject_id as a (nullable) foreign key",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches the spyglass schema; Session in common_session.py declares `-> [nullable] Subject` placing subject_id as a nullable FK secondary attribute. The response correctly notes 'once you've restricted Session you can fetch subject_id directly.'"
+    },
+    {
+      "claim": "TaskEpoch links each (session, epoch) to a Task and an IntervalList",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches common_task.py — TaskEpoch FKs to Session, Task, and IntervalList. Consistent with the gold-answer description."
+    },
+    {
+      "claim": "dj.U('subject_id') projects to unique values of subject_id (deduplicates across sessions)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Standard DataJoint semantics — `dj.U(*attrs)` is the universal-set quantifier that, when used in `dj.U(attr) & query`, yields unique values of `attr` from query. The response describes this correctly."
+    },
+    {
+      "claim": "Intersecting Session restrictions (pfc_sessions & wtrack_sessions) gives sessions where BOTH conditions hold in the same session, whereas projecting to subject_id first allows different days",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Correct: restricting Session by both subqueries keeps only sessions in the intersection. Subject-level intersection (`dj.U(\"subject_id\")`) relaxes that to 'animal ever had each' — the response correctly flags this distinction and recommends the subject-level form for an eligibility survey."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `.proj(`.",
+        "reason": "This is a literal-substring check that conflates 'projects to subject_id' (the actual desired behavior) with one specific syntactic form. The response uses `dj.U(\"subject_id\") & query`, which is the canonical DataJoint idiom for projecting to unique values of an attribute and is functionally equivalent (often preferred) to `query.proj('subject_id')`. The semantic expectation #13 ('Projects each side to subject_id BEFORE intersecting') correctly captures the underlying behavior and was satisfied. Consider either (a) widening the substring check to accept `dj.U(` as well, or (b) dropping the substring assertion in favor of the semantic one."
+      },
+      {
+        "reason": "Expectation #14 mentions `task_environment` but its semantic check passes as long as `region_name` and `task_name` are flagged as lab-dependent. The response did not mention `task_environment` at all. If `TaskEpoch.task_environment` is genuinely an important alternate route (per the gold answer), consider a discriminating assertion that checks for it explicitly, otherwise the eval gives full credit even when the responder ignores that route."
+      },
+      {
+        "reason": "No assertion explicitly forbids the 'intersect Sessions then take subject_id' pattern (which the response uses as its primary recommendation). That pattern is more restrictive than the gold answer's 'project to subject_id, then intersect' — it requires both PFC recording and w-track in the SAME session, which is a different question. The response correctly raises this distinction and offers the subject-level form, but a less careful answer that only used Session-level intersection would also pass the current rubric. Consider adding an assertion that the response distinguishes 'same session' vs 'same animal across sessions' when this matters."
+      }
+    ],
+    "overall": "Substantive expectations are well-targeted and the response largely satisfies them. The single failure is a literal-substring check (`.proj(`) where the response used the equivalent `dj.U(...)` idiom — a syntactic mismatch rather than a semantic one. Recommend loosening substring assertions to accept equivalent DataJoint projection idioms, and adding a discriminator for the same-session vs same-animal distinction."
+  }
+}

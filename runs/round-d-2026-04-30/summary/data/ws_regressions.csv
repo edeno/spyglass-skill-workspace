@@ -1,0 +1,5 @@
+eval_id,batch,eval_name,stage,tier,difficulty,ws_pass,bs_pass,ws_expectation_rate,bs_expectation_rate,delta_expectation_pp,full_pass_regression,expectation_regression
+28,1,brain-region-for-curated-sorting,pipeline-usage,joins,medium,0,0,69.2,76.9,-7.7,0,1
+89,1,restrict-by-interval-name-no-star,pipeline-usage,joins,medium,0,0,70.0,90.0,-20.0,0,1
+105,1,camera-devices-lookup,pipeline-usage,atomic-read,easy,0,0,77.8,88.9,-11.1,0,1
+118,1,counterfactual-decoding-bin-size,parameter-understanding,counterfactual,hard,0,1,85.7,100.0,-14.3,1,1

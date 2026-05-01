@@ -1,0 +1,158 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `BrainRegion`.",
+      "passed": true,
+      "evidence": "response.md repeatedly references `BrainRegion`, e.g. line 5: `ElectrodeGroup` carries an FK to `BrainRegion`."
+    },
+    {
+      "text": "Response contains the substring `Electrode`.",
+      "passed": true,
+      "evidence": "Substring `Electrode` appears in `ElectrodeGroup` mentions and explicitly in tip 4: 'aggregate over `Electrode` instead of `ElectrodeGroup`' (response.md line 94)."
+    },
+    {
+      "text": "Response contains the substring `TaskEpoch`.",
+      "passed": true,
+      "evidence": "response.md line 6: '`TaskEpoch` carries an FK to `Task`...' and used throughout the queries."
+    },
+    {
+      "text": "Response contains the substring `task_name`.",
+      "passed": true,
+      "evidence": "response.md line 6: 'FK to `Task` (PK `task_name`)' and used in LIKE filters at lines 46, 74."
+    },
+    {
+      "text": "Response contains the substring `Subject`.",
+      "passed": true,
+      "evidence": "response.md line 8: 'Session carries `subject_id` (via FK to `Subject`)' and line 61: 'Session -> Subject FK'."
+    },
+    {
+      "text": "Response contains the substring `region_name`.",
+      "passed": true,
+      "evidence": "response.md uses `region_name` in discovery (line 18) and LIKE filters (lines 40, 72, 92)."
+    },
+    {
+      "text": "Response contains the substring `subject_id`.",
+      "passed": true,
+      "evidence": "response.md line 62: `.fetch('subject_id')`, line 80: `.proj('subject_id')`."
+    },
+    {
+      "text": "Response contains the substring `.proj(`.",
+      "passed": true,
+      "evidence": "response.md line 80: `Session.proj(\"subject_id\")`."
+    },
+    {
+      "text": "Response does NOT contain the substring `Session.fetch1('task_name')`.",
+      "passed": true,
+      "evidence": "grep for `Session.fetch1` in response.md returned no matches."
+    },
+    {
+      "text": "Response does NOT contain the substring `Session.fetch1(\"task_name\")`.",
+      "passed": true,
+      "evidence": "grep for `Session.fetch1` in response.md returned no matches."
+    },
+    {
+      "text": "Filters on `region_name` from `BrainRegion` (a secondary varchar column, NOT a PK) and walks through `Electrode` (which FKs to BrainRegion per common_ephys.py:79) to identify sessions with PFC electrodes",
+      "passed": true,
+      "evidence": "response.md lines 40-42: `pfc_region = BrainRegion & 'region_name LIKE \"%refrontal%\"'; pfc_groups = ElectrodeGroup & pfc_region; pfc_files = set(pfc_groups.fetch(\"nwb_file_name\"))`. Tip 2 (line 92) explicitly notes `region_name` is secondary on `BrainRegion`. The response uses `ElectrodeGroup` (which FKs to BrainRegion via common_ephys.py:37) rather than `Electrode` (which FKs at line 79); both are valid electrode-level tables that walk through BrainRegion. The conceptual route (filter BrainRegion by region_name, then walk to a session-keyed table) is correct."
+    },
+    {
+      "text": "Routes the w-track restriction PRIMARILY through `Task.task_name` and/or `TaskEpoch.task_environment` (common_task.py), with `IntervalList.interval_list_name` mentioned only as a fallback / validation clue (the lab-dependent naming convention) — does NOT rely solely on interval-list naming",
+      "passed": true,
+      "evidence": "response.md primarily uses `Task.task_name` (line 46: `wtrack_epochs = TaskEpoch & (Task & 'task_name LIKE \"%track%\"')`) and `task_environment` on TaskEpoch (line 49). IntervalList is not mentioned at all — the response routes exclusively through the canonical Task / TaskEpoch path."
+    },
+    {
+      "text": "Projects each side to `subject_id` (via Session's `-> [nullable] Subject` FK) BEFORE intersecting, rather than attempting a single multi-table `*` join across PFC + w-track + subject (which would either trigger dependent-attribute refusal or produce spurious Cartesian products)",
+      "passed": true,
+      "evidence": "response.md restricts each side independently and intersects on `nwb_file_name` as Python sets (lines 42, 47, 50, 58), then joins to Session to recover `subject_id` (line 62). The alternative DataJoint-only formulation uses `dj.U(\"nwb_file_name\")` to project each side and `Session.proj(\"subject_id\")` (line 80). The conceptual technique — split the two restrictions, reduce each to a session/subject key set, intersect — matches the assertion's intent of avoiding a monolithic multi-table join. Note: the response intersects on `nwb_file_name` rather than directly on `subject_id`; this is functionally equivalent (and arguably more precise: it preserves session granularity until the final roll-up) and the dependent-attribute / Cartesian-product pitfall is avoided."
+    },
+    {
+      "text": "Flags both `region_name` substrings and `task_name` / `task_environment` values as lab-dependent conventions to confirm via `Task.fetch('task_name')` etc. before running the filter",
+      "passed": true,
+      "evidence": "response.md Step 1 explicitly tells the user to discover strings first: `BrainRegion.fetch(\"region_name\", \"subregion_name\")` (line 18), `Task.fetch(\"task_name\")` (line 25), `dj.U(\"task_environment\") & TaskEpoch` (line 28), and explains 'No canonical PFC enum — different labs/animals may have used \"prefrontal cortex\", \"PFC\", \"mPFC\"...' (line 12) plus 'Check both fields — different ingest pipelines populate them differently' (line 31). Tip 1 (line 91) reinforces: 'Don't trust a single spelling. Even within one lab, region_name strings drift across animals.'"
+    },
+    {
+      "text": "Does NOT claim Session has a `task_name` column directly (it doesn't); the path goes through TaskEpoch -> Task",
+      "passed": true,
+      "evidence": "grep for `Session.*task_name` in response.md returned no matches. The response correctly routes via `TaskEpoch & (Task & 'task_name LIKE...')` (lines 46, 74) and explicitly explains line 6: '`TaskEpoch` carries an FK to `Task` (PK `task_name`)'."
+    }
+  ],
+  "summary": {
+    "passed": 15,
+    "failed": 0,
+    "total": 15,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 6,
+      "Bash": 9,
+      "Write": 1
+    },
+    "total_tool_calls": 16,
+    "total_steps": 16,
+    "errors_encountered": 0,
+    "output_chars": 5453,
+    "transcript_chars": 0
+  },
+  "timing": {
+    "total_tokens": 49186,
+    "duration_ms": 102202,
+    "executor_duration_seconds": 102.2,
+    "total_duration_seconds": 102.2
+  },
+  "claims": [
+    {
+      "claim": "`ElectrodeGroup` carries an FK to `BrainRegion`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in src/spyglass/common/common_ephys.py:31-41: ElectrodeGroup definition includes `-> BrainRegion`."
+    },
+    {
+      "claim": "`region_name` is a secondary attribute on `BrainRegion` (PK is `region_id`)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in src/spyglass/common/common_region.py:9-16: PK is `region_id: smallint auto_increment`; `region_name: varchar(200)` is below the `---` divider."
+    },
+    {
+      "claim": "`TaskEpoch` carries an FK to `Task` (PK `task_name`) and a secondary `task_environment` attribute",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in src/spyglass/common/common_task.py:124-135 (TaskEpoch FKs to Task and has `task_environment = NULL: varchar(200)`) and lines 19-27 (Task PK is `task_name: varchar(80)`)."
+    },
+    {
+      "claim": "`Session` carries `subject_id` via FK to `Subject`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "The transcript shows the executor read common_session.py and confirmed the schema; this is also the canonical Spyglass relationship documented in references/common_tables.md."
+    },
+    {
+      "claim": "MySQL LIKE is case-sensitive by default — use %refrontal% to catch 'Prefrontal'/'prefrontal'",
+      "type": "factual",
+      "verified": false,
+      "evidence": "MySQL LIKE behavior depends on the column collation. The default collation for varchar in MySQL (utf8mb4_general_ci or similar) is case-INSENSITIVE, not case-sensitive. The %refrontal% trick will work, but the stated reason is technically inaccurate. This is a minor caveat — the practical guidance still works."
+    },
+    {
+      "claim": "Skill was loaded and used: SKILL.md + common_tables.md + code_graph.py + common source files",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript tool calls show: Read SKILL.md, Read common_tables.md, multiple `code_graph.py describe` invocations for BrainRegion/Task/TaskEpoch/ElectrodeGroup, and direct Reads of common_region.py, common_task.py, common_ephys.py, common_session.py."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Projects each side to `subject_id` (via Session's `-> [nullable] Subject` FK) BEFORE intersecting, rather than attempting a single multi-table `*` join across PFC + w-track + subject",
+        "reason": "The assertion as worded asks specifically for projection to `subject_id` before intersection. The response intersects on `nwb_file_name` first (functionally equivalent, arguably preferable since it preserves session granularity), then rolls up to `subject_id`. A grader applying the assertion strictly could mark this FAIL; a grader reading for intent (avoid the Cartesian/dependent-attribute pitfall) would PASS. Consider rewording to 'Reduces each restriction to a session-or-subject key set before intersecting' so either valid pattern passes."
+      },
+      {
+        "reason": "No assertion catches the minor factual error in the response: it claims MySQL `LIKE` is case-sensitive by default. MySQL `LIKE` follows column collation, which is case-INSENSITIVE by default for utf8mb4_general_ci. An assertion like 'Does not assert MySQL LIKE is case-sensitive by default' could catch this kind of database-fact slip."
+      }
+    ],
+    "overall": "All 15 assertions pass. The response is high quality: it correctly routes the compound query through BrainRegion -> ElectrodeGroup for the PFC side and TaskEpoch -> Task for the w-track side, emphasizes string-discovery before filtering, and uses set-based intersection to avoid the Cartesian-product trap. One minor factual slip (MySQL LIKE case-sensitivity) is uncaught, and the projection-to-subject_id assertion is worded narrowly enough that an alternative correct approach (intersect on nwb_file_name, then roll up) could fail under a strict reading."
+  }
+}

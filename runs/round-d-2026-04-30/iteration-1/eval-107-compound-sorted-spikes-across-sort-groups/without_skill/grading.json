@@ -1,0 +1,135 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `SortedSpikesGroup`.",
+      "passed": true,
+      "evidence": "Substring `SortedSpikesGroup` appears 3 times in response.md, e.g. line 7: 'This is exactly how `SortedSpikesGroup` (in `spyglass.spikesorting.analysis.v1.group`) is built'."
+    },
+    {
+      "text": "Response contains the substring `SpikeSortingOutput`.",
+      "passed": true,
+      "evidence": "Substring `SpikeSortingOutput` appears 10 times in response.md, e.g. line 5: 'lives as one row in `SpikeSortingOutput`'."
+    },
+    {
+      "text": "Response contains the substring `UnitSelectionParams`.",
+      "passed": false,
+      "evidence": "Substring `UnitSelectionParams` does not appear anywhere in response.md (grep -c returns 0). The response never mentions the parameter table that filters which unit labels are included."
+    },
+    {
+      "text": "Response contains the substring `create_group`.",
+      "passed": false,
+      "evidence": "Substring `create_group` does not appear in response.md (grep -c returns 0). The response constructs its own custom group via direct `insert1`/`insert` rather than calling the existing `SortedSpikesGroup.create_group(...)` helper."
+    },
+    {
+      "text": "Response contains the substring `spikesorting_merge_id`.",
+      "passed": true,
+      "evidence": "Substring `spikesorting_merge_id` appears 5 times in response.md (line 31: '-> SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')' and elsewhere)."
+    },
+    {
+      "text": "Response does NOT contain the substring `store sort_group_ids as a list in a blob column`.",
+      "passed": true,
+      "evidence": "Substring not present in response.md (grep -c returns 0)."
+    },
+    {
+      "text": "Response does NOT contain the substring `sort_group_ids = [`.",
+      "passed": true,
+      "evidence": "Substring not present in response.md (grep -c returns 0)."
+    },
+    {
+      "text": "Routes to `SortedSpikesGroup` (group.py:63-74) as the existing aggregation abstraction; does NOT propose building a new aggregation table from scratch or stuffing a list of sort_group_ids into a single blob column",
+      "passed": false,
+      "evidence": "The response treats `SortedSpikesGroup` only as a 'canonical template you should copy' (line 7) and then builds a NEW custom table `MyTetrodeSpikeGroup` from scratch (lines 20-33). It never tells the user to simply use `SortedSpikesGroup` directly. While it correctly avoids the blob-column anti-pattern, it fails the primary routing instruction: don't build your own; use the abstraction Spyglass already ships."
+    },
+    {
+      "text": "Recommends inserting one `SortedSpikesGroup` row via `create_group(...)`, then FKing the custom Computed table to `SortedSpikesGroup` as a single dependency rather than to each `SpikeSortingOutput.merge_id` individually",
+      "passed": false,
+      "evidence": "The response never calls or even mentions `create_group(...)`. Instead it shows `MyTetrodeSpikeGroup.insert1(...)` plus a manual list comprehension into `MyTetrodeSpikeGroup.Units.insert(...)` (lines 58-74). It also never demonstrates a downstream Computed table FKing to `SortedSpikesGroup` (or to the custom group as a single dependency); the discussion stops at populating the group itself."
+    },
+    {
+      "text": "Names `UnitSelectionParams` (the parameter table that controls which unit labels are included) and at least one default value (`'all_units'` or `'exclude_noise'`)",
+      "passed": false,
+      "evidence": "Neither `UnitSelectionParams` nor `'all_units'` nor `'exclude_noise'` appear in response.md. The label-filtering layer is not surfaced; the response only alludes to it indirectly via 'handles unit-label filtering (e.g., excluding `noise`/`mua`)' on line 98."
+    },
+    {
+      "text": "Notes that `SortedSpikesGroup.Units` part FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73), so the keys passed into `create_group(...)` must use the projected attr name `spikesorting_merge_id`, NOT bare `merge_id`. Use `SpikeSortingOutput().get_restricted_merge_ids(...)` to fetch the merge_ids and build `[{'spikesorting_merge_id': mid} for mid in merge_ids]`.",
+      "passed": false,
+      "evidence": "The response correctly uses the `.proj(spikesorting_merge_id='merge_id')` rename and uses `get_restricted_merge_ids` (lines 31, 51), and even renames `merge_id` -> `spikesorting_merge_id` in the part insert (line 69). However, it does this in the context of its own custom table, not as a warning about `create_group(...)` keys. Since the response never invokes `create_group(...)`, it does not meet the framing of this expectation: the projected-attr-name caveat is specifically about what to pass to `create_group(...)`. The substring matches are present but the caveat about `create_group(...)` keys is not made."
+    },
+    {
+      "text": "Explains why this is reusable: once the group exists, multiple downstream tables (decoding / MUA / custom) can all FK to the same group key without re-listing the constituent merge_ids",
+      "passed": false,
+      "evidence": "The response does not articulate that downstream Computed tables (decoding, MUA, custom analysis) can FK to the same group key. Section 'Why this shape, and what to avoid' (lines 100-105) discusses anti-patterns but never makes the reusability argument. There is no mention of decoding or MUA detection sharing the group."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 7,
+    "total": 12,
+    "pass_rate": 0.42
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": 0,
+    "output_chars": 5754,
+    "transcript_chars": 88757
+  },
+  "timing": {
+    "executor_duration_seconds": 82.6,
+    "total_tokens": 43903,
+    "duration_ms": 82585
+  },
+  "claims": [
+    {
+      "claim": "`SortedSpikesGroup` in `spyglass.spikesorting.analysis.v1.group` is built as a master + part table",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed against group.py:63-74. Master FKs to Session + UnitSelectionParams with `sorted_spikes_group_name`; part `Units` FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')`."
+    },
+    {
+      "claim": "`SpikeSortingOutput.get_restricted_merge_ids(..., as_dict=True)` returns `[{'merge_id': uuid}, ...]`",
+      "type": "factual",
+      "verified": false,
+      "evidence": "The signature `as_dict=True` is plausible for the Spyglass merge helper, but this was not verified against the source in this grading session. Flagging as potentially unverifiable; if this signature is wrong the user's populate snippet would also be wrong."
+    },
+    {
+      "claim": "`SortedSpikesGroup.fetch_spike_data` aggregates spikes across part rows and handles label filtering",
+      "type": "factual",
+      "verified": true,
+      "evidence": "group.py shows `fetch_spike_data` classmethod and `filter_units` helper that excludes labels like noise/mua; consistent with the response's claim."
+    },
+    {
+      "claim": "Building a new custom master/part table is the recommended approach for aggregating spikes across sort groups",
+      "type": "quality",
+      "verified": false,
+      "evidence": "Per expectations.json, the canonical answer is to USE `SortedSpikesGroup` directly via `create_group(...)`, not to write a new table that copies its shape. The response's recommendation is unnecessary duplication."
+    },
+    {
+      "claim": "The `.proj(spikesorting_merge_id='merge_id')` rename avoids name collisions with other merge tables",
+      "type": "factual",
+      "verified": true,
+      "evidence": "The rename is the standard DataJoint pattern when FKing through merge tables; confirmed by group.py:73 using exactly this projection."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `spikesorting_merge_id`.",
+        "reason": "This passes here because the executor independently uses `.proj(spikesorting_merge_id='merge_id')` while building its own custom table. The substring check does not discriminate between 'used the rename inside create_group(...) keys' (the desired behavior) and 'reimplemented the rename in a copycat table'. Consider tightening to require the rename appears in proximity to `create_group(` or to a discussion of keys passed into the helper."
+      },
+      {
+        "reason": "There is no assertion that explicitly fails the response when it builds a custom master/part table that duplicates SortedSpikesGroup. The current expectations only require that SortedSpikesGroup be mentioned and that the blob anti-pattern be avoided — both of which a 'reimplement from scratch' response can satisfy. A discriminating assertion would be: 'Response uses `SortedSpikesGroup` directly (i.e., imports it and calls `.create_group(...)`) rather than defining a new `dj.Manual` master with a `Units` part class.' Equivalently, asserting a negative match on `class .*\\(SpyglassMixin, dj\\.Manual\\)` followed by `class Units` would catch the copycat pattern."
+      },
+      {
+        "reason": "Expectation 11 (the projected-attr-name caveat) hinges on the response invoking `create_group(...)` — but if `create_group(...)` is not invoked at all, the caveat is moot and the substring `spikesorting_merge_id` passes for the wrong reason. Splitting this into (a) 'response calls `create_group(...)`' and (b) 'the keys passed in use `spikesorting_merge_id`, not `merge_id`' would make it clearer."
+      }
+    ],
+    "overall": "The substring assertions are too lenient and let a 'reinvent SortedSpikesGroup from scratch' response collect partial credit. The semantic assertions (8-12) correctly catch the failure, but a discriminating substring or negative-pattern check on the copycat shape would make the gate tighter and harder to satisfy by accident."
+  }
+}

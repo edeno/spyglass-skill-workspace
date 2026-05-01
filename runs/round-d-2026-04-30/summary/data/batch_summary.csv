@@ -1,0 +1,2 @@
+batch_id,label,n_evals,ws_full_pass,ws_full_rate,bs_full_pass,bs_full_rate,delta_full_pp,ws_exp_pass,ws_exp_total,ws_expectation_rate,bs_exp_pass,bs_exp_total,bs_expectation_rate,delta_expectation_pp,ws_behavioral_pass,bs_behavioral_pass,behavioral_total,delta_behavioral_pp,ws_tokens_total,bs_tokens_total,ws_tokens_mean,bs_tokens_mean,ws_duration_mean_s,bs_duration_mean_s
+1,B1 round-D narrow rerun,16,7,43.8,5,31.2,12.5,144,164,87.8,126,164,76.8,11.0,0,0,0,0.0,904456,613953,56528.5,38372.1,108.91,86.15

@@ -1,0 +1,17 @@
+eval_id,batch,eval_name,stage,tier,difficulty,ws_tokens,bs_tokens,extra_tokens,delta_expectation_pp,both_pass,skill_only,baseline_only,both_fail
+28,1,brain-region-for-curated-sorting,pipeline-usage,joins,medium,49933,37714,12219,-7.7,0,0,0,1
+29,1,brain-region-for-lfp-electrode,pipeline-usage,joins,medium,41921,31006,10915,0.0,1,0,0,0
+41,1,config-key-error-after-pull,setup,config-troubleshooting,medium,83731,38726,45005,62.5,0,0,0,1
+72,1,dep-trace-lfpbandv1,pipeline-usage,dependency-tracing,hard,79004,59823,19181,0.0,1,0,0,0
+85,1,recover-parameter-edit-in-place,pipeline-usage,workflow-recovery,hard,52511,33657,18854,12.5,0,0,0,1
+87,1,counterfactual-trodes-pos-params-swap,pipeline-usage,counterfactual,hard,58966,45280,13686,7.1,0,0,0,1
+88,1,ambiguity-delete-decoding-results,destructive-operations,disambiguation,medium,55742,33860,21882,25.0,0,0,0,1
+89,1,restrict-by-interval-name-no-star,pipeline-usage,joins,medium,47803,31751,16052,-20.0,0,0,0,1
+99,1,hidden-prereq-decoding-populate,pipeline-usage,dependency-tracing,hard,66803,44663,22140,0.0,1,0,0,0
+100,1,workflow-position-post-sort-clusterless-decode,pipeline-usage,workflow-position,medium,68450,41297,27153,0.0,1,0,0,0
+105,1,camera-devices-lookup,pipeline-usage,atomic-read,easy,41449,29931,11518,-11.1,0,0,0,1
+106,1,compound-pfc-wtrack,pipeline-usage,compound,hard,49186,38751,10435,6.7,0,1,0,0
+107,1,compound-sorted-spikes-across-sort-groups,pipeline-authoring,compound,hard,55272,43903,11369,58.3,0,1,0,0
+108,1,sorted-spikes-group-hippocampal,pipeline-usage,disambiguation,medium,40514,33147,7367,16.7,0,0,0,1
+113,1,adversarial-update1-downstream-populated,destructive-operations,adversarial,medium,46979,27000,19979,33.3,0,1,0,0
+118,1,counterfactual-decoding-bin-size,parameter-understanding,counterfactual,hard,66192,43444,22748,-14.3,0,0,1,0

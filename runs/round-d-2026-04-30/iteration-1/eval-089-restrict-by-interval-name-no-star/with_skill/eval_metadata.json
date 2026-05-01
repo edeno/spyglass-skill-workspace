@@ -1,0 +1,8 @@
+{
+  "id": 89,
+  "eval_name": "restrict-by-interval-name-no-star",
+  "stage": "pipeline-usage",
+  "tier": "joins",
+  "difficulty": "medium",
+  "condition": "with_skill"
+}

@@ -1,0 +1,121 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `VideoFile`.",
+      "passed": true,
+      "evidence": "Substring 'VideoFile' appears throughout response.md (e.g. line 9: 'from spyglass.common import VideoFile, CameraDevice, TaskEpoch')."
+    },
+    {
+      "text": "Response contains the substring `CameraDevice`.",
+      "passed": true,
+      "evidence": "Substring 'CameraDevice' appears throughout response.md (e.g. line 9 import, the join expression `* CameraDevice`, and the schema explanation)."
+    },
+    {
+      "text": "Response contains the substring `camera_name`.",
+      "passed": true,
+      "evidence": "Substring 'camera_name' appears in response.md (e.g. line 19 fetch list, line 51 schema description: 'camera_name: varchar(80)')."
+    },
+    {
+      "text": "Response contains the substring `nwb_file_name`.",
+      "passed": true,
+      "evidence": "Substring 'nwb_file_name' appears in response.md, e.g. line 16 `(VideoFile & {\"nwb_file_name\": nwb})` and line 51 schema description."
+    },
+    {
+      "text": "Response does NOT contain the substring `CameraDevice & {'nwb_file_name'`.",
+      "passed": true,
+      "evidence": "Confirmed by inspection — response.md never restricts CameraDevice by nwb_file_name; only VideoFile is restricted by nwb_file_name."
+    },
+    {
+      "text": "Response does NOT contain the substring `CameraDevice & {\"nwb_file_name\"`.",
+      "passed": true,
+      "evidence": "Confirmed by inspection — no double-quoted form of `CameraDevice & {\"nwb_file_name\"` appears in response.md."
+    },
+    {
+      "text": "Routes through `VideoFile` (the per-session mapping) restricted by `nwb_file_name`, NOT through `CameraDevice` alone (which is a global name-keyed lookup with no session attr in its heading)",
+      "passed": true,
+      "evidence": "Primary query in response.md is `(VideoFile & {\"nwb_file_name\": nwb}) * CameraDevice` — restricts VideoFile by nwb_file_name then joins to CameraDevice for camera_id. CameraDevice is not restricted directly by session."
+    },
+    {
+      "text": "Recognizes that `camera_name` on `VideoFile` is a secondary column — NOT a declared `-> CameraDevice` FK — and the link is by name match (validated at ingest in `_prepare_video_entry`)",
+      "passed": false,
+      "evidence": "The response shows the VideoFile schema with `-> TaskEpoch` and `camera_name: varchar(80)` (correctly placing camera_name after `---`), so the structure is implicitly conveyed. HOWEVER, the response explicitly states 'Both reference `CameraDevice`' (line 3) and calls TaskEpoch's link 'a single-camera FK' implying VideoFile also has one. It never says camera_name is a secondary column rather than a FK, and never mentions the ingest-time `(CameraDevice & {'camera_name': camera_name})` validation in `_prepare_video_entry` (even though that file was read in the transcript). The expectation requires explicit recognition; the response actively misstates the relationship."
+    },
+    {
+      "text": "Restricts `VideoFile` by `nwb_file_name` (a PK field via `-> TaskEpoch`); does NOT attempt `CameraDevice & {nwb_file_name: ...}` (silent no-op, no such attr in CameraDevice's heading)",
+      "passed": true,
+      "evidence": "Response uses `VideoFile & {\"nwb_file_name\": nwb}` (line 16) and never restricts CameraDevice by nwb_file_name. nwb_file_name is correctly treated as a PK field reachable via VideoFile's `-> TaskEpoch -> Session` chain."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 1,
+    "total": 9,
+    "pass_rate": 0.89
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Bash": 5,
+      "Read": 2,
+      "Write": 1
+    },
+    "total_tool_calls": 8,
+    "total_steps": 11,
+    "errors_encountered": 0,
+    "output_chars": 3508,
+    "transcript_chars": 36000
+  },
+  "timing": {
+    "executor_duration_seconds": 53.9,
+    "total_tokens": 29931,
+    "duration_ms": 53912
+  },
+  "claims": [
+    {
+      "claim": "VideoFile is `-> TaskEpoch` with `camera_name: varchar(80)`, primary key `(nwb_file_name, epoch, video_file_num)`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in /Users/edeno/Documents/GitHub/spyglass/src/spyglass/common/common_behav.py:466-472 — definition is exactly `-> TaskEpoch / video_file_num = 0: int / --- / camera_name: varchar(80) / video_file_object_id...`"
+    },
+    {
+      "claim": "Both VideoFile and TaskEpoch reference CameraDevice",
+      "type": "factual",
+      "verified": false,
+      "evidence": "Misleading. TaskEpoch DOES have `-> [nullable] CameraDevice` (common_task.py:131). VideoFile does NOT — its `camera_name` is a plain secondary column (common_behav.py:470), and the link to CameraDevice is by name only, validated at ingest in `_prepare_video_entry` (common_behav.py:505)."
+    },
+    {
+      "claim": "CameraDevice has primary key `camera_name`, with `camera_id : int` as a secondary attribute",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in common_device.py:291-300 — `camera_name: varchar(80)` is PK, `camera_id = -1: int` is secondary."
+    },
+    {
+      "claim": "TaskEpoch has both a single-camera FK to CameraDevice and a `camera_names` blob",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in common_task.py:124-135 — `-> [nullable] CameraDevice` and `camera_names : blob`."
+    },
+    {
+      "claim": "The `*` join `(VideoFile & ...) * CameraDevice` is correct for retrieving camera_id",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Both tables share `camera_name` (PK in CameraDevice, secondary in VideoFile). DataJoint allows joins where an attr is secondary on at most one side, so this works. Expected_output confirms this is the right join."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": ["Executor noted no DB access in this session, so could not actually run the query — query is presented for the user to run."],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Recognizes that `camera_name` on `VideoFile` is a secondary column — NOT a declared `-> CameraDevice` FK — and the link is by name match (validated at ingest in `_prepare_video_entry`)",
+        "reason": "This assertion is the most discriminating one in the eval and the only one the without_skill response failed. Worth verifying the grader-side check matches the rubric: passing requires *explicit* recognition (e.g. wording like 'secondary column', 'not a foreign key', 'linked by name', or citing `_prepare_video_entry`), not merely showing a schema definition where camera_name happens to fall after `---`. The response here correctly *displays* the schema but *describes* it incorrectly ('Both reference CameraDevice'), so failing it is right — but a more lenient grader could be fooled by surface schema reproduction. Consider adding a positive-content check (e.g. requires phrase 'secondary' or 'by name' or 'not a foreign key') if the grader is automated."
+      },
+      {
+        "reason": "The string-presence assertions (1-4) are trivially satisfied by any answer that mentions these tables — they don't discriminate good answers from bad. The negative checks (5, 6) and the routing/structural checks (7, 8, 9) carry all the actual signal. This is fine as a defensive scaffold but worth noting that pass-rate inflation from 4 trivial assertions could mask a poor underlying answer."
+      }
+    ],
+    "overall": "Evals are well-designed overall — the negative substring checks (5-6) and the routing/schema checks (7-9) directly probe the failure modes (restricting CameraDevice by nwb_file_name, treating camera_name as an FK). The without_skill response mostly succeeds via training knowledge, failing only on the deepest schema-mechanics check (8)."
+  }
+}

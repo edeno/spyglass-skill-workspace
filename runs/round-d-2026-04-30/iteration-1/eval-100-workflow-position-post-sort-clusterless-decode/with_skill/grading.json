@@ -1,0 +1,123 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `CurationV1`.",
+      "passed": true,
+      "evidence": "Substring appears throughout response.md, e.g. line 6 in the diagram (`SpikeSorting  →  CurationV1 (initial)  →  SpikeSortingOutput.CurationV1`), Step 1 heading at line 39 ('Register an initial `CurationV1` row for each sorting'), and the import on line 44 (`from spyglass.spikesorting.v1 import CurationV1`)."
+    },
+    {
+      "text": "Response contains the substring `SpikeSortingOutput`.",
+      "passed": true,
+      "evidence": "Substring appears in the diagram on line 6 (`SpikeSortingOutput.CurationV1`), Step 2 heading on line 71 ('Publish each curation to `SpikeSortingOutput`'), and the call on line 81 (`SpikeSortingOutput.insert(merge_insert_keys, part_name=\"CurationV1\")`)."
+    },
+    {
+      "text": "Response contains the substring `UnitWaveformFeaturesGroup`.",
+      "passed": true,
+      "evidence": "Substring appears in the diagram on line 10, Step 4 heading on line 137 ('`ClusterlessDecodingSelection` FKs `UnitWaveformFeaturesGroup`'), and the call on line 152 (`UnitWaveformFeaturesGroup().create_group(...)`)."
+    },
+    {
+      "text": "Response contains the substring `ClusterlessDecodingSelection`.",
+      "passed": true,
+      "evidence": "Substring appears in the diagram on line 12, Step 8 heading on line 223 ('Insert the `ClusterlessDecodingSelection` row and populate'), and the call on line 241 (`ClusterlessDecodingSelection.insert1(selection_key, skip_duplicates=True)`)."
+    },
+    {
+      "text": "Response contains the substring `PositionGroup`.",
+      "passed": true,
+      "evidence": "Substring appears in the diagram on line 14, Step 5 heading on line 164 ('Build a `PositionGroup`'), and the call on line 179 (`PositionGroup().create_group(...)`)."
+    },
+    {
+      "text": "Identifies `CurationV1` as the mandatory next step (initial curation, not optional) before anything downstream of spike sorting can be reached",
+      "passed": true,
+      "evidence": "Step 1 (line 39) is titled 'Register an initial `CurationV1` row for each sorting' and explains on line 41 'SpikeSortingOutput accepts entries from `CurationV1`, not `SpikeSorting`. An \"initial curation\" with no edits just anchors the `sorting_id` so it can be published.' Quick checklist item 1 (line 282) lists `CurationV1` initial row(s) as the first prerequisite. Note the response says 'sufficient' rather than explicitly framing it as 'mandatory not optional', but it clearly establishes it as the necessary first step (no downstream consumer can reach the sort without going through CurationV1)."
+    },
+    {
+      "text": "Calls out the merge insert into `SpikeSortingOutput` (e.g. `insert([curation_key], part_name='CurationV1')`) as a separate explicit step that does not happen automatically",
+      "passed": true,
+      "evidence": "Step 2 is a dedicated section titled 'Publish each curation to `SpikeSortingOutput`' (line 71) with the call `SpikeSortingOutput.insert(merge_insert_keys, part_name=\"CurationV1\")` on line 81. Quick checklist item 2 (line 283) reiterates `SpikeSortingOutput.CurationV1` (via `SpikeSortingOutput.insert(..., part_name=\"CurationV1\")`) as a separate prerequisite. The structure makes it clear this is not automatic — it has its own numbered step distinct from creating the CurationV1 row."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": 0,
+    "total_steps": 0,
+    "errors_encountered": 0,
+    "output_chars": 11500,
+    "transcript_chars": 0
+  },
+  "timing": {
+    "total_tokens": 68450,
+    "duration_ms": 132101,
+    "executor_duration_seconds": 132.1,
+    "total_duration_seconds": 132.1
+  },
+  "claims": [
+    {
+      "claim": "An initial curation row has `parent_curation_id == -1`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line 67 states 'an initial curation has `parent_curation_id == -1` and stores the units exactly as the sorter produced them.' This matches Spyglass's CurationV1.insert_curation behavior where the initial curation uses sentinel parent_curation_id == -1."
+    },
+    {
+      "claim": "SpikeSortingOutput.insert takes a list of dicts and a bare dict raises TypeError",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line 76 comment '# insert() takes a list of dicts (a bare dict raises TypeError)' is consistent with DataJoint's standard insert() vs insert1() distinction; the response correctly uses insert([...], part_name=...)."
+    },
+    {
+      "claim": "WaveformFeaturesParams defaults are not auto-loaded at import; call insert_default()",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Lines 105-107 note 'Make sure stock feature-params rows exist (not auto-loaded at import)' followed by `WaveformFeaturesParams().insert_default()`. This is consistent with Spyglass conventions where parameter tables ship insert_default classmethods that must be invoked explicitly."
+    },
+    {
+      "claim": "DecodingParameters default names are version-suffixed by non_local_detector version (e.g. `contfrag_clusterless_v1.2.0`)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Lines 194-204 show `decoding_param_name = f\"contfrag_clusterless_{non_local_detector_version}\"`. Consistent with the spyglass.decoding.v1 DecodingParameters insert_default behavior."
+    },
+    {
+      "claim": "estimate_decoding_params=0 is fixed params, =1 is re-fit via Baum-Welch (default is 1)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Lines 238-240 and 247 explain the two branches and note default is 1. This matches the documented behavior in ClusterlessDecodingV1.make where estimate_decoding_params triggers different model-fitting paths."
+    },
+    {
+      "claim": "results.acausal_posterior has a stacked (state, position) coordinate `state_bins` that must be unstacked",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Lines 264-274 show the unstack/drop_sel/sum pattern. This matches non_local_detector's xarray output convention where state_bins is a MultiIndex over state and position."
+    },
+    {
+      "claim": "Step 1 (CurationV1) is the mandatory entry point for downstream consumers",
+      "type": "process",
+      "verified": true,
+      "evidence": "Line 41 explicitly states 'SpikeSortingOutput accepts entries from CurationV1, not SpikeSorting'. The structural ordering of Steps 1-8 reinforces this."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Identifies `CurationV1` as the mandatory next step (initial curation, not optional) before anything downstream of spike sorting can be reached",
+        "reason": "The assertion's phrasing 'mandatory, not optional' is a soft target — any response that lists CurationV1 as step 1 (as this one does) plausibly passes, even if it doesn't explicitly explain *why* (FK constraint: every downstream consumer FKs to a curation row, not directly to SpikeSorting). Consider also requiring a sentence that explains the rationale, so a skill that just lists tables in order doesn't pass."
+      },
+      {
+        "reason": "No assertion checks that the response identifies the position side (`PositionOutput` populated -> `PositionGroup`) as a *parallel* prerequisite that joins at `ClusterlessDecodingSelection`. The response handles this well (Step 5, plus the closing note on line 293), but a skill could pass all current assertions while presenting position as an afterthought."
+      },
+      {
+        "reason": "No assertion checks for the `WaveformFeaturesParams.insert_default()` / `UnitWaveformFeatures.populate()` step (Step 3 here). This is explicitly part of the four staged steps in `expected_output` but only obliquely covered by the `UnitWaveformFeaturesGroup` substring — a response could pass by mentioning the group while skipping the per-spike feature computation."
+      }
+    ],
+    "overall": "All seven assertions pass with strong evidence. The response is unusually thorough — it covers all four staged spike-sorting-side steps from expected_output plus position-side and post-populate fetch concerns. Suggestions above target a few coverage gaps where a weaker skill could still pass: the rationale for CurationV1 being mandatory, the position side as a parallel prerequisite, and the waveform-features computation step itself."
+  }
+}

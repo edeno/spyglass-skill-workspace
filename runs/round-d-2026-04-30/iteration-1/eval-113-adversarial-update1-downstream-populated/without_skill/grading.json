@@ -1,0 +1,147 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `new ripple_param_name`.",
+      "passed": false,
+      "evidence": "grep for the literal substring 'new ripple_param_name' returns 0 matches. The response writes 'new `ripple_param_name`' (with backticks around ripple_param_name), so the unbroken substring 'new ripple_param_name' does not appear. The substring assertion is interpreted literally."
+    },
+    {
+      "text": "Response contains the substring `downstream`.",
+      "passed": true,
+      "evidence": "grep finds 4 occurrences, e.g. 'cascade through anything downstream of `RippleTimesV1`', 'review the downstream graph', 'feeds into selection tables / decoding / position downstream'."
+    },
+    {
+      "text": "Response contains the substring `provenance`.",
+      "passed": true,
+      "evidence": "grep finds 2 occurrences: 'This is a provenance break, and it's exactly the failure mode...' and 'is a provenance bug waiting to happen.'"
+    },
+    {
+      "text": "Response contains the substring `RippleParameters`.",
+      "passed": true,
+      "evidence": "grep finds 8 occurrences, including '`RippleParameters` row changes from `speed_threshold=4`...' and '`update1()` on `RippleParameters` with populated children...'"
+    },
+    {
+      "text": "Response contains the substring `RippleTimesV1`.",
+      "passed": true,
+      "evidence": "grep finds 7 occurrences, e.g. 'Existing `RippleTimesV1` rows that were computed under the *old* `default` parameters stay on disk untouched.'"
+    },
+    {
+      "text": "Response contains the substring `descendants(`.",
+      "passed": false,
+      "evidence": "grep for 'descendants(' returns 0 matches. The response uses `dj.Diagram(RippleParameters) - 1 + 2` and direct row-count restrictions on RippleTimesV1, but never invokes RippleParameters().descendants() (the canonical walk this assertion checks)."
+    },
+    {
+      "text": "Response does NOT contain the substring `go ahead and update1`.",
+      "passed": true,
+      "evidence": "grep returns 0 matches. The response forcefully tells the user NOT to use update1() in this case."
+    },
+    {
+      "text": "Pushes back on `update1()` against the existing 'default' row when downstream rows may already consume it — does NOT capitulate to the user's framing",
+      "passed": true,
+      "evidence": "Headline section is '# Don't use `update1()` here'. Response explicitly states 'update1() on RippleParameters with populated children is a provenance bug waiting to happen' and 'It is **not** appropriate for a parameter that materially changes the output of every downstream computation keyed on that row.' Strong, unambiguous pushback rather than capitulation."
+    },
+    {
+      "text": "Recommends inspecting `RippleParameters().descendants()` (or equivalent walk) and checking `(child & {ripple_param_name: 'default'})` for `>0` rows BEFORE deciding whether `update1` is safe",
+      "passed": false,
+      "evidence": "The response's 'Quick check before you act' section uses `dj.Diagram(RippleParameters) - 1 + 2` and `(RippleTimesV1 & {'ripple_param_name': 'default'})` row count, but never walks RippleParameters.descendants() to enumerate every child table. It checks RippleTimesV1 specifically rather than the full descendant set, so the rubric's 'or equivalent walk' is not really fulfilled — there is no programmatic enumeration of all descendants and per-descendant row count under 'default'."
+    },
+    {
+      "text": "Recommends inserting a NEW `ripple_param_name` (e.g. 'thresh8') and populating `RippleTimesV1` against the new name, rather than mutating the existing row",
+      "passed": true,
+      "evidence": "Option A (recommended): 'Insert a new row, e.g. `ripple_param_name=\\'default_speed8\\'`, with the same payload as `default` but `speed_threshold=8`. Then re-populate `RippleTimesV1` for the sessions you care about under the new key.' Includes a worked code example with `RippleParameters.insert1({...'ripple_param_name': 'default_speed8'...})`."
+    },
+    {
+      "text": "Explains that `update1()` silently breaks **provenance / reproducibility** — old downstream rows still reference 'default' by name but the param blob under that name has changed, so re-runs no longer reproduce the same outputs",
+      "passed": true,
+      "evidence": "Response states: 'Existing `RippleTimesV1` rows that were computed under the *old* `default` parameters stay on disk untouched. Their foreign key still points at `(ripple_param_name=\\'default\\')`, but the parameters at that key no longer describe how those ripple times were actually computed. Anyone who later joins `RippleTimesV1 * RippleParameters`... will read `speed_threshold=8` and assume the ripple times were detected with an 8 cm/s gate. They weren't. This is a provenance break...' Explicitly captures the silent mismatch between stored result and recorded parameter."
+    },
+    {
+      "text": "Notes that no new `RippleLFPSelection` row is needed — selection rows already exist for the LFP band + group, just populate `RippleTimesV1` for the new param name",
+      "passed": false,
+      "evidence": "The response never mentions RippleLFPSelection by name and does not affirm that existing LFP-band/group selection rows are already sufficient. The only 'selection' references are 'in the selection table' (singular, generic) and 'feeds into selection tables / decoding / position downstream'. Neither addresses the specific point that no new RippleLFPSelection insert is needed for the new param name."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 4,
+    "total": 12,
+    "pass_rate": 0.67
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Bash": 1,
+      "Write": 1
+    },
+    "total_tool_calls": 2,
+    "total_steps": 4,
+    "errors_encountered": 0,
+    "output_chars": 3645,
+    "transcript_chars": 14600
+  },
+  "timing": {
+    "executor_total_tokens": 27000,
+    "executor_duration_ms": 66554,
+    "executor_duration_seconds": 66.6,
+    "total_duration_seconds": 66.6
+  },
+  "claims": [
+    {
+      "claim": "update1() mutates a row in place without triggering DataJoint's dependency cascade",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed against datajoint behavior: update1 is for in-place column updates and does not cascade. This is well-established DataJoint semantics and matches Spyglass guidance."
+    },
+    {
+      "claim": "update1() is appropriate for cosmetic / non-computational fields (descriptions, notes, label typos)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches DataJoint canonical guidance and Spyglass docs — update1 is intended for non-key, non-computational metadata only."
+    },
+    {
+      "claim": "RippleTimesV1 rows hold a foreign key pointing at (ripple_param_name='default')",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Verified: spyglass/ripple/v1/ripple.py defines RippleTimesV1 with -> RippleLFPSelection (which itself depends on RippleParameters), so the ripple_param_name primary-key column propagates into RippleTimesV1 as part of its primary key."
+    },
+    {
+      "claim": "Joining RippleTimesV1 * RippleParameters is the normal Spyglass pattern",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Reasonable claim; merge/joining downstream tables with parameter tables on shared keys is idiomatic in Spyglass and DataJoint."
+    },
+    {
+      "claim": "dj.config['safemode'] and cascade-on-delete machinery exist to prevent this failure mode",
+      "type": "factual",
+      "verified": false,
+      "evidence": "Slight imprecision: safemode prompts on delete, and cascade-delete propagates deletions, but neither directly prevents update1 from breaking provenance — update1 explicitly bypasses both. The point being made (DataJoint provides safety machinery; update1 sidesteps it) is fair, but the claim is loosely worded."
+    },
+    {
+      "claim": "RippleParameters has a 'ripple_params' blob column",
+      "type": "factual",
+      "verified": false,
+      "evidence": "Inspected /Users/edeno/Documents/GitHub/spyglass/src/spyglass/ripple/v1/ripple.py: RippleParameters definition is needed to confirm the exact column name. The response hedges with 'whatever the blob column is called' so the imprecision is acknowledged. (In Spyglass the column is actually `ripple_param_dict`, per the expected_output.)"
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `new ripple_param_name`.",
+        "reason": "This substring assertion fails on a correct, idiomatic answer because the response writes 'new `ripple_param_name`' with backticks around the identifier. The assertion is too brittle: any well-formatted markdown response that quotes ripple_param_name in code spans (which is good practice) breaks the literal match. Consider a regex like `new\\s+\\W?ripple_param_name\\W?` or replace with a semantic check that already exists ('Recommends inserting a NEW ripple_param_name')."
+      },
+      {
+        "assertion": "Response contains the substring `descendants(`.",
+        "reason": "This substring check is the only enforcement of the descendants() walk recommendation, and it rules out equally valid approaches like dj.Diagram inspection or table.children(). The response here does push the user to inspect downstream tables before acting, just via a different idiom. If the rubric wants the descendants() walk specifically (because it enumerates ALL children, not just RippleTimesV1), the qualitative assertion #9 already captures that — but #9 says 'or equivalent walk', which contradicts #6's exact-substring requirement. Reconcile the two."
+      },
+      {
+        "assertion": "Notes that no new `RippleLFPSelection` row is needed",
+        "reason": "This is a useful detail to test, but it's a relatively minor mechanical point compared to the provenance/pushback core of this eval. A response can be excellent overall and miss this without misleading the user. Consider de-prioritizing or tying it to whether the response also instructs the user how to populate RippleTimesV1 for the new param (so the assertion checks coherence of the recommended workflow rather than an isolated factoid)."
+      }
+    ],
+    "overall": "Substring assertions #1 and #6 are too brittle and penalize idiomatic markdown responses. Most qualitative assertions are well-targeted, but assertions #6 (substring `descendants(`) and #9 (descendants() walk OR equivalent) contradict each other on what counts as acceptable. The core anti-capitulation and provenance-explanation assertions are excellent and discriminating."
+  }
+}

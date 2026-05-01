@@ -1,0 +1,5 @@
+outcome,n,mean_extra_tokens,total_extra_tokens,share_of_total_extra
+both_pass,4,19847,79389,27.3
+skill_only,3,13928,41783,14.4
+baseline_only,1,22748,22748,7.8
+both_fail,8,18323,146583,50.5

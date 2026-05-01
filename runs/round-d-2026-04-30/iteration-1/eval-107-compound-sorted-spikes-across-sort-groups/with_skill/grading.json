@@ -1,0 +1,136 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `SortedSpikesGroup`.",
+      "passed": true,
+      "evidence": "`grep -c SortedSpikesGroup response.md` returned 19 matches; e.g. line 3: 'Spyglass already has a grouping table (`SortedSpikesGroup`)' and the FK declarations in the recommended Computed-table example."
+    },
+    {
+      "text": "Response contains the substring `SpikeSortingOutput`.",
+      "passed": true,
+      "evidence": "`grep -c SpikeSortingOutput response.md` returned 12 matches; e.g. line 14: 'Part table `Units`: ... FK’ing `SpikeSortingOutput.proj(spikesorting_merge_id=’merge_id’)`' and the `merge_restrict` discovery example."
+    },
+    {
+      "text": "Response contains the substring `UnitSelectionParams`.",
+      "passed": true,
+      "evidence": "Imported in the `create_group` example block (line 106): `from spyglass.spikesorting.analysis.v1.group import (SortedSpikesGroup, UnitSelectionParams,)` and called as `UnitSelectionParams().insert_default()` on line 111."
+    },
+    {
+      "text": "Response contains the substring `create_group`.",
+      "passed": true,
+      "evidence": "`grep -c create_group response.md` returned 4 matches; the response calls `SortedSpikesGroup().create_group(...)` (line 120) and references the helper repeatedly (e.g. line 130: '`create_group` splats the dict straight into the part insert')."
+    },
+    {
+      "text": "Response contains the substring `spikesorting_merge_id`.",
+      "passed": true,
+      "evidence": "`grep -c spikesorting_merge_id response.md` returned 4 matches, including line 117 `.proj(spikesorting_merge_id='merge_id')` and line 130 'Your `keys` entries must use the renamed field `spikesorting_merge_id`, not raw `merge_id`'."
+    },
+    {
+      "text": "Response does NOT contain the substring `store sort_group_ids as a list in a blob column`.",
+      "passed": true,
+      "evidence": "grep for the literal phrase produced no matches. Response's anti-pattern section instead phrases it as 'Don't put a list of sort groups (or a list of merge_ids) directly in your Computed table's PK.'"
+    },
+    {
+      "text": "Response does NOT contain the substring `sort_group_ids = [`.",
+      "passed": true,
+      "evidence": "grep for `sort_group_ids = [` produced no matches. The response never builds such a list."
+    },
+    {
+      "text": "Routes to `SortedSpikesGroup` (group.py:63-74) as the existing aggregation abstraction; does NOT propose building a new aggregation table from scratch or stuffing a list of sort_group_ids into a single blob column",
+      "passed": true,
+      "evidence": "Line 3 leads with: 'don't put cross-sort-group membership in your own table's PK ... Spyglass already has a grouping table (`SortedSpikesGroup`) ... Your custom table should foreign-key `SortedSpikesGroup`'. The 'Alternative: author your own group' section is explicitly hedged ('Skip unless you need it.', line 156). Anti-patterns section (line 160) directly forbids 'a list of sort groups (or a list of merge_ids) directly in your Computed table's PK'. Cites file path `spyglass/spikesorting/analysis/v1/group.py` though not the 63-74 line range exactly."
+    },
+    {
+      "text": "Recommends inserting one `SortedSpikesGroup` row via `create_group(...)`, then FKing the custom Computed table to `SortedSpikesGroup` as a single dependency rather than to each `SpikeSortingOutput.merge_id` individually",
+      "passed": true,
+      "evidence": "Response shows `MyAnalysisSelection` table FKing `-> SortedSpikesGroup` (line 50) and `MyAnalysis` Computed FKing `-> MyAnalysisSelection` (line 60), with one `SortedSpikesGroup().create_group(...)` call (lines 120-125). Anti-pattern (line 161): 'Don't FK `SpikeSortingOutput` from your Computed table directly. That gives you one row per sort group, which is the opposite of what you want — you want one row that represents the aggregate across sort groups. FK the group instead.'"
+    },
+    {
+      "text": "Names `UnitSelectionParams` (the parameter table that controls which unit labels are included) and at least one default value (`'all_units'` or `'exclude_noise'`)",
+      "passed": true,
+      "evidence": "Names `UnitSelectionParams` and supplies `unit_filter_params_name=\"exclude_noise\"` in the `create_group` call (line 123). Master PK on line 13 includes `unit_filter_params_name`."
+    },
+    {
+      "text": "Notes that `SortedSpikesGroup.Units` part FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73), so the keys passed into `create_group(...)` must use the projected attr name `spikesorting_merge_id`, NOT bare `merge_id`. Use `SpikeSortingOutput().get_restricted_merge_ids(...)` to fetch the merge_ids and build `[{'spikesorting_merge_id': mid} for mid in merge_ids]`.",
+      "passed": true,
+      "evidence": "Line 130 spells this out and cites the exact source line: 'The part FKs `SpikeSortingOutput.proj(spikesorting_merge_id=’merge_id’)` (`spyglass/spikesorting/analysis/v1/group.py:73`). Your `keys` entries must use the renamed field `spikesorting_merge_id`, not raw `merge_id` — `create_group` splats the dict straight into the part insert.' Verified against source: group.py:73 indeed reads `-> SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')`. Response's discovery path uses `SpikeSortingOutput.merge_restrict({...}).proj(spikesorting_merge_id='merge_id').fetch('KEY', as_dict=True)` (lines 114-118) instead of the rubric-suggested `get_restricted_merge_ids(...)` + list-comprehension. Functionally equivalent and the projection-rename point is clearly made."
+    },
+    {
+      "text": "Explains why this is reusable: once the group exists, multiple downstream tables (decoding / MUA / custom) can all FK to the same group key without re-listing the constituent merge_ids",
+      "passed": true,
+      "evidence": "Line 135: 'The pattern above (FK an existing group, call its helper in `make()`) is the recommended path because Spyglass already has it and downstream tools like `SortedSpikesDecodingV1` and `MuaEventsV1` use the same group.' Names two concrete downstream consumers of `SortedSpikesGroup`."
+    }
+  ],
+  "summary": {
+    "passed": 12,
+    "failed": 0,
+    "total": 12,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 4,
+      "Bash": 1,
+      "Write": 1
+    },
+    "total_tool_calls": 6,
+    "total_steps": 19,
+    "errors_encountered": 0,
+    "output_chars": 8794,
+    "transcript_chars": null
+  },
+  "timing": {
+    "executor_total_tokens": 55272,
+    "executor_duration_ms": 99884,
+    "executor_duration_seconds": 99.9
+  },
+  "claims": [
+    {
+      "claim": "`SortedSpikesGroup.Units` FKs `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73).",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed against /Users/edeno/Documents/GitHub/spyglass/src/spyglass/spikesorting/analysis/v1/group.py line 73: `-> SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')`."
+    },
+    {
+      "claim": "`fetch_spike_data` only restricts the Units part by `(nwb_file_name, sorted_spikes_group_name)` (group.py:171), so reusing a group_name across different unit_filter_params would silently merge units across both filter settings.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed against group.py lines 171-178: the restriction is `{\"nwb_file_name\": ..., \"sorted_spikes_group_name\": ...}` only — `unit_filter_params_name` is NOT used to restrict the part fetch. Filter labels are applied per-unit downstream from UnitSelectionParams via fetch1, but the part-row enumeration ignores the filter name. The response's caveat is correct and is a useful gotcha not in the rubric."
+    },
+    {
+      "claim": "On the merge master, `& {'nwb_file_name': f}` silently returns the entire table because the heading is only `merge_id`; use `merge_restrict` instead.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Standard DataJoint merge-table semantics; matches established Spyglass guidance (skill SKILL.md and references warn against the same anti-pattern). Reasonable claim."
+    },
+    {
+      "claim": "Default `unit_filter_params_name` value `exclude_noise` exists.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "`UnitSelectionParams.insert_default()` is invoked on line 111. Inspecting upstream definitions in group.py shows the default rows include `'all_units'` and `'exclude_noise'`. Both are valid defaults per the rubric's expected_output."
+    },
+    {
+      "claim": "Used `AnalysisNwbfile().build(nwb_file_name) as builder: ... builder.add_nwb_object(...)` context-manager API.",
+      "type": "process",
+      "verified": false,
+      "evidence": "I did not verify that `AnalysisNwbfile().build(...)` is a real context manager with `add_nwb_object` and `analysis_file_name` attributes in the current Spyglass. The canonical pattern uses `AnalysisNwbfile().create(nwb_file_name)` + `add_nwb_object` + `add` calls. This may be incorrect API in the example, but the eval rubric does not test it and the surrounding Computed-table shape is correct."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Recommends inserting one `SortedSpikesGroup` row via `create_group(...)`, then FKing the custom Computed table to `SortedSpikesGroup` as a single dependency rather than to each `SpikeSortingOutput.merge_id` individually",
+        "reason": "An assertion that the Computed table's PK does not contain `spikesorting_merge_id` (or any per-tetrode key) would more directly catch the failure mode the eval is designed around. As written, a response that FKs `SortedSpikesGroup` once but ALSO redundantly FKs `SpikeSortingOutput` per tetrode could still pass on the literal text of this assertion."
+      },
+      {
+        "reason": "No assertion catches the response's `AnalysisNwbfile().build(...) as builder: builder.add_nwb_object(...)` context-manager usage. I could not confirm that API surface exists in current Spyglass; the canonical pattern is `create()` + `add_nwb_object()` + `add()`. If the response's usage is wrong it would silently pass the eval but mislead a user copying the snippet. An assertion that the response uses `AnalysisNwbfile().create(...)` (or another verified-correct API) would close that gap."
+      }
+    ],
+    "overall": "Response passes all 12 expectations cleanly with strong source citations (group.py:73, group.py:171). Suggestions above are minor; the rubric is generally well-aimed at the cross-sort-group-aggregation failure mode."
+  }
+}

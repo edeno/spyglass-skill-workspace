@@ -1,0 +1,149 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `SortedSpikesGroup`.",
+      "passed": true,
+      "evidence": "Substring appears throughout the response, starting at line 1: 'It's `SortedSpikesGroup` (with its part `SortedSpikesGroup.Units`)...'"
+    },
+    {
+      "text": "Response contains the substring `UnitSelectionParams`.",
+      "passed": true,
+      "evidence": "Line 9: 'A companion parameter table `UnitSelectionParams` ships defaults...' and line 19 import block."
+    },
+    {
+      "text": "Response contains the substring `BrainRegion`.",
+      "passed": true,
+      "evidence": "Line 37: 'you'll need to base it on lab metadata you've already populated (BrainRegion, electrode group names...)'"
+    },
+    {
+      "text": "Response contains the substring `create_group`.",
+      "passed": true,
+      "evidence": "Multiple occurrences, e.g., line 13: 'pick a label filter → call `create_group`' and line 55: 'SortedSpikesGroup().create_group(...)'."
+    },
+    {
+      "text": "Response contains the substring `region_name`.",
+      "passed": true,
+      "evidence": "Line 99: 'how brain region is recorded in your setup (e.g. `Electrode.region_name`, a per-tetrode lookup...)'."
+    },
+    {
+      "text": "Response contains the substring `SortGroupElectrode`.",
+      "passed": false,
+      "evidence": "grep -c 'SortGroupElectrode' returns 0. The response mentions `SortGroup` and `sort_group_id` but never references the part table `SortGroup.SortGroupElectrode` that maps sort groups to electrodes."
+    },
+    {
+      "text": "Response contains the substring `spikesorting_merge_id`.",
+      "passed": true,
+      "evidence": "Line 8: 'whose rows FK `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')`'; line 31: '.proj(spikesorting_merge_id=\"merge_id\")'; line 94 footgun bullet."
+    },
+    {
+      "text": "Recommends `SortedSpikesGroup` as the existing aggregation (don't loop sort_group_ids)",
+      "passed": true,
+      "evidence": "Line 1: 'Yes — there's a built-in for exactly this. It's `SortedSpikesGroup`... downstream code can foreign-key the *group* instead of joining merge IDs by hand every time.' The response answers the user's actual question (avoiding repeated aggregation) by recommending SortedSpikesGroup."
+    },
+    {
+      "text": "DERIVES the hippocampal sort_group_ids by walking `SortGroup.SortGroupElectrode * Electrode * BrainRegion` filtered by `region_name`, AND restricts the merge IDs by those sort_group_ids before passing to `create_group(...)` — does NOT pass all session merge_ids unfiltered (which would defeat the point of the eval)",
+      "passed": false,
+      "evidence": "The response does the OPPOSITE: it constructs `candidate_units` by calling `SpikeSortingOutput.merge_restrict({\"nwb_file_name\": nwb_file})` (line 30) which fetches ALL session unit sets, and then passes them unfiltered to `create_group(..., keys=candidate_units)` (line 59). It does not walk SortGroupElectrode * Electrode * BrainRegion. Line 37 explicitly punts on the hippocampal restriction: 'I don't know your specific schema for that — happy to help wire it up if you tell me where region info lives in your DB.' This fails the core point of the eval."
+    },
+    {
+      "text": "Names `UnitSelectionParams` as the parameter table that filters unit labels within the group, with `'all_units'` / `'exclude_noise'` defaults",
+      "passed": true,
+      "evidence": "Line 9: 'A companion parameter table `UnitSelectionParams` ships defaults `\"all_units\"`, `\"exclude_noise\"`, `\"default_exclusion\"`'. Line 41 also picks `filter_name = \"exclude_noise\"`."
+    },
+    {
+      "text": "Builds keys with the projected attr name `spikesorting_merge_id` (NOT bare `merge_id`) because `SortedSpikesGroup.Units` part FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73). Calls `SpikeSortingOutput().get_restricted_merge_ids(key, ...)` with a **single dict per call** — looping per recording key and extending the list — because the source raises `TypeError` on a list arg (spikesorting_merge.py:138).",
+      "passed": false,
+      "evidence": "First half satisfied: keys use the projected `spikesorting_merge_id` (line 31: '.proj(spikesorting_merge_id=\"merge_id\")') and the response explicitly warns against bare `merge_id` (lines 8, 94). Second half NOT satisfied: the response does not use `get_restricted_merge_ids` at all (grep returns 0 occurrences), so it never demonstrates the single-dict-per-call loop pattern. Compound assertion — no partial credit."
+    },
+    {
+      "text": "Explains why this is reusable: once the group exists, downstream Computed tables FK to the group key, not to tetrode-level merge IDs",
+      "passed": true,
+      "evidence": "Line 1: 'downstream code can foreign-key the *group* instead of joining merge IDs by hand every time'. Line 97 names concrete consumers: 'Downstream consumers that already accept a `SortedSpikesGroup` key directly: `SortedSpikesDecodingSelection` and `MuaEventsV1`. So once the group exists you don't have to re-aggregate for those either.'"
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 3,
+    "total": 12,
+    "pass_rate": 0.75
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 3,
+      "Bash": 1,
+      "Write": 1
+    },
+    "total_tool_calls": 5,
+    "total_steps": 8,
+    "errors_encountered": 0,
+    "transcript_chars": null
+  },
+  "timing": {
+    "executor_total_tokens": 40514,
+    "executor_duration_ms": 73705,
+    "executor_duration_seconds": 73.7
+  },
+  "claims": [
+    {
+      "claim": "`SortedSpikesGroup.Units` part-table FKs `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed against /Users/edeno/Documents/GitHub/spyglass/src/spyglass/spikesorting/analysis/v1/group.py:73 — part-table definition uses the projected rename."
+    },
+    {
+      "claim": "`UnitSelectionParams` ships defaults `\"all_units\"`, `\"exclude_noise\"`, `\"default_exclusion\"` and is not auto-populated; needs `insert_default()` on a fresh DB",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Reference file spikesorting_v1_analysis.md:26 explicitly states this and cites `spikesorting/analysis/v1/group.py:17-59`. Consistent with the skill source-of-truth."
+    },
+    {
+      "claim": "`SortedSpikesGroup.fetch_spike_data` only restricts the Units part by (nwb_file_name, sorted_spikes_group_name) and does not filter by unit_filter_params_name (group.py:171)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Reference group_tables.md:115-123 and spikesorting_v1_analysis.md document this footgun with the same line citation; loaded by the executor."
+    },
+    {
+      "claim": "Spyglass does not infer 'hippocampal' from a string anywhere; user must base it on lab metadata",
+      "type": "quality",
+      "verified": false,
+      "evidence": "This claim is the locus of the eval's main failure. The expected workflow walks `SortGroup.SortGroupElectrode * Electrode * BrainRegion & 'region_name LIKE \"%CA1%\"'` — that IS how Spyglass exposes brain-region annotation per electrode. The response's deflection (\"I don't know your specific schema\") is technically defensible (lab-dependent naming) but skips the canonical join the eval expects."
+    },
+    {
+      "claim": "Downstream consumers that accept a `SortedSpikesGroup` key directly include `SortedSpikesDecodingSelection` and `MuaEventsV1`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed by reference group_tables.md:47 — the table lists exactly these two consumers."
+    },
+    {
+      "claim": "`create_group` raises on collision; it is not idempotent",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Reference group_tables.md:65 documents this with the v1 source-verified split (SortedSpikesGroup raises; PositionGroup logs; UnitWaveformFeaturesGroup warns; PoseGroup warns)."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `BrainRegion`.",
+        "reason": "The response passes this substring check by mentioning BrainRegion in passing as one option the user 'may have already populated', without actually using it to derive hippocampal sort_group_ids. A bare-string check is too weak — consider tightening to require a join or restriction expression involving BrainRegion (e.g., 'BrainRegion & ... region_name')."
+      },
+      {
+        "assertion": "Response contains the substring `region_name`.",
+        "reason": "Same shape as above: 'Electrode.region_name' is mentioned as a possibility the user might use, not as part of an actual derivation. Substring check passes despite the response declining to do the derivation."
+      },
+      {
+        "assertion": "Builds keys with the projected attr name `spikesorting_merge_id` ... Calls `SpikeSortingOutput().get_restricted_merge_ids(key, ...)` with a single dict per call — looping per recording key and extending the list — because the source raises `TypeError` on a list arg (spikesorting_merge.py:138).",
+        "reason": "This is a compound assertion bundling two independent behaviors (projected-attr key construction AND the single-dict-per-call get_restricted_merge_ids loop). The response hits the first cleanly but skips get_restricted_merge_ids entirely, and the failure is recorded as one item. Splitting these into two separate expectations would localize the failure signal and make it easier to see which footgun the skill surfaced vs missed."
+      },
+      {
+        "reason": "The eval's core point — deriving hippocampal sort_group_ids by walking `SortGroup.SortGroupElectrode * Electrode * BrainRegion` — is checked only by expectation #9, which passed/failed as one judgment. Consider adding a substring check for `SortGroupElectrode` (already present as #6) AND a separate stricter check that the response actually performs (not just mentions) the join filtered by `region_name`. As graded, a response that punts on the derivation but still demonstrates SortedSpikesGroup mechanics gets 9/12, which may overstate skill performance on the central question."
+      }
+    ],
+    "overall": "The response demonstrates strong mastery of SortedSpikesGroup mechanics (FK rename, UnitSelectionParams, fetch_spike_data, footguns) but explicitly declines the eval's main task: deriving the hippocampal sort_group_ids automatically. The expectations correctly catch this in #6 and #9, but several substring-only checks (#3, #5) are loose enough that mere mention satisfies them — worth tightening so the rubric tracks whether the canonical SortGroup→Electrode→BrainRegion join was actually executed."
+  }
+}

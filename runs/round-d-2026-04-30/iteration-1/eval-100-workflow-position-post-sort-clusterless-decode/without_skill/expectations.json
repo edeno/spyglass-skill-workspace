@@ -1,0 +1,14 @@
+{
+  "eval_id": 100,
+  "eval_name": "workflow-position-post-sort-clusterless-decode",
+  "expected_output": "Spike sorting is done; clusterless decoding still needs four staged steps before `ClusterlessDecodingV1.populate()` will have work to do. In order:\n\n1. **`CurationV1.insert_curation(...)`** \u2014 create an initial curation handle on the spike sorting output. **Mandatory, not optional**: every downstream consumer FKs to a curation row, not directly to `SpikeSorting`. The first curation captures the unsorted starting point; further curation rows can be added later as the labels are refined.\n2. **Surface the curation in the merge wrapper.** Insert the curation key into `SpikeSortingOutput` (the merge master) via `SpikeSortingOutput.insert([curation_key], part_name='CurationV1')`. This is a **separate explicit step** \u2014 it does not happen automatically when you create the curation row. Without it, downstream tables that FK to `SpikeSortingOutput` (the merge) cannot see your sort.\n3. **Compute waveform features.** Insert a `WaveformFeaturesParams` row (Spyglass ships defaults), then `UnitWaveformFeaturesSelection.insert1(...)` for each merge entry, then `UnitWaveformFeatures.populate(...)`. This produces the per-spike feature vectors used in clusterless decoding.\n4. **Bundle features into a group.** `UnitWaveformFeaturesGroup().create_group(...)` collects the merge IDs you want to decode against into one group key. The group is what `ClusterlessDecodingSelection` FKs to, not the individual `UnitWaveformFeatures` rows.\n\nThen on the position side (which you can do in parallel): make sure `PositionOutput` has a populated row for your session (Trodes or DLC), and bundle it via `PositionGroup().create_group(...)`.\n\nFinally insert into `ClusterlessDecodingSelection` (FKs to `UnitWaveformFeaturesGroup` + `PositionGroup` + `DecodingParameters` + two `IntervalList` projections for encoding/decoding intervals) and run `ClusterlessDecodingV1.populate(key)`.\n\nRoutes to spikesorting_v1_pipeline.md and decoding_pipeline.md.",
+  "expectations": [
+    "Response contains the substring `CurationV1`.",
+    "Response contains the substring `SpikeSortingOutput`.",
+    "Response contains the substring `UnitWaveformFeaturesGroup`.",
+    "Response contains the substring `ClusterlessDecodingSelection`.",
+    "Response contains the substring `PositionGroup`.",
+    "Identifies `CurationV1` as the mandatory next step (initial curation, not optional) before anything downstream of spike sorting can be reached",
+    "Calls out the merge insert into `SpikeSortingOutput` (e.g. `insert([curation_key], part_name='CurationV1')`) as a separate explicit step that does not happen automatically"
+  ]
+}

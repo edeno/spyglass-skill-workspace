@@ -1,0 +1,15 @@
+reference,ws_evals_loaded,ws_pass_when_loaded,ws_fail_when_loaded,pass_rate_when_loaded,avg_difficulty_when_loaded,failed_modes,failed_evals_sample
+SKILL.md,16,7,9,43.8,2.38,rubric=0;content=0;mixed=9,88:ambiguity-delete-decoding-results[mixed];28:brain-region-for-curated-sorting[mixed];105:camera-devices-lookup[mixed];41:config-key-error-after-pull[mixed];118:counterfactual-decoding-bin-size[mixed]
+common_tables.md,3,2,1,66.7,2.00,rubric=0;content=0;mixed=1,105:camera-devices-lookup[mixed]
+runtime_debugging.md,2,1,1,50.0,2.50,rubric=0;content=0;mixed=1,41:config-key-error-after-pull[mixed]
+decoding_pipeline.md,4,2,2,50.0,2.50,rubric=0;content=0;mixed=2,88:ambiguity-delete-decoding-results[mixed];118:counterfactual-decoding-bin-size[mixed]
+group_tables.md,2,1,1,50.0,2.50,rubric=0;content=0;mixed=1,108:sorted-spikes-group-hippocampal[mixed]
+spikesorting_v1_analysis.md,2,1,1,50.0,2.50,rubric=0;content=0;mixed=1,108:sorted-spikes-group-hippocampal[mixed]
+position_trodes_v1_pipeline.md,1,0,1,0.0,3.00,rubric=0;content=0;mixed=1,87:counterfactual-trodes-pos-params-swap[mixed]
+position_pipeline.md,2,1,1,50.0,2.50,rubric=0;content=0;mixed=1,87:counterfactual-trodes-pos-params-swap[mixed]
+destructive_operations.md,5,1,4,20.0,2.60,rubric=0;content=0;mixed=4,88:ambiguity-delete-decoding-results[mixed];118:counterfactual-decoding-bin-size[mixed];87:counterfactual-trodes-pos-params-swap[mixed];85:recover-parameter-edit-in-place[mixed]
+setup_troubleshooting.md,1,0,1,0.0,2.00,rubric=0;content=0;mixed=1,41:config-key-error-after-pull[mixed]
+lfp_pipeline.md,1,1,0,100.0,3.00,rubric=0;content=0;mixed=0,
+ripple_pipeline.md,2,1,1,50.0,2.50,rubric=0;content=0;mixed=1,85:recover-parameter-edit-in-place[mixed]
+spikesorting_v1_pipeline.md,3,1,2,33.3,2.00,rubric=0;content=0;mixed=2,28:brain-region-for-curated-sorting[mixed];89:restrict-by-interval-name-no-star[mixed]
+custom_pipeline_authoring.md,1,1,0,100.0,3.00,rubric=0;content=0;mixed=0,

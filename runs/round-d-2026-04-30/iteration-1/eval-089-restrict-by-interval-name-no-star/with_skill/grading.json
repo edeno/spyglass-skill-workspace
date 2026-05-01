@@ -1,0 +1,123 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `IntervalList`.",
+      "passed": true,
+      "evidence": "response.md line 12 says '-> Raw, -> SortGroup, -> IntervalList, etc.' — substring `IntervalList` appears 2x in prose."
+    },
+    {
+      "text": "Response contains the substring `interval_list_name`.",
+      "passed": true,
+      "evidence": "response.md line 5: '`interval_list_name` lives on `SpikeSortingRecordingSelection`...' — substring appears 8x."
+    },
+    {
+      "text": "Response contains the substring `SpikeSortingRecording`.",
+      "passed": true,
+      "evidence": "response.md uses `SpikeSortingRecording` 16 times (e.g. line 19 import, line 26 query)."
+    },
+    {
+      "text": "Response contains the substring `SpikeSortingRecordingSelection`.",
+      "passed": true,
+      "evidence": "response.md uses `SpikeSortingRecordingSelection` 7 times (line 5 ownership claim, line 27 join, line 76 alternative restriction)."
+    },
+    {
+      "text": "Response contains the substring `& (`.",
+      "passed": false,
+      "evidence": "grep -F '& (' returns no matches. The response uses `& {\"interval_list_name\": \"02_r1\"}` (line 28) and `dj.U(\"nwb_file_name\") & recordings` (line 42) but never the parens form `& (...)`."
+    },
+    {
+      "text": "Restricts via a sub-restriction of the form `(Table & (Other & {...}))` — the response must contain '& (' as a literal substring",
+      "passed": false,
+      "evidence": "No `& (` substring in the response. The proposed query is `SpikeSortingRecording * SpikeSortingRecordingSelection & {\"interval_list_name\": \"02_r1\"}` (lines 25-29) — a natural join with a dict restriction, not a sub-restriction with parens."
+    },
+    {
+      "text": "Routes the IntervalList restriction through `SpikeSortingRecordingSelection` (where `nwb_file_name` / `interval_list_name` actually live as secondary attrs via `-> IntervalList`), NOT directly through `SpikeSortingRecording` (which only carries `recording_id` in its heading per recording.py:185-191)",
+      "passed": true,
+      "evidence": "response.md lines 5-9 correctly state: '`interval_list_name` lives on `SpikeSortingRecordingSelection` (via its FK to `IntervalList`), not on `SpikeSortingRecording` itself.' Lines 50-60 explain that restricting `SpikeSortingRecording` directly would silently match every row because the heading doesn't carry `interval_list_name`. The query joins with Selection so the restriction actually filters."
+    },
+    {
+      "text": "Does not propose a multi-table `*` chain in the proposed code blocks — the canonical answer should use a sub-restriction (`& (...)` parens) rather than chaining tables with the natural-join operator",
+      "passed": false,
+      "evidence": "response.md lines 25-29 propose `SpikeSortingRecording * SpikeSortingRecordingSelection & {\"interval_list_name\": \"02_r1\"}` — explicitly a natural-join chain (`*` operator) rather than a sub-restriction. This is precisely the shape the assertion forbids."
+    },
+    {
+      "text": "Fetches `nwb_file_name` from the restricted `SpikeSortingRecordingSelection` (or via a deliberate join/proj), NOT from `SpikeSortingRecording` itself — the latter has no `nwb_file_name` in its heading",
+      "passed": true,
+      "evidence": "response.md line 33: `sessions = recordings.proj(\"nwb_file_name\").fetch(\"nwb_file_name\")` — `recordings` is the deliberate join `SpikeSortingRecording * SpikeSortingRecordingSelection` so `nwb_file_name` comes via the joined Selection heading. Alternative on line 42 uses `dj.U(\"nwb_file_name\") & recordings`. Neither fetches from `SpikeSortingRecording` alone."
+    },
+    {
+      "text": "Does not claim DataJoint 'walks the FK chain' from `SpikeSortingRecording` to `IntervalList` automatically — the restriction works only because both `SpikeSortingRecordingSelection` and the restricted `IntervalList` share `(nwb_file_name, interval_list_name)` in their headings",
+      "passed": true,
+      "evidence": "response.md lines 50-60 explicitly state that restricting `SpikeSortingRecording` alone with `{\"interval_list_name\": \"02_r1\"}` would silently match every row because DataJoint drops unknown attrs — and that joining brings Selection's secondary attributes 'into scope so the restriction actually filters'. No claim of automatic FK chain walking."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 3,
+    "total": 10,
+    "pass_rate": 0.7
+  },
+  "execution_metrics": {
+    "tool_calls": null,
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": 0,
+    "output_chars": 2949,
+    "transcript_chars": null
+  },
+  "timing": {
+    "executor_duration_seconds": 53.7,
+    "total_tokens": 47803,
+    "duration_ms": 53739
+  },
+  "claims": [
+    {
+      "claim": "`interval_list_name` lives on `SpikeSortingRecordingSelection`, not on `SpikeSortingRecording`.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in /Users/edeno/Documents/GitHub/spyglass/src/spyglass/spikesorting/v1/recording.py:147-156 (Selection has `-> IntervalList`) and lines 185-191 (SpikeSortingRecording PK is just `-> SpikeSortingRecordingSelection` -> `recording_id`)."
+    },
+    {
+      "claim": "Restricting `SpikeSortingRecording` directly with `{\"interval_list_name\": \"02_r1\"}` would silently match every row because DataJoint drops restriction keys not in the heading.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches the canonical answer's failure mode. SpikeSortingRecording's heading has only `recording_id` plus AnalysisNwbfile payload (recording.py:185-195), so a dict restriction with `interval_list_name` is silently dropped."
+    },
+    {
+      "claim": "`recordings.proj(\"nwb_file_name\").fetch(\"nwb_file_name\")` returns sessions, with `set()`/`sorted()` to dedupe duplicates from multiple sort_group_id rows.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Multiple SpikeSortingRecordingSelection rows per (nwb_file_name, interval_list_name) are expected because sort_group_id, preproc_param_name, and team_name are part of the key — so dedup is correct."
+    },
+    {
+      "claim": "Using `dj.U(\"nwb_file_name\") & recordings` projects+dedupes server-side.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Standard DataJoint idiom for distinct-projection; `dj.U` constructs a relation with the named secondary attrs as primary, deduping on the database side."
+    },
+    {
+      "claim": "Approach uses a `*` natural-join rather than a sub-restriction.",
+      "type": "process",
+      "verified": true,
+      "evidence": "response.md line 27 literally writes `SpikeSortingRecording * SpikeSortingRecordingSelection`. The canonical answer prefers `SpikeSortingRecording & ssrs_restricted` where `ssrs_restricted = SpikeSortingRecordingSelection & (IntervalList & {...})`. Both produce correct results here (only two tables, no secondary-attr collision), but the rubric specifically tests for the sub-restriction shape."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Does not propose a multi-table `*` chain in the proposed code blocks — the canonical answer should use a sub-restriction (`& (...)` parens) rather than chaining tables with the natural-join operator",
+        "reason": "The response uses a 2-table `*` join (`SpikeSortingRecording * SpikeSortingRecordingSelection`) which is technically correct here — the failure mode the canonical answer warns about (DataJointError: 'Cannot join query expressions on dependent attribute') triggers when 3+ tables are chained and `nwb_file_name` is secondary on multiple sides. With only Selection + Recording, there's no such collision and the 2-table join works fine. The current assertion penalizes any use of `*`, which conflates 'sub-restriction is a cleaner shape' (style) with 'multi-table `*` chains can fail' (correctness). Consider tightening to flag chains of 3+ tables, or splitting into two assertions: one for the cleaner sub-restriction shape (style preference) and one that fails only when the chain produces wrong results (e.g., includes IntervalList as a third joined table)."
+      },
+      {
+        "assertion": "Restricts via a sub-restriction of the form `(Table & (Other & {...}))` — the response must contain '& (' as a literal substring",
+        "reason": "Substring check on `& (` is a brittle proxy for 'used a sub-restriction'. A response could write `& ( ` with a space and still be a sub-restriction, while the canonical valid shape `Table & SomeRestrictedTable` (two-relvar form, no parens) would fail this check despite being equivalent. The response here actually does the right *semantic* thing (`recordings = SpikeSortingRecording * SpikeSortingRecordingSelection & {...}` filters correctly because Selection brings `interval_list_name` into the heading), so the substring assertion is testing syntax not behavior."
+      }
+    ],
+    "overall": "The semantic assertions (field ownership, no-FK-walk claim, fetches via Selection) are well-targeted and the response passes those. The two `*`-vs-`& (` assertions fire on syntactic shape rather than correctness — the response uses a working alternative shape (2-table `*` join with explicit project+dedupe). Consider whether the rubric wants to penalize that shape or only the failure-prone 3+ table chain."
+  }
+}

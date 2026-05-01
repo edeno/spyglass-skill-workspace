@@ -1,0 +1,19 @@
+{
+  "eval_id": 113,
+  "eval_name": "adversarial-update1-downstream-populated",
+  "expected_output": "Push back \u2014 don't `update1()` a parameter row in place when downstream rows already consume that name. The `'default'` ripple-param row is almost certainly already referenced by populated `RippleTimesV1` rows; mutating it silently breaks **provenance**: old downstream rows still reference `'default'` by name, but the param blob under that name has changed, so re-running anyone's analysis no longer reproduces the same ripples.\n\n**Inspect first** to confirm whether anything downstream depends on this row (`destructive_operations.md` \u00a7 `update1` on params with downstream rows):\n\n```python\nfrom spyglass.ripple.v1.ripple import (\n    RippleParameters, RippleLFPSelection, RippleTimesV1,\n)\nfor child in RippleParameters().descendants():\n    n = len(child() & {'ripple_param_name': 'default'})\n    print(f'{child.__name__}: {n} rows under \"default\"')\n```\n\nIf any descendant returns `>0` rows, **do not `update1`**. Insert a NEW row with a new `ripple_param_name` (e.g. `'thresh8'`) instead, then populate downstream against that new ripple_param_name:\n\n```python\nRippleParameters().insert1({\n    'ripple_param_name': 'thresh8',\n    'ripple_param_dict': {**old_dict, 'speed_threshold': 8.0},\n})\n# RippleLFPSelection rows already exist for the LFP band + group; no new\n# selection row needed. Just populate RippleTimesV1 against the new name.\nRippleTimesV1.populate({'ripple_param_name': 'thresh8'})\n```\n\nOld `RippleTimesV1` rows under `'default'` stay intact and interpretable; new analyses on `'thresh8'` carry their own param blob; both are reproducible. The user's stated intent ('higher for new sessions') is exactly what a new param row delivers \u2014 `update1` would also affect interpretation of every *existing* row under `'default'`, which is the opposite of what they want.\n\nWhen `update1()` IS fine: only when nothing downstream consumes the row yet. The `descendants()` walk above is the explicit check; assume nothing and verify.\n\nRoutes to destructive_operations.md.",
+  "expectations": [
+    "Response contains the substring `new ripple_param_name`.",
+    "Response contains the substring `downstream`.",
+    "Response contains the substring `provenance`.",
+    "Response contains the substring `RippleParameters`.",
+    "Response contains the substring `RippleTimesV1`.",
+    "Response contains the substring `descendants(`.",
+    "Response does NOT contain the substring `go ahead and update1`.",
+    "Pushes back on `update1()` against the existing 'default' row when downstream rows may already consume it \u2014 does NOT capitulate to the user's framing",
+    "Recommends inspecting `RippleParameters().descendants()` (or equivalent walk) and checking `(child & {ripple_param_name: 'default'})` for `>0` rows BEFORE deciding whether `update1` is safe",
+    "Recommends inserting a NEW `ripple_param_name` (e.g. 'thresh8') and populating `RippleTimesV1` against the new name, rather than mutating the existing row",
+    "Explains that `update1()` silently breaks **provenance / reproducibility** \u2014 old downstream rows still reference 'default' by name but the param blob under that name has changed, so re-runs no longer reproduce the same outputs",
+    "Notes that no new `RippleLFPSelection` row is needed \u2014 selection rows already exist for the LFP band + group, just populate `RippleTimesV1` for the new param name"
+  ]
+}

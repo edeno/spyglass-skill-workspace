@@ -1,0 +1,8 @@
+{
+  "id": 106,
+  "eval_name": "compound-pfc-wtrack",
+  "stage": "pipeline-usage",
+  "tier": "compound",
+  "difficulty": "hard",
+  "condition": "without_skill"
+}

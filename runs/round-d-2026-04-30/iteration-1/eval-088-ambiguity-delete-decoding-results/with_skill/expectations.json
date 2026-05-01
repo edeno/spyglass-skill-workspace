@@ -1,0 +1,15 @@
+{
+  "eval_id": 88,
+  "eval_name": "ambiguity-delete-decoding-results",
+  "expected_output": "This prompt is under-specified \u2014 the correct command depends on which layer the user means, and the skill should either ask or narrow explicitly. The three plausible layers: (1) a `DecodingOutput` merge entry (handled via `DecodingOutput.merge_delete(merge_key)` \u2014 classmethod form, per Common Mistake #1's classmethod-restriction-discard rule); (2) the underlying Computed row (`ClusterlessDecodingV1` or `SortedSpikesDecodingV1`) which cascades through the merge; (3) just the on-disk artifact under `filepath@analysis` (the `results_path` / `classifier_path` NetCDFs that `ClusterlessDecodingV1` / `SortedSpikesDecodingV1` write \u2014 rarely the right move, since the DB row is the source of truth and deleting the file without the row leaves a broken reference). Also missing: which params / interval / selection does 'my decoding results' scope to \u2014 there may be multiple decoding rows per session. Correct response either asks (a) which layer, and (b) which selection \u2014 or states the assumption explicitly ('I'll assume you mean the DecodingOutput merge entry for your most recent ClusterlessDecodingV1 populate; here's the inspect-before-destroy pattern\u2026'). Routes to destructive_operations.md and merge_methods.md. Does not hand back a bare delete command without scoping.",
+  "expectations": [
+    "Response contains the substring `DecodingOutput`.",
+    "Response contains the substring `merge_delete`.",
+    "Response contains the substring `destructive_operations.md`.",
+    "Identifies that the prompt is under-specified and either asks a clarifying question or narrows scope explicitly",
+    "Enumerates at least two plausible delete layers (merge entry vs. V1 computed row vs. on-disk artifact)",
+    "Names the selection-scope ambiguity (which decoding_param_name / interval / session)",
+    "Recommends merge_delete with an explicit key (classmethod form) if the merge layer is chosen, and routes to destructive_operations.md for the inspect-before-destroy pattern",
+    "Does not produce an unscoped `.delete()` command without asking or narrowing"
+  ]
+}

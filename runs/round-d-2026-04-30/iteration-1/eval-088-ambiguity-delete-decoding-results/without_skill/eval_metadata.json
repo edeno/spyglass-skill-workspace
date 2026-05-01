@@ -1,0 +1,8 @@
+{
+  "id": 88,
+  "eval_name": "ambiguity-delete-decoding-results",
+  "stage": "destructive-operations",
+  "tier": "disambiguation",
+  "difficulty": "medium",
+  "condition": "without_skill"
+}

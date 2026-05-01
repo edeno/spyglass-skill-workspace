@@ -1,0 +1,14 @@
+stage,tier,n_evals
+pipeline-usage,joins,3
+pipeline-usage,dependency-tracing,2
+destructive-operations,adversarial,1
+destructive-operations,disambiguation,1
+parameter-understanding,counterfactual,1
+pipeline-authoring,compound,1
+pipeline-usage,atomic-read,1
+pipeline-usage,compound,1
+pipeline-usage,counterfactual,1
+pipeline-usage,disambiguation,1
+pipeline-usage,workflow-position,1
+pipeline-usage,workflow-recovery,1
+setup,config-troubleshooting,1

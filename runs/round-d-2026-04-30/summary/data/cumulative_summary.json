@@ -1,0 +1,69 @@
+{
+  "n_evals": 16,
+  "n_batches": 1,
+  "with_skill": {
+    "full_pass": 7,
+    "full_pass_rate": 43.75,
+    "expectation_pass": 144,
+    "expectation_total": 164,
+    "expectation_pass_rate": 87.8,
+    "tokens_total": 904456
+  },
+  "without_skill": {
+    "full_pass": 5,
+    "full_pass_rate": 31.25,
+    "expectation_pass": 126,
+    "expectation_total": 164,
+    "expectation_pass_rate": 76.83,
+    "tokens_total": 613953
+  },
+  "delta": {
+    "full_pass_pp": 12.5,
+    "expectation_pp": 10.98,
+    "extra_tokens_total": 290503
+  },
+  "combined": {
+    "tokens_total": 1518409
+  },
+  "outcomes": {
+    "both_pass": 4,
+    "skill_only": 3,
+    "baseline_only": 1,
+    "both_fail": 8,
+    "note": "Per-eval cross-tab. skill_only + baseline_only = discordant pairs that drive the McNemar test below."
+  },
+  "spend_by_outcome": {
+    "both_pass": {
+      "n": 4,
+      "mean_extra_tokens": 19847,
+      "total_extra_tokens": 79389,
+      "share_of_total_extra": 27.3
+    },
+    "skill_only": {
+      "n": 3,
+      "mean_extra_tokens": 13928,
+      "total_extra_tokens": 41783,
+      "share_of_total_extra": 14.4
+    },
+    "baseline_only": {
+      "n": 1,
+      "mean_extra_tokens": 22748,
+      "total_extra_tokens": 22748,
+      "share_of_total_extra": 7.8
+    },
+    "both_fail": {
+      "n": 8,
+      "mean_extra_tokens": 18323,
+      "total_extra_tokens": 146583,
+      "share_of_total_extra": 50.5
+    },
+    "note": "Where the skill's extra-token spend lands. A high share on 'both_pass' means the skill is paying for verification of evals baseline would have answered correctly without help \u2014 a candidate for a routing gate. Tokens are per-eval timing.json totals; evals with missing timing.json (e.g. round-c batch 3 partial) are skipped."
+  },
+  "significance": {
+    "test": "McNemar (exact, two-sided)",
+    "discordant_skill_only": 3,
+    "discordant_baseline_only": 1,
+    "p_value": 0.625,
+    "note": "Pairs each eval's ws and bs outcomes. p < 0.05 means the +full_pass_pp delta is unlikely under H0 (skill has no effect). Computed via scipy.stats.binomtest (exact, two-sided)."
+  }
+}

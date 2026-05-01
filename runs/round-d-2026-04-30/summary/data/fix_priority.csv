@@ -1,0 +1,17 @@
+eval_id,batch,eval_name,stage,tier,difficulty,outcome,ws_expectation_rate,bs_expectation_rate,delta_expectation_pp,routing_observed,extra_tokens_known,extra_tokens,missed_required_refs,missed_required_scripts,likely_action
+118,1,counterfactual-decoding-bin-size,parameter-understanding,counterfactual,hard,baseline_only,85.7,100.0,-14.3,1,1,22748,,,investigate_regression
+28,1,brain-region-for-curated-sorting,pipeline-usage,joins,medium,both_fail,69.2,76.9,-7.7,1,1,12219,common_tables.md,code_graph.py,fix_script_routing
+89,1,restrict-by-interval-name-no-star,pipeline-usage,joins,medium,both_fail,70.0,90.0,-20.0,1,1,16052,datajoint_api.md,code_graph.py,fix_script_routing
+108,1,sorted-spikes-group-hippocampal,pipeline-usage,disambiguation,medium,both_fail,75.0,58.3,16.7,1,1,7367,common_tables.md,code_graph.py,fix_script_routing
+85,1,recover-parameter-edit-in-place,pipeline-usage,workflow-recovery,hard,both_fail,75.0,62.5,12.5,1,1,18854,common_mistakes.md,,fix_reference_routing
+88,1,ambiguity-delete-decoding-results,destructive-operations,disambiguation,medium,both_fail,75.0,50.0,25.0,1,1,21882,merge_methods.md,,fix_reference_routing
+105,1,camera-devices-lookup,pipeline-usage,atomic-read,easy,both_fail,77.8,88.9,-11.1,1,1,11518,position_pipeline.md,,fix_reference_routing
+41,1,config-key-error-after-pull,setup,config-troubleshooting,medium,both_fail,87.5,25.0,62.5,1,1,45005,,,fix_template_or_reference_content
+87,1,counterfactual-trodes-pos-params-swap,pipeline-usage,counterfactual,hard,both_fail,85.7,78.6,7.1,1,1,13686,,,fix_template_or_reference_content
+99,1,hidden-prereq-decoding-populate,pipeline-usage,dependency-tracing,hard,both_pass,100.0,100.0,0.0,1,1,22140,,,expensive_both_pass
+100,1,workflow-position-post-sort-clusterless-decode,pipeline-usage,workflow-position,medium,both_pass,100.0,100.0,0.0,1,1,27153,,,expensive_both_pass
+29,1,brain-region-for-lfp-electrode,pipeline-usage,joins,medium,both_pass,100.0,100.0,0.0,1,1,10915,datajoint_api.md,code_graph.py,
+72,1,dep-trace-lfpbandv1,pipeline-usage,dependency-tracing,hard,both_pass,100.0,100.0,0.0,1,1,19181,feedback_loops.md,,
+106,1,compound-pfc-wtrack,pipeline-usage,compound,hard,skill_only,100.0,93.3,6.7,1,1,10435,datajoint_api.md;workflows.md,,
+107,1,compound-sorted-spikes-across-sort-groups,pipeline-authoring,compound,hard,skill_only,100.0,41.7,58.3,1,1,11369,,code_graph.py,
+113,1,adversarial-update1-downstream-populated,destructive-operations,adversarial,medium,skill_only,100.0,66.7,33.3,1,1,19979,,,

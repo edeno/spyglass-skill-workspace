@@ -1,0 +1,8 @@
+{
+  "id": 41,
+  "eval_name": "config-key-error-after-pull",
+  "stage": "setup",
+  "tier": "config-troubleshooting",
+  "difficulty": "medium",
+  "condition": "with_skill"
+}

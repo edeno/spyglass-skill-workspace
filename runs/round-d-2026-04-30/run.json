@@ -1,0 +1,76 @@
+{
+  "run_id": "round-d-2026-04-30",
+  "round_label": "round-D",
+  "started_at": "2026-04-30T00:00:00Z",
+  "completed_at": "2026-04-30T00:00:00Z",
+  "skill_commit_at_sweep_start": "7c1e966c",
+  "skill_commit_at_sweep_end": "7c1e966c",
+  "skill_branch": "round-d",
+  "skill_commit_note": "round-D narrow rerun: 16 evals x 2 conditions = 32 dispatches, targeting Phase 2.1-2.8 verifications per docs/plans/round-d-impl-plan.md. Skill state pinned at 7c1e966c (post-Phase-2 + Phase 3 rubric corrections + post-review SKILL.md word-budget tightening + cascade template SpikeSortingV1 -> v1 SpikeSorting fix).",
+  "spyglass_src_commit": "caec56bc",
+  "spyglass_src_path": "/Users/edeno/Documents/GitHub/spyglass/src/spyglass",
+  "spyglass_src_note": "Local checkout pinned for reproducibility; HEAD at caec56bc 'Fix typo: HD5_USE_FILE_LOCKING -> HDF5_USE_FILE_LOCKING (#1576)'. Working tree clean.",
+  "model": "claude-opus-4-7[1m]",
+  "model_note": "Eval-runner uses parent-orchestrator's model. Subagent dispatches inherit via Task tool default.",
+  "harness": "claude-code (VSCode extension)",
+  "dispatch_prompt_template": "skills/spyglass/evals/dispatch_prompts.md (with_skill / without_skill templates, no-bundle-peek + no-grading-peek prohibitions enforced)",
+  "subset": {
+    "rationale": "Phase 4 narrow rerun per round-d-impl-plan.md: each eval verifies a specific Phase 2 edit.",
+    "edit_to_evals": {
+      "2.1_verify_before_claim": [118, 41],
+      "2.2_tool_routing": [28, 29, 89, 107, 108],
+      "2.3_field_ownership": [89, 105],
+      "2.5_cascade_template": [85, 87, 88, 113],
+      "2.6_raw_runtime_fetch": [72],
+      "2.7_clusterless_plumbing_vs_input": [100],
+      "2.8_key_source_concept": [99],
+      "decision_point_3_rubric_friction": [106]
+    },
+    "eval_ids": [28, 29, 41, 72, 85, 87, 88, 89, 99, 100, 105, 106, 107, 108, 113, 118]
+  },
+  "n_evals_run": 16,
+  "n_dispatches": 32,
+  "n_transcripts_snapshotted": 32,
+  "_redo_note": "This run was fully re-dispatched after the initial Phase 4 attempt was discarded. The redo addressed: (1) source-read permission denials hitting eval agents in the first attempt, (2) ad-hoc shell-regex grading was substituted for skill-creator's canonical grader workflow, (3) bs prompt didn't enumerate bundled-script names or sibling runs/docs-plans/auto-memory leaks. New permissions + tightened dispatch templates (with placeholders {run_id}/{skill_repo}) + per-eval grader subagents producing canonical grading.json all in place for this run.",
+  "headline_results": {
+    "ws_full_pass": "7 / 16 (43.75%)",
+    "bs_full_pass": "5 / 16 (31.25%)",
+    "delta_full_pass_pp": 12.5,
+    "ws_expectations": "144 / 164 (87.80%)",
+    "bs_expectations": "126 / 164 (76.83%)",
+    "delta_expectations_pp": 10.98,
+    "tokens_with_skill_total": 904456,
+    "tokens_baseline_total": 613953,
+    "tokens_total": 1518409,
+    "outcomes": {
+      "both_pass": 4,
+      "skill_only": 3,
+      "baseline_only": 1,
+      "both_fail": 8
+    },
+    "mcnemar_exact_two_sided_p": 0.625,
+    "mcnemar_note": "n=4 discordant pairs is underpowered for headline significance; narrow rerun is for per-edit verification, not global p-value"
+  },
+  "batches": {
+    "1": {"label": "B1\nround-D narrow\nrerun"}
+  },
+  "artifacts": {
+    "narrative": "findings.md (TBD post-grading)",
+    "per_batch": "iteration-1/ (16 eval dirs)",
+    "analysis": "summary/ (TBD post-grading)",
+    "transcripts_snapshot": "transcripts_snapshot/ (TBD; must run while orchestrator session alive)"
+  },
+  "success_criteria_status": {
+    "_note": "Skill-creator-graded results from per-eval grading.json files. ws-worse-than-bs counts: 4 (028, 089, 105, 118) — all four flagged by graders as rubric-friction, not skill content failures.",
+    "1_eval_118_ws_directness": "ws 6/7 vs bs 7/7 — 1 failure is compound-assertion qualitative-direction half; substantive answer richer than bs",
+    "2_eval_041_ws_directness": "ws 7/8 vs bs 2/8 — strongest +63pp delta in the run",
+    "3_tool_routing_invocations_028_107_108": "pass (code_graph.py / source-reads observed in all four of 028, 089, 107, 108 ws transcripts)",
+    "4_eval_089_ws_uses_SpikeSortingRecordingSelection": "pass — uses Selection-side restriction; failed 3 substring-shape assertions (rubric-friction, not content)",
+    "5_eval_105_ws_acknowledges_VideoFile_camera_name_secondary": "pass — cites common_behav.py:470 / :506; failed forbidden-substring on labeled WRONG anti-pattern example",
+    "6_cascade_evals_enumerate_unaffected_branches": "pass on 085 (6/8), 087 (12/14), 113 (12/12); 088 (6/8) — different question shape, handled correctly with merge-table footguns",
+    "7_eval_099_ws_names_silent_populate_debug": "pass — both ws and bs scored 9/9 (saturated tie; key_source reachable from training too)",
+    "8_eval_072_ws_acknowledges_Raw_runtime_fetch": "pass — both ws and bs scored 14/14 (saturated tie)",
+    "9_eval_100_ws_uses_plumbing_vs_input_framing": "pass — both ws and bs scored 7/7 (saturated tie)",
+    "10_no_regression_on_028_029_107": "029 tie 6/6, 107 ws 12/12 vs bs 5/12 (+58pp), 028 ws 9/13 vs bs 10/13 (-8pp; rubric-friction on FK-walk-vs-helper preference)"
+  }
+}

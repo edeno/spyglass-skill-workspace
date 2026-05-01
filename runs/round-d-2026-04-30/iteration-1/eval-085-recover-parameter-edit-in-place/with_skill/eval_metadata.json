@@ -1,0 +1,8 @@
+{
+  "id": 85,
+  "eval_name": "recover-parameter-edit-in-place",
+  "stage": "pipeline-usage",
+  "tier": "workflow-recovery",
+  "difficulty": "hard",
+  "condition": "with_skill"
+}

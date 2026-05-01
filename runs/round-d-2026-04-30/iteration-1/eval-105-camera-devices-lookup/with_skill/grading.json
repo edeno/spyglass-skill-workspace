@@ -1,0 +1,143 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `VideoFile`.",
+      "passed": true,
+      "evidence": "`VideoFile` appears many times throughout the response (e.g., line 22 'VideoFile', line 28 'VideoFile.camera_name is a *secondary attribute*', line 58 'from spyglass.common import TaskEpoch, VideoFile, CameraDevice', line 71 'VideoFile & {\"nwb_file_name\": nwb_file}', line 82 'VideoFile * CameraDevice')."
+    },
+    {
+      "text": "Response contains the substring `CameraDevice`.",
+      "passed": true,
+      "evidence": "`CameraDevice` appears throughout (e.g., line 11 '`CameraDevice` is **not** keyed by `nwb_file_name`', line 79 'CameraDevice & [{\"camera_name\": c} ...]', line 82 'VideoFile * CameraDevice & ...')."
+    },
+    {
+      "text": "Response contains the substring `camera_name`.",
+      "passed": true,
+      "evidence": "`camera_name` appears repeatedly: line 12 'PK = camera_name', line 28 'VideoFile.camera_name is a secondary attribute', line 41 '**`camera_name`** — the PK of `CameraDevice`', line 73 '.fetch(\"camera_name\")', line 79 '[{\"camera_name\": c} ...]'."
+    },
+    {
+      "text": "Response contains the substring `nwb_file_name`.",
+      "passed": true,
+      "evidence": "Appears throughout (e.g., line 11 'CameraDevice is **not** keyed by `nwb_file_name`', line 16 'CameraDevice & {\"nwb_file_name\": \"j1620210710_.nwb\"}' shown as the wrong pattern, line 65 'TaskEpoch & {\"nwb_file_name\": nwb_file}', line 72 'VideoFile & {\"nwb_file_name\": nwb_file}')."
+    },
+    {
+      "text": "Response does NOT contain the substring `CameraDevice & {'nwb_file_name'`.",
+      "passed": true,
+      "evidence": "The single-quoted form `CameraDevice & {'nwb_file_name'` does not appear in the response — the response uses only double-quoted dict literals."
+    },
+    {
+      "text": "Response does NOT contain the substring `CameraDevice & {\"nwb_file_name\"`.",
+      "passed": false,
+      "evidence": "The double-quoted form appears twice: line 16 `CameraDevice & {\"nwb_file_name\": \"j1620210710_.nwb\"}` (explicitly labeled '# WRONG — silently returns the entire CameraDevice table' as an anti-pattern warning) and line 82 `VideoFile * CameraDevice & {\"nwb_file_name\": nwb_file}` (a natural-join expression where the restriction is applied to the joined relation, not to `CameraDevice` alone). The substring assertion is a literal text match and triggers on both occurrences regardless of surrounding context. Note: the second usage is semantically correct DataJoint (the `&` binds to the result of `VideoFile * CameraDevice`, which does carry `nwb_file_name`), but the literal substring is still present."
+    },
+    {
+      "text": "Routes through `VideoFile` (the per-session mapping) restricted by `nwb_file_name`, NOT through `CameraDevice` alone (which is a global name-keyed lookup with no session attr in its heading)",
+      "passed": true,
+      "evidence": "The response gives query (2) at lines 71-74: `cam_names = (VideoFile & {\"nwb_file_name\": nwb_file}).fetch(\"camera_name\")` — a `VideoFile` restriction by `nwb_file_name`, then resolved against `CameraDevice` by camera_name. Lines 11-12 explicitly call out 'CameraDevice is **not** keyed by `nwb_file_name`. Its only PK is `camera_name`' and lines 14-17 show the `CameraDevice & {\"nwb_file_name\": ...}` form labeled '# WRONG — silently returns the entire CameraDevice table'. Lines 23-25 state 'To resolve cameras for a session you have to go through a table that *is* keyed by `nwb_file_name` — `TaskEpoch` or `VideoFile` — and then carry the `camera_name` over to `CameraDevice`'."
+    },
+    {
+      "text": "Recognizes that `camera_name` on `VideoFile` is a secondary column — NOT a declared `-> CameraDevice` FK — and the link is by name match (validated at ingest in `_prepare_video_entry`)",
+      "passed": true,
+      "evidence": "Lines 27-35: 'There is also no declared FK from `VideoFile` to `CameraDevice`. `VideoFile.camera_name` is a *secondary attribute* (`varchar(80)`, `common_behav.py:470`); the string match is enforced only at ingest time inside `VideoFile._prepare_video_entry` (`common_behav.py:505`), which raises `KeyError` if the camera isn't already in `CameraDevice`. So the join on `camera_name` works (both tables expose the column), it's just not FK-driven — don't expect `CameraDevice` to inherit `nwb_file_name` through propagation, because there's no FK to propagate along.' Verified against source: `common_behav.py:470` declares `camera_name: varchar(80)` and `_prepare_video_entry` at line 477 does `if not (CameraDevice & {\"camera_name\": camera_name}): raise KeyError(...)` at line 505."
+    },
+    {
+      "text": "Restricts `VideoFile` by `nwb_file_name` (a PK field via `-> TaskEpoch`); does NOT attempt `CameraDevice & {nwb_file_name: ...}` (silent no-op, no such attr in CameraDevice's heading)",
+      "passed": false,
+      "evidence": "The response *does* show `CameraDevice & {\"nwb_file_name\": \"j1620210710_.nwb\"}` at line 16 — but explicitly as a labelled WRONG anti-pattern with the comment '# WRONG — silently returns the entire CameraDevice table' to teach the user not to do it. It also gives the correct primary query (2) at lines 71-74 restricting `VideoFile` by `nwb_file_name`. The expectation reads strictly: it asks the response not to *attempt* `CameraDevice & {nwb_file_name: ...}`. By the strict reading, line 82's `VideoFile * CameraDevice & {\"nwb_file_name\": nwb_file}` does textually contain that fragment — though semantically the `&` binds to the joined relation `VideoFile * CameraDevice` which legally carries `nwb_file_name`, so this is a correct DataJoint query, not a no-op. Marking failed because the literal anti-pattern substring is present in two places (one labelled WRONG, one as part of a valid join), and the prior expectations 5/6 already enforced that no-substring rule."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 2,
+    "total": 9,
+    "pass_rate": 0.78
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 4,
+      "Write": 1
+    },
+    "total_tool_calls": 5,
+    "total_steps": 14,
+    "errors_encountered": 0,
+    "output_chars": 4729,
+    "transcript_chars": null
+  },
+  "timing": {
+    "executor_duration_seconds": 78.0,
+    "total_duration_seconds": 78.0,
+    "total_tokens": 41449,
+    "duration_ms": 78015
+  },
+  "claims": [
+    {
+      "claim": "CameraDevice's only PK is camera_name (no nwb_file_name attribute)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "`common_device.py:291-293` declares `class CameraDevice(SpyglassIngestion, dj.Manual)` with `camera_name: varchar(80)` as the sole primary key. Confirmed."
+    },
+    {
+      "claim": "VideoFile.camera_name is a secondary attribute, not an FK to CameraDevice",
+      "type": "factual",
+      "verified": true,
+      "evidence": "`common_behav.py:470` declares `camera_name: varchar(80)` as a secondary (below `---`) attribute; not declared as `-> CameraDevice`. Confirmed."
+    },
+    {
+      "claim": "VideoFile._prepare_video_entry validates camera_name against CameraDevice at ingest by checking `CameraDevice & {'camera_name': camera_name}` and raising KeyError",
+      "type": "factual",
+      "verified": true,
+      "evidence": "`common_behav.py:505-509` — `if not (CameraDevice & {\"camera_name\": camera_name}): raise KeyError(f\"No camera with camera_name: {camera_name} found ...\")`."
+    },
+    {
+      "claim": "TaskEpoch has a nullable `-> CameraDevice` FK plus a separate `camera_names: blob` plural list per epoch",
+      "type": "factual",
+      "verified": true,
+      "evidence": "`common_task.py:131` declares `-> [nullable] CameraDevice` and line 134 declares `camera_names : blob # list of keys corresponding to entry in CameraDevice`. Confirmed."
+    },
+    {
+      "claim": "The Spyglass ingest regex `r\"camera_device (\\d+)\"` parses an integer from the NWB device name",
+      "type": "factual",
+      "verified": true,
+      "evidence": "`common_behav.py:478` defines `cam_device_regex: str = r\"camera_device (\\d+)\"` as the default regex parameter to `_prepare_video_entry`."
+    },
+    {
+      "claim": "The natural join VideoFile * CameraDevice works because both expose camera_name",
+      "type": "factual",
+      "verified": true,
+      "evidence": "`VideoFile.camera_name` is a secondary attribute (common_behav.py:470) and `CameraDevice.camera_name` is its primary key (common_device.py:293). DataJoint's `*` joins on shared attributes, so this is a one-sided-secondary join (legal). The response notes this correctly: 'works because both tables expose camera_name even though it isn't an FK'."
+    },
+    {
+      "claim": "The response did not fabricate camera IDs from a database it cannot read",
+      "type": "quality",
+      "verified": true,
+      "evidence": "The response opens with 'I can't read your live database from here, so I can't hand you the camera IDs themselves' and gives queries instead of inventing values — appropriate epistemic discipline for an agent without DB access."
+    },
+    {
+      "claim": "Spyglass logs a warning when an NWB has ImageSeries but no TaskEpoch (cited as `common_behav.py:461`)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line cite is in the right region of the file (VideoFile docstring sits around 452-471 per the skill's reference and source). The claim is consistent with surrounding code structure but the precise warning behavior at line 461 was not directly inspected; the citation is plausible and unlikely to mislead the user."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response does NOT contain the substring `CameraDevice & {\"nwb_file_name\"`",
+        "reason": "This strict literal-substring check fails responses that *correctly* warn against the anti-pattern by quoting it as a labelled WRONG example (line 16: `# WRONG — silently returns the entire CameraDevice table\\nCameraDevice & {\"nwb_file_name\": ...}`) — exactly the pedagogical move you'd want a good answer to make. It also fails the legal natural-join form `VideoFile * CameraDevice & {\"nwb_file_name\": nwb_file}` where the restriction binds to the joined relation that *does* carry `nwb_file_name`. Consider tightening to a regex that excludes the WRONG/anti-pattern context (e.g. require the substring to appear outside `# WRONG` comments and outside an expression starting with `VideoFile *`)."
+      },
+      {
+        "assertion": "Restricts `VideoFile` by `nwb_file_name` ...; does NOT attempt `CameraDevice & {nwb_file_name: ...}` (silent no-op...)",
+        "reason": "Same issue as above — the assertion conflates 'attempts the anti-pattern as the recommended query' with 'mentions the anti-pattern at all (e.g. to warn against it)'. A response that explicitly teaches the trap and gives the right query is the ideal answer, but is currently penalized. Reframe as: 'The recommended query restricts VideoFile by nwb_file_name; any mention of CameraDevice & {nwb_file_name: ...} appears only as a labelled anti-pattern, not as the recommended path.'"
+      },
+      {
+        "reason": "No assertion checks whether the response correctly avoids fabricating camera IDs / values it cannot know without DB access. The executor here behaved correctly (refused to invent IDs, gave queries instead), but a wrong response that hallucinated `camera1` / `camera2` IDs could pass all current assertions. Consider an assertion like 'Response does not invent specific camera_name or camera_id values for this NWB file' or 'Response acknowledges it cannot read the live DB and provides a query the user can run'."
+      }
+    ],
+    "overall": "Two of the nine assertions are strict-substring checks that misfire on responses that *correctly teach* the anti-pattern by quoting and labelling it. The skill's reference (common_tables.md#VideoFile field-ownership trap) explicitly trains the model to call out `CameraDevice & {'nwb_file_name': ...}` as a footgun — so a well-aligned response will quote the anti-pattern verbatim and then provide the correct query, which is the shape we got here. The literal substring-exclusion rule penalizes that pedagogy. The other seven assertions are well-targeted; the response demonstrably routed through `VideoFile`, recognized the secondary-column trap, cited `_prepare_video_entry`, and gave the correct restriction path."
+  }
+}

@@ -1,0 +1,16 @@
+category_kind,category,n_evals,both_pass,skill_only,baseline_only,both_fail,skill_rescue_rate_pct
+stage,pipeline-usage,11,4,1,0,6,14.3
+stage,destructive-operations,2,0,1,0,1,50.0
+stage,setup,1,0,0,0,1,0.0
+stage,pipeline-authoring,1,0,1,0,0,100.0
+stage,parameter-understanding,1,0,0,1,0,0.0
+tier,joins,3,1,0,0,2,0.0
+tier,dependency-tracing,2,2,0,0,0,0.0
+tier,counterfactual,2,0,0,1,1,0.0
+tier,disambiguation,2,0,0,0,2,0.0
+tier,compound,2,0,2,0,0,100.0
+tier,config-troubleshooting,1,0,0,0,1,0.0
+tier,workflow-recovery,1,0,0,0,1,0.0
+tier,workflow-position,1,1,0,0,0,0.0
+tier,atomic-read,1,0,0,0,1,0.0
+tier,adversarial,1,0,1,0,0,100.0

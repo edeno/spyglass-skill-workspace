@@ -1,0 +1,16 @@
+{
+  "eval_id": 105,
+  "eval_name": "camera-devices-lookup",
+  "expected_output": "The session\u2192camera mapping lives on `VideoFile`, **not** on `CameraDevice`. `VideoFile` is session-scoped (its PK propagates from `-> TaskEpoch`, which carries `nwb_file_name` and `epoch`, `src/spyglass/common/common_behav.py:452-471`). Importantly, `VideoFile` carries `camera_name` as a **secondary column** (declared below `---`) \u2014 it is **not** a declared `-> CameraDevice` FK. The link to `CameraDevice` is by name only, validated at ingest (`common_behav.py` _prepare_video_entry checks `(CameraDevice & {'camera_name': camera_name})` exists before insert).\n\nRouting through `VideoFile` is the right shape because `CameraDevice` alone (keyed by `camera_name` only, `common_device.py:291`) carries no session information \u2014 it's a global lookup.\n\n```python\nfrom spyglass.common.common_behav import VideoFile\nfrom spyglass.common.common_device import CameraDevice\n\ncameras = (\n    (VideoFile & {'nwb_file_name': 'j1620210710_.nwb'})\n    * CameraDevice\n).fetch('camera_name', 'camera_id', 'meters_per_pixel', as_dict=True)\n```\n\nThe `*` join works here because `camera_name` is secondary on `VideoFile` and primary on `CameraDevice` \u2014 that's a one-sided-secondary join, which is legal (the dependent-attribute refusal only fires when an attr is secondary on BOTH sides). One session can have multiple cameras (one per epoch / video file), so use `.fetch()` not `.fetch1()`.\n\nRoutes to common_tables.md and position_pipeline.md.",
+  "expectations": [
+    "Response contains the substring `VideoFile`.",
+    "Response contains the substring `CameraDevice`.",
+    "Response contains the substring `camera_name`.",
+    "Response contains the substring `nwb_file_name`.",
+    "Response does NOT contain the substring `CameraDevice & {'nwb_file_name'`.",
+    "Response does NOT contain the substring `CameraDevice & {\"nwb_file_name\"`.",
+    "Routes through `VideoFile` (the per-session mapping) restricted by `nwb_file_name`, NOT through `CameraDevice` alone (which is a global name-keyed lookup with no session attr in its heading)",
+    "Recognizes that `camera_name` on `VideoFile` is a secondary column \u2014 NOT a declared `-> CameraDevice` FK \u2014 and the link is by name match (validated at ingest in `_prepare_video_entry`)",
+    "Restricts `VideoFile` by `nwb_file_name` (a PK field via `-> TaskEpoch`); does NOT attempt `CameraDevice & {nwb_file_name: ...}` (silent no-op, no such attr in CameraDevice's heading)"
+  ]
+}

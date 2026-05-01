@@ -1,0 +1,116 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `CurationV1`.",
+      "passed": true,
+      "evidence": "Found multiple times in response.md (e.g. line 33 import, line 76 `CurationV1.insert_curation(s)`, line 80 `part_name=\"CurationV1\"`, TL;DR step 1)."
+    },
+    {
+      "text": "Response contains the substring `SpikeSortingOutput`.",
+      "passed": true,
+      "evidence": "Appears throughout the response, e.g. line 14 `spyglass.spikesorting.spikesorting_merge.SpikeSortingOutput`, line 36 import, line 80 `SpikeSortingOutput.insert([cur_key], part_name=\"CurationV1\")`."
+    },
+    {
+      "text": "Response contains the substring `UnitWaveformFeaturesGroup`.",
+      "passed": true,
+      "evidence": "Found at line 16, line 45, line 117 (`### 1d. Bundle into a `UnitWaveformFeaturesGroup``), line 124 (`UnitWaveformFeaturesGroup().create_group(...)`), and TL;DR step 5."
+    },
+    {
+      "text": "Response contains the substring `ClusterlessDecodingSelection`.",
+      "passed": true,
+      "evidence": "Multiple instances: line 16, line 46, line 213 section heading `## 4. Tie it together: ClusterlessDecodingSelection`, line 232 `ClusterlessDecodingSelection.insert1(...)`."
+    },
+    {
+      "text": "Response contains the substring `PositionGroup`.",
+      "passed": true,
+      "evidence": "Found at line 17, line 48 import, lines 154-167 (section `### 2b. Bundle into a `PositionGroup``), TL;DR step 7."
+    },
+    {
+      "text": "Identifies `CurationV1` as the mandatory next step (initial curation, not optional) before anything downstream of spike sorting can be reached",
+      "passed": true,
+      "evidence": "Section 1a states: `UnitWaveformFeaturesSelection is keyed off SpikeSortingOutput's merge_id, not off SpikeSorting directly. So each sorting_id needs: 1) an \"initial\" curation row in CurationV1 (this is the no-op curation #0 you create right after sorting)`, with code `CurationV1.insert_curation(s)`. TL;DR puts `CurationV1.insert_curation(...)` as step 1. The 'Common gotchas' section reinforces: `The selection table requires the spikes side to be promoted into SpikeSortingOutput; it does not read from SpikeSorting/CurationV1 directly.` This communicates curation 0 as the mandatory first step."
+    },
+    {
+      "text": "Calls out the merge insert into `SpikeSortingOutput` (e.g. `insert([curation_key], part_name='CurationV1')`) as a separate explicit step that does not happen automatically",
+      "passed": true,
+      "evidence": "Line 73-81 shows the two-step pattern explicitly with comments `# 1) seed a curation row` and `# 2) push that curation into the merge table`, with code `SpikeSortingOutput.insert([cur_key], part_name=\"CurationV1\")`. TL;DR lists step 2 as a separate item: `2. SpikeSortingOutput.insert([...], part_name=\"CurationV1\")`. Reinforced in Common gotchas: 'The selection table requires the spikes side to be promoted into SpikeSortingOutput; it does not read from SpikeSorting/CurationV1 directly.'"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": 0,
+    "total_steps": 0,
+    "errors_encountered": 0,
+    "output_chars": 12428,
+    "transcript_chars": 84122
+  },
+  "timing": {
+    "executor_duration_seconds": 137.7,
+    "total_tokens": 41297,
+    "duration_ms": 137704
+  },
+  "claims": [
+    {
+      "claim": "UnitWaveformFeaturesSelection uses `spikesorting_merge_id`, not `merge_id`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in spyglass source: spyglass/decoding/v1/waveform_features.py defines UnitWaveformFeaturesSelection with `-> SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` projection. The response correctly notes this gotcha in code comment line 104 and Common gotchas line 282."
+    },
+    {
+      "claim": "DecodingParameters.insert_default() populates 4 stock entries (`contfrag_clusterless_*`, `nonlocal_clusterless_*`, `contfrag_sorted_*`, `nonlocal_sorted_*`)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches spyglass/decoding/v1/core.py DecodingParameters.insert_default which inserts these four with version-suffixed names from non_local_detector."
+    },
+    {
+      "claim": "PositionGroup.create_group accepts `position_variables` argument",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in spyglass/decoding/v1/core.py PositionGroup.create_group signature includes `position_variables` and `upsample_rate` params."
+    },
+    {
+      "claim": "Encoding and decoding intervals must not overlap if `estimate_decoding_params=True`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Spyglass clusterless.py make() raises if intervals overlap when estimate_decoding_params is True; this is a documented constraint."
+    },
+    {
+      "claim": "ClusterlessDecodingV1 has fetch_results() and fetch_model() helpers",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Inherited from DecodingOutputMixin / DecodingMixin in spyglass.decoding.decoding_merge / v1.clusterless."
+    },
+    {
+      "claim": "Clusterless decoding ignores curation labels and uses all spikes from the units in the merge entry",
+      "type": "factual",
+      "verified": true,
+      "evidence": "UnitWaveformFeatures.make extracts features from all units in the SortingAnalyzer regardless of label; clusterless does not filter by accept/mua/noise. This is consistent with spyglass docs and source."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `CurationV1`.",
+        "reason": "Substring assertions for 5 of the 7 checks are easy to satisfy and a hand-wavy answer that name-drops the tables without explaining the workflow would still pass them. The two semantic assertions (mandatory curation, explicit merge insert) carry most of the discriminating power."
+      },
+      {
+        "reason": "No assertion checks that the response surfaces the `spikesorting_merge_id` vs `merge_id` rename, which is the most common silent failure when constructing UnitWaveformFeaturesSelection inserts. The response did call this out, but a less careful answer that just used `merge_id` would still pass all current expectations."
+      },
+      {
+        "reason": "No assertion checks that `UnitWaveformFeaturesGroup` and `PositionGroup` are described as manual tables requiring an explicit `create_group(...)` call. A response could mention the table names without explaining this gating step and still pass."
+      }
+    ],
+    "overall": "Two semantic assertions (mandatory curation, separate merge insert) do real work; the five substring assertions are easy filler. Consider adding semantic assertions about the `spikesorting_merge_id` rename and the manual `create_group()` step on the two Group tables."
+  }
+}

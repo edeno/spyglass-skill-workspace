@@ -1,0 +1,17 @@
+eval_id,batch,eval_name,stage,tier,difficulty,rank,ws_pass,bs_pass,ws_expectation_rate,bs_expectation_rate,delta_expectation_pp
+41,1,config-key-error-after-pull,setup,config-troubleshooting,medium,1,0,0,87.5,25.0,62.5
+107,1,compound-sorted-spikes-across-sort-groups,pipeline-authoring,compound,hard,2,1,0,100.0,41.7,58.3
+113,1,adversarial-update1-downstream-populated,destructive-operations,adversarial,medium,3,1,0,100.0,66.7,33.3
+88,1,ambiguity-delete-decoding-results,destructive-operations,disambiguation,medium,4,0,0,75.0,50.0,25.0
+108,1,sorted-spikes-group-hippocampal,pipeline-usage,disambiguation,medium,5,0,0,75.0,58.3,16.7
+85,1,recover-parameter-edit-in-place,pipeline-usage,workflow-recovery,hard,6,0,0,75.0,62.5,12.5
+87,1,counterfactual-trodes-pos-params-swap,pipeline-usage,counterfactual,hard,7,0,0,85.7,78.6,7.1
+106,1,compound-pfc-wtrack,pipeline-usage,compound,hard,8,1,0,100.0,93.3,6.7
+29,1,brain-region-for-lfp-electrode,pipeline-usage,joins,medium,9,1,1,100.0,100.0,0.0
+72,1,dep-trace-lfpbandv1,pipeline-usage,dependency-tracing,hard,10,1,1,100.0,100.0,0.0
+99,1,hidden-prereq-decoding-populate,pipeline-usage,dependency-tracing,hard,11,1,1,100.0,100.0,0.0
+100,1,workflow-position-post-sort-clusterless-decode,pipeline-usage,workflow-position,medium,12,1,1,100.0,100.0,0.0
+28,1,brain-region-for-curated-sorting,pipeline-usage,joins,medium,13,0,0,69.2,76.9,-7.7
+105,1,camera-devices-lookup,pipeline-usage,atomic-read,easy,14,0,0,77.8,88.9,-11.1
+118,1,counterfactual-decoding-bin-size,parameter-understanding,counterfactual,hard,15,0,1,85.7,100.0,-14.3
+89,1,restrict-by-interval-name-no-star,pipeline-usage,joins,medium,16,0,0,70.0,90.0,-20.0

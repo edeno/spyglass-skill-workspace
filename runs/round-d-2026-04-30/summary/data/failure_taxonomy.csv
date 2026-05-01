@@ -1,0 +1,10 @@
+eval_id,batch,eval_name,stage,tier,difficulty,failure_type,notes
+28,1,brain-region-for-curated-sorting,pipeline-usage,joins,medium,,
+41,1,config-key-error-after-pull,setup,config-troubleshooting,medium,,
+85,1,recover-parameter-edit-in-place,pipeline-usage,workflow-recovery,hard,,
+87,1,counterfactual-trodes-pos-params-swap,pipeline-usage,counterfactual,hard,,
+88,1,ambiguity-delete-decoding-results,destructive-operations,disambiguation,medium,,
+89,1,restrict-by-interval-name-no-star,pipeline-usage,joins,medium,,
+105,1,camera-devices-lookup,pipeline-usage,atomic-read,easy,,
+108,1,sorted-spikes-group-hippocampal,pipeline-usage,disambiguation,medium,,
+118,1,counterfactual-decoding-bin-size,parameter-understanding,counterfactual,hard,,

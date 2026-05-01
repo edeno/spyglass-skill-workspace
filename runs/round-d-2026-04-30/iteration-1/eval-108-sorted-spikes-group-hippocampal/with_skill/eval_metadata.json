@@ -1,0 +1,8 @@
+{
+  "id": 108,
+  "eval_name": "sorted-spikes-group-hippocampal",
+  "stage": "pipeline-usage",
+  "tier": "disambiguation",
+  "difficulty": "medium",
+  "condition": "with_skill"
+}

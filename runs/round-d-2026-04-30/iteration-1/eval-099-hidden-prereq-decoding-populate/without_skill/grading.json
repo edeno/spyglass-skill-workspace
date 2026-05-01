@@ -1,0 +1,121 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `UnitWaveformFeaturesGroup`.",
+      "passed": true,
+      "evidence": "Found multiple times, e.g. line 15 'UnitWaveformFeaturesGroup,' in imports and line 53 'UnitWaveformFeaturesGroup for this nwb_file_name' and line 87 in the diagnostic block."
+    },
+    {
+      "text": "Response contains the substring `PositionGroup`.",
+      "passed": true,
+      "evidence": "Found multiple times, e.g. line 17 'from spyglass.decoding.v1.core import DecodingParameters, PositionGroup' and line 92 in the diagnostic block."
+    },
+    {
+      "text": "Response contains the substring `DecodingParameters`.",
+      "passed": true,
+      "evidence": "Found e.g. line 17 import and line 55 'DecodingParameters with the exact decoding_param_name' and line 97 in diagnostic block."
+    },
+    {
+      "text": "Response contains the substring `ClusterlessDecodingSelection`.",
+      "passed": true,
+      "evidence": "Used throughout, e.g. line 20 'len(ClusterlessDecodingSelection & key)   # is this 0?' and definition shown at lines 31-39."
+    },
+    {
+      "text": "Response contains the substring `IntervalList`.",
+      "passed": true,
+      "evidence": "Found e.g. line 18 'from spyglass.common import IntervalList' and lines 101-106 with IntervalList & {nwb, interval_list_name: ...}."
+    },
+    {
+      "text": "Response does NOT contain the substring `populate_all_common(`.",
+      "passed": true,
+      "evidence": "grep returned 0 occurrences of 'populate_all_common(' in response.md."
+    },
+    {
+      "text": "Response does NOT contain the substring `edit the ClusterlessDecodingV1 schema`.",
+      "passed": true,
+      "evidence": "grep returned 0 occurrences of 'edit the ClusterlessDecodingV1 schema' in response.md."
+    },
+    {
+      "text": "First diagnostic step works in restricted candidate / pending terms (len(ClusterlessDecodingSelection & key) and/or (ClusterlessDecodingV1.key_source & key)) restricted by the user's key.",
+      "passed": true,
+      "evidence": "The very first concrete diagnostic shown (line 20) is `len(ClusterlessDecodingSelection & key)   # is this 0?`, restricted by the user's key. The 'Sanity' block (lines 75-77) repeats this with `len(ClusterlessDecodingSelection & key)` and `len(ClusterlessDecodingV1 & key)`. Line 121 also computes the pending set as `(ClusterlessDecodingSelection & key) - ClusterlessDecodingV1`. All forms are restricted by `key` rather than bare unrestricted key_source counts."
+    },
+    {
+      "text": "Walks `ClusterlessDecodingSelection.parents()` and checks `(parent & key)` for each only if building the selection or selection insert is blocked, names UnitWaveformFeaturesGroup AND PositionGroup AND DecodingParameters AND IntervalList as those parents.",
+      "passed": true,
+      "evidence": "Lines 84-107 explicitly walk each upstream table 'with the relevant slice of key': `UnitWaveformFeaturesGroup & {**nwb, waveform_features_group_name: ...}`, `PositionGroup & {**nwb, position_group_name: ...}`, `DecodingParameters & {decoding_param_name: ...}`, `IntervalList & {**nwb, interval_list_name: key['encoding_interval']}` and the same for `decoding_interval`. All four parent names are explicitly enumerated as 'before populate can do anything, every one of these prerequisites must exist for your session' (lines 51-58). The response presents this walk as the diagnostic to run after confirming the selection row is missing, matching the 'only if building the selection' qualifier. It does not literally call `.parents()` introspection, but performs the equivalent enumeration."
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "total": 9,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": 0,
+    "output_chars": 6669,
+    "transcript_chars": null
+  },
+  "timing": {
+    "executor_duration_seconds": 92.9,
+    "total_tokens": 44663,
+    "duration_ms": 92948,
+    "total_duration_seconds": 92.9
+  },
+  "claims": [
+    {
+      "claim": "ClusterlessDecodingV1's only direct parent is ClusterlessDecodingSelection (key_source equals essentially ClusterlessDecodingSelection).",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed by the Spyglass source the response cites: in /Users/edeno/Documents/GitHub/spyglass/src/spyglass/decoding/v1/clusterless.py the table definition is `-> ClusterlessDecodingSelection` followed by ---, with no other foreign keys. This matches the expected_output's claim that ClusterlessDecodingV1 has exactly one direct parent."
+    },
+    {
+      "claim": "ClusterlessDecodingSelection's parents are UnitWaveformFeaturesGroup, PositionGroup, DecodingParameters, and IntervalList (referenced twice via projections to encoding_interval and decoding_interval).",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Response shows the schema definition (lines 31-39) with `-> UnitWaveformFeaturesGroup`, `-> PositionGroup`, `-> DecodingParameters`, `-> IntervalList.proj(encoding_interval='interval_list_name')`, `-> IntervalList.proj(decoding_interval='interval_list_name')`. This matches expected_output and the canonical four-parent list."
+    },
+    {
+      "claim": "DataJoint's populate computes work as `(key_source & restrictions) - target` and silently no-ops when empty.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Standard DataJoint behavior confirmed by canonical understanding; the response correctly explains why a silent no-op occurs."
+    },
+    {
+      "claim": "SpyglassMixin.populate ultimately delegates to DataJoint's super().populate for the standard transactional path.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Path cited (/Users/edeno/Documents/GitHub/spyglass/src/spyglass/utils/mixins/populate.py) is the location of populate-related mixin code in Spyglass; mixin overrides do delegate to super().populate."
+    },
+    {
+      "claim": "Calling ClusterlessDecodingV1().make(sel_keys[0]) directly is recommended as a diagnostic.",
+      "type": "quality",
+      "verified": false,
+      "evidence": "The response itself flags that `make` 'will raise on a key that's not in the selection, and it bypasses transaction protection — only use it as a diagnostic, not as your normal workflow.' This is correct advice but is a minor side-recommendation that is somewhat unusual for typical Spyglass debugging — generally users are guided away from calling make() directly. The advice is hedged appropriately so this is a borderline-quality claim, not strictly wrong."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Walks `ClusterlessDecodingSelection.parents()` and checks `(parent & key)` for each only if building the selection or if the selection insert itself is blocked by a missing FK target — names UnitWaveformFeaturesGroup AND PositionGroup AND DecodingParameters AND IntervalList as those parents.",
+        "reason": "The 'only if building the selection or if the selection insert itself is blocked' qualifier is hard to verify from text alone — a response that always walks the parents (even when not appropriate) would still trivially satisfy the substring-based check. Also, the assertion conflates literal use of `.parents()` introspection with manually enumerating the four parent tables; the rubric should clarify whether the dynamic `parents()` walk is required or just equivalent enumeration suffices. Consider splitting into two assertions: (a) all four parent names appear in a per-key restriction context, and (b) the response correctly orders selection-existence-first, parent-walk-second."
+      },
+      {
+        "reason": "No assertion checks that the response correctly explains the DataJoint mechanism `(key_source & restrictions) - target` for why populate silently no-ops. This is a load-bearing piece of the explanation in the canonical answer and a response that just lists prerequisites without explaining the mechanism would still pass all current assertions."
+      },
+      {
+        "reason": "No assertion guards against the response recommending destructive or anti-pattern workarounds (e.g., calling `.make()` directly bypassing the transactional path). The current response includes this advice in a hedged way, which is fine, but a less careful response could recommend it without caveat and still pass."
+      }
+    ],
+    "overall": "Substring assertions cover the right vocabulary but don't deeply check correctness of the diagnostic order, the mechanism explanation, or anti-pattern avoidance. The two structured assertions (8 and 9) do good work, especially the explicit prohibition on bare unrestricted key_source forms in expectation 8."
+  }
+}

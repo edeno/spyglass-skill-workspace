@@ -1,0 +1,21 @@
+{
+  "eval_id": 72,
+  "eval_name": "dep-trace-lfpbandv1",
+  "expected_output": "Routes to lfp_pipeline.md. Names every upstream table by name (in backticks where appropriate): Nwbfile (and Session derivable from it), IntervalList, Electrode (via ElectrodeGroup), `Raw`, FirFilterParameters (twice \u2014 once for LFPV1 and once for LFPBandV1, possibly with different filter_name + filter_sampling_rate), LFPElectrodeGroup (and its LFPElectrode part) \u2192 LFPSelection \u2192 LFPV1 \u2192 LFPOutput (the merge wrapper around LFPV1) \u2192 LFPBandSelection \u2192 LFPBandV1. Does not skip the LFPOutput merge wrapper between LFPV1 and LFPBandSelection.",
+  "expectations": [
+    "Response contains the substring `Nwbfile`.",
+    "Response contains the substring `IntervalList`.",
+    "Response contains the substring `LFPElectrodeGroup`.",
+    "Response contains the substring `LFPSelection`.",
+    "Response contains the substring `LFPV1`.",
+    "Response contains the substring `LFPOutput`.",
+    "Response contains the substring `FirFilterParameters`.",
+    "Response contains the substring `LFPBandSelection`.",
+    "Response contains the substring `LFPBandV1`.",
+    "Response contains the substring `Raw`.",
+    "Response contains the substring `Session`.",
+    "Names every upstream table including the parameter (FirFilterParameters) and selection tables (LFPSelection, LFPBandSelection)",
+    "Names the Raw table as the data source fetched inside LFPV1's `make()` body (Raw is not an FK of LFPSelection; it is pulled via `(Raw & key).fetch_nwb()` at make() time and must be present to regenerate LFPV1 from scratch)",
+    "Does not skip the LFPOutput merge wrapper between LFPV1 and LFPBandSelection"
+  ]
+}

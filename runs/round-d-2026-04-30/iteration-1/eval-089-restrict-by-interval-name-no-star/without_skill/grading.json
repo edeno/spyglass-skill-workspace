@@ -1,0 +1,126 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `IntervalList`.",
+      "passed": true,
+      "evidence": "Response contains 'IntervalList' in multiple places, e.g. 'Selection is what foreign-keys `IntervalList`' and 'from spyglass.common import IntervalList'."
+    },
+    {
+      "text": "Response contains the substring `interval_list_name`.",
+      "passed": true,
+      "evidence": "Response repeatedly uses `interval_list_name`, including the restriction `{\"interval_list_name\": \"02_r1\"}` and explanation '`interval_list_name` is in the Selection'."
+    },
+    {
+      "text": "Response contains the substring `SpikeSortingRecording`.",
+      "passed": true,
+      "evidence": "Response contains 'SpikeSortingRecording' throughout (imports, code blocks, prose)."
+    },
+    {
+      "text": "Response contains the substring `SpikeSortingRecordingSelection`.",
+      "passed": true,
+      "evidence": "Response contains 'SpikeSortingRecordingSelection' in imports, code blocks, and prose."
+    },
+    {
+      "text": "Response contains the substring `& (`.",
+      "passed": true,
+      "evidence": "Both v1 and v0 code blocks use literal '& (' as in `Session\\n    & (\\n        SpikeSortingRecordingSelection`."
+    },
+    {
+      "text": "Restricts via a sub-restriction of the form `(Table & (Other & {...}))` — the response must contain '& (' as a literal substring",
+      "passed": true,
+      "evidence": "The primary v1 query uses sub-restriction shape: `Session & (SpikeSortingRecordingSelection & SpikeSortingRecording & {\"interval_list_name\": \"02_r1\"}).proj(\"nwb_file_name\")`."
+    },
+    {
+      "text": "Routes the IntervalList restriction through `SpikeSortingRecordingSelection` (where `nwb_file_name` / `interval_list_name` actually live as secondary attrs via `-> IntervalList`), NOT directly through `SpikeSortingRecording` (which only carries `recording_id` in its heading per recording.py:185-191)",
+      "passed": true,
+      "evidence": "Response explicitly explains 'SpikeSortingRecording doesn't carry interval_list_name directly — it inherits its primary key from SpikeSortingRecordingSelection, and the Selection is what foreign-keys IntervalList. So you restrict on the Selection'. The `{\"interval_list_name\": \"02_r1\"}` restriction is applied to the intersection containing Selection."
+    },
+    {
+      "text": "Does not propose a multi-table `*` chain in the proposed code blocks — the canonical answer should use a sub-restriction (`& (...)` parens) rather than chaining tables with the natural-join operator",
+      "passed": false,
+      "evidence": "Response includes a secondary code block that DOES chain with natural-join: `populated_for_02r1 = (SpikeSortingRecording * SpikeSortingRecordingSelection & {\"interval_list_name\": \"02_r1\"})`. While the primary answer uses sub-restriction correctly, the response also proposes a `*` chain pattern, violating this expectation."
+    },
+    {
+      "text": "Fetches `nwb_file_name` from the restricted `SpikeSortingRecordingSelection` (or via a deliberate join/proj), NOT from `SpikeSortingRecording` itself — the latter has no `nwb_file_name` in its heading",
+      "passed": true,
+      "evidence": "Response uses a deliberate `.proj(\"nwb_file_name\")` on the inner Selection-based expression: `(SpikeSortingRecordingSelection & SpikeSortingRecording & {...}).proj(\"nwb_file_name\")`. The fetch then comes from the resulting `Session` restriction, where `nwb_file_name` is the legitimate PK. Never fetches from SpikeSortingRecording directly."
+    },
+    {
+      "text": "Does not claim DataJoint 'walks the FK chain' from `SpikeSortingRecording` to `IntervalList` automatically — the restriction works only because both `SpikeSortingRecordingSelection` and the restricted `IntervalList` share `(nwb_file_name, interval_list_name)` in their headings",
+      "passed": true,
+      "evidence": "Response correctly explains the mechanism: 'The IntervalList FK contributes the nwb_file_name and interval_list_name attributes to the Selection row.' It explicitly notes that `SpikeSortingRecording` does NOT carry interval_list_name, requiring the restriction go through Selection. No claim that DataJoint auto-walks FKs."
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 1,
+    "total": 10,
+    "pass_rate": 0.9
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Bash": 4,
+      "Read": 2,
+      "Write": 1
+    },
+    "total_tool_calls": 7,
+    "total_steps": 22,
+    "errors_encountered": 0,
+    "output_chars": 4677,
+    "transcript_chars": 35000
+  },
+  "timing": {
+    "total_tokens": 31751,
+    "duration_ms": 64436,
+    "executor_duration_seconds": 64.4
+  },
+  "claims": [
+    {
+      "claim": "SpikeSortingRecording inherits its primary key from SpikeSortingRecordingSelection",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in recording.py:189 (`-> SpikeSortingRecordingSelection` is sole primary dependency for SpikeSortingRecording, whose PK is just `recording_id`)."
+    },
+    {
+      "claim": "The IntervalList FK contributes nwb_file_name and interval_list_name attributes to the Selection row",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed: IntervalList PK is (nwb_file_name, interval_list_name) per common_interval.py:24-32. The Selection's `-> IntervalList` FK is in the secondary part (after `---`), so these attributes are secondary on the Selection."
+    },
+    {
+      "claim": "v0 SpikeSortingRecording has IntervalList renamed to sort_interval_list_name (not matching interval_list_name='02_r1')",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in spikesorting_recording.py:342 — `-> IntervalList.proj(sort_interval_list_name='interval_list_name')`."
+    },
+    {
+      "claim": "Session PK is nwb_file_name via Nwbfile",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in common_session.py:19-24 (`-> Nwbfile` as primary dependency)."
+    },
+    {
+      "claim": "& SpikeSortingRecording filters Selections that have actually been populated",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Correct DataJoint semantics — restricting Selection by Recording (which has -> Selection) yields only Selection rows for which a Recording row exists."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Does not propose a multi-table `*` chain in the proposed code blocks",
+        "reason": "The wording 'multi-table *' is ambiguous — does a 2-table `*` like `SpikeSortingRecording * SpikeSortingRecordingSelection` count? The response's secondary code block uses exactly that pattern. The expected_output's reasoning targets 3+-table chains where `nwb_file_name` becomes secondary on multiple sides. Consider tightening to either 'any `*` natural-join in the proposed code blocks' or '3+-table `*` chain' so the verdict is unambiguous."
+      },
+      {
+        "reason": "No assertion checks whether the response correctly distinguishes the v0 vs v1 schemas. The response's v0 explanation is actually richer than the expected_output (it correctly flags the renamed `sort_interval_list_name` trap), but no rubric item rewards or penalizes this. If the user is on v0, getting v1-only advice could silently fail."
+      }
+    ],
+    "overall": "Most assertions are well-targeted (substring + structural checks). The multi-table-* assertion would benefit from clearer phrasing. The response substantively answers the question correctly using the canonical sub-restriction pattern; the only failure is offering an additional `*` shortcut after the primary answer."
+  }
+}

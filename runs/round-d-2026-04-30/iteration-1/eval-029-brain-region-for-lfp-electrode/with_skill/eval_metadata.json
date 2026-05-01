@@ -1,0 +1,8 @@
+{
+  "id": 29,
+  "eval_name": "brain-region-for-lfp-electrode",
+  "stage": "pipeline-usage",
+  "tier": "joins",
+  "difficulty": "medium",
+  "condition": "with_skill"
+}

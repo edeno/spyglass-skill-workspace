@@ -1,0 +1,8 @@
+{
+  "id": 100,
+  "eval_name": "workflow-position-post-sort-clusterless-decode",
+  "stage": "pipeline-usage",
+  "tier": "workflow-position",
+  "difficulty": "medium",
+  "condition": "with_skill"
+}

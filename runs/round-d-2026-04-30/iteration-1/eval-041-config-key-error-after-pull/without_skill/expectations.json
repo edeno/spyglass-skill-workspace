@@ -1,0 +1,15 @@
+{
+  "eval_id": 41,
+  "eval_name": "config-key-error-after-pull",
+  "expected_output": "Routes to setup_troubleshooting.md '`KeyError: '<column>' is not in the table heading' after `git pull`'. Yes \u2014 schema drift with code ahead of DB. The Python-side definition got a new `pipeline` column that the DB-side table doesn't have yet. Confirm the drift direction: `SpikeSortingRecording().describe()` (Python-side) vs `dj.conn().query('SHOW CREATE TABLE `<schema>`.`spike_sorting_recording`').fetchall()` (DB-side) \u2014 columns only on one side are the drift. Fix: read `CHANGELOG.md` for the release that introduced the new column \u2014 recent versions list every required `Table().alter()` call in the release-notes section so an admin can run the migration with the right ordering and scope. On shared DBs, the user should coordinate with an admin (the alter calls require ALTER privilege the average user does not have); don't drop-and-recreate unless the table is empty. The `from spyglass.common import *` import is needed inside the admin's alter session so DataJoint can resolve every FK-referenced class.",
+  "expectations": [
+    "Response contains the substring `CHANGELOG.md`.",
+    "Response contains the substring `SpikeSortingRecording`.",
+    "Identifies the drift direction: code ahead of DB",
+    "Shows both sides of the diagnostic: Python/source table definition (for example `Table.describe()` / `code_graph.py describe`) versus live DB table definition (for example `SHOW CREATE TABLE` / `db_graph.py describe`)",
+    "Routes the user to CHANGELOG.md or equivalent per-release migration notes as the place that documents which migration calls a given release introduced",
+    "Names `Table.alter()` (or `Table().alter(...)`) as the migration mechanism the admin runs to bring the DB schema forward to match the package",
+    "Mentions ALTER privilege and warns against drop-and-recreate on non-empty tables",
+    "Does not recommend rolling the code back as the fix \u2014 i.e., does not propose `git checkout` to an older commit, downgrading the spyglass package, pinning to yesterday's version, or otherwise stepping the package backwards to match the DB. Semantic check: the failure shape is any phrasing of 'roll back to make the error go away,' not just the literal substring `git checkout`. The correct path is forward (apply migrations) not backward (revert the code)."
+  ]
+}

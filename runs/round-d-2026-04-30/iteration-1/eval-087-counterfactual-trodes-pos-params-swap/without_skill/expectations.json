@@ -1,0 +1,21 @@
+{
+  "eval_id": 87,
+  "eval_name": "counterfactual-trodes-pos-params-swap",
+  "expected_output": "Run `PositionOutput.descendants(as_objects=True)` (or `TrodesPosV1.descendants(as_objects=True)`) to enumerate every table whose key derives from PositionOutput / TrodesPosV1 \u2014 that's the candidate set for divergence. (Bare `descendants()` returns table NAMES, `datajoint/table.py:220`; pass `as_objects=True` to get FreeTable objects you can introspect, but they are NOT a restrictable relation.) Then reason through which of those actually consume the new params: a change to `trodes_pos_params_name` on `TrodesPosSelection` produces a new row in `TrodesPosV1` keyed by the new params name \u2014 the old row is still there (same `nwb_file_name`, `interval_list_name`, different `trodes_pos_params_name`). Inserting that new `TrodesPosV1` row into `PositionOutput.TrodesPosV1` issues a new `merge_id` on `PositionOutput`. Downstream that diverges \u2014 anything consuming the new PositionOutput merge_id: `LinearizedPositionV1` (if re-inserted keyed on the new merge_id), clusterless/sorted decoding selections that reference the new `PositionGroup` (if the group is updated to include the new merge_id), ripple detection if `RippleLFPSelection` is paired with the new PositionOutput merge via `RippleTimesV1`'s `pos_merge_id` FK. Unchanged: everything not downstream of `PositionOutput` \u2014 `LFPV1`, `LFPBandV1`, `SpikeSorting`, `SpikeSortingRecording`, `CurationV1`, the Session/Electrode/IntervalList common tables, raw ephys. The old position entry and its downstream consumers stay valid; divergence threads through the new merge_id. Routes to position_trodes_v1_pipeline.md (Trodes-specific params and `_merge_insert` shape) and decoding_pipeline.md; the umbrella position_pipeline.md is the right secondary route for the merge-layer overview. Does not claim spike sorting or LFP are affected (they don't consume position).",
+  "expectations": [
+    "Response contains the substring `PositionOutput`.",
+    "Response contains the substring `TrodesPosV1`.",
+    "Response contains the substring `position_trodes_v1_pipeline.md`.",
+    "Response contains the substring `.descendants`.",
+    "Response does NOT contain the substring `LFPV1 would need to be re-populated`.",
+    "Response does NOT contain the substring `SpikeSorting depends on position`.",
+    "Response does NOT contain the substring `CurationV1 would change`.",
+    "Response does NOT contain the substring `SpikeSortingV1`.",
+    "Calls Table.descendants() (or .ancestors() if upstream-direction) \u2014 names the actual DataJoint method, not 'walk the graph'.",
+    "Identifies that a new `TrodesPosV1` row (new params_name) is produced, not an in-place update",
+    "Identifies that inserting into `PositionOutput.TrodesPosV1` issues a new merge_id on `PositionOutput`",
+    "Lists at least two downstream tables that would diverge (linearization, decoding via PositionGroup, ripple via pos_merge_id)",
+    "Explicitly names LFP, spike-sorting, and curation as unaffected \u2014 they do not consume position",
+    "Does not use the v0 field name `position_info_param_name` or the nonexistent class `SpikeSortingV1`"
+  ]
+}

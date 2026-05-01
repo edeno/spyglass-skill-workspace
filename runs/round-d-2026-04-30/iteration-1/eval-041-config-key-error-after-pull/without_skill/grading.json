@@ -1,0 +1,107 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `CHANGELOG.md`.",
+      "passed": false,
+      "evidence": "Substring search for 'CHANGELOG' in response.md returns zero matches. The response never references CHANGELOG.md as a place to look for migration guidance."
+    },
+    {
+      "text": "Response contains the substring `SpikeSortingRecording`.",
+      "passed": true,
+      "evidence": "Multiple occurrences: title 'KeyError: \"pipeline_version\" from `SpikeSortingRecording.populate`', also lines 10-11 ('SpikeSortingRecording (v1) primary key in spikesorting/v1/recording.py:186-195', 'SpikeSortingRecordingSelection (v1, line 147-157)'), and line 85 in the diagnostic snippet."
+    },
+    {
+      "text": "Identifies the drift direction: code ahead of DB",
+      "passed": false,
+      "evidence": "The response explicitly denies schema drift. Line 17: 'So the canonical Spyglass make() cannot itself raise KeyError: pipeline_version. Something else is.' Line 99: 'Don't dj.config[\"safemode\"] = False... There's no schema mismatch suggested by this error; it's a Python KeyError, not a DataJoint DataJointError about missing/extra fields.' The response interprets the error as stale bytecode / user-code bug, never as code-ahead-of-DB schema drift. (Note: the response also reaches a defensible conclusion that 'pipeline_version' is not in current Spyglass source — but the eval rubric expects the answer to frame this as a code-ahead-of-DB schema-drift scenario regardless.)"
+    },
+    {
+      "text": "Shows both sides of the diagnostic: Python/source table definition (for example `Table.describe()` / `code_graph.py describe`) versus live DB table definition (for example `SHOW CREATE TABLE` / `db_graph.py describe`)",
+      "passed": false,
+      "evidence": "Only the Python/source side is checked, via `grep -rn pipeline_version src/spyglass/` and reading the source file at recording.py:186-195. There is no DB-side query (no `SHOW CREATE TABLE`, no `dj.conn().query(...)`, no `db_graph.py describe`, no `Table().describe()` against the live connection). The 'Diagnostic to run regardless' section only suggests printing the Python traceback, not comparing schemas."
+    },
+    {
+      "text": "Routes the user to CHANGELOG.md or equivalent per-release migration notes as the place that documents which migration calls a given release introduced",
+      "passed": false,
+      "evidence": "No mention of CHANGELOG.md, release notes, migration notes, or any per-release documentation. The response treats the issue as a stale install / user-code problem and offers no migration-discovery path."
+    },
+    {
+      "text": "Names `Table.alter()` (or `Table().alter(...)`) as the migration mechanism the admin runs to bring the DB schema forward to match the package",
+      "passed": false,
+      "evidence": "Substring search for 'alter' returns zero matches in response.md. The response does not name `Table.alter()` (or any DataJoint migration mechanism). It only suggests reinstalling with pip and clearing __pycache__."
+    },
+    {
+      "text": "Mentions ALTER privilege and warns against drop-and-recreate on non-empty tables",
+      "passed": false,
+      "evidence": "Neither 'ALTER privilege' nor any warning about drop-and-recreate appears. The response does say 'Don't dj.config[\"safemode\"] = False and start dropping tables' (line 99) but this is framed as 'there is no schema mismatch', not as a guarded migration path with admin coordination."
+    },
+    {
+      "text": "Does not recommend rolling the code back as the fix — i.e., does not propose `git checkout` to an older commit, downgrading the spyglass package, pinning to yesterday's version, or otherwise stepping the package backwards to match the DB. Semantic check: the failure shape is any phrasing of 'roll back to make the error go away,' not just the literal substring `git checkout`. The correct path is forward (apply migrations) not backward (revert the code).",
+      "passed": true,
+      "evidence": "Line 98 in 'What I would NOT do': 'Don't roll back the `git pull` blindly — there's no pipeline_version schema migration to roll back to, because the field isn't in master either way.' The response explicitly advises against rolling back. (The response's recommended fix is reinstall/clear pycache/restart kernel, not a code revert.)"
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 6,
+    "total": 8,
+    "pass_rate": 0.25
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": 0,
+    "output_chars": 6219,
+    "transcript_chars": null
+  },
+  "timing": {
+    "executor_total_tokens": 38726,
+    "executor_duration_ms": 105190,
+    "executor_duration_seconds": 105.2
+  },
+  "claims": [
+    {
+      "claim": "There is no field, key, attribute, or string named `pipeline_version` anywhere in spyglass/spikesorting/ on current master",
+      "type": "factual",
+      "verified": true,
+      "evidence": "The transcript shows the executor ran `grep -rn 'pipeline_version' /Users/edeno/Documents/GitHub/spyglass/src/spyglass/` and got zero matches. This is consistent with the response's strongest evidence (line 9). The factual claim about the source appears correct against the pinned checkout. However, the inference drawn from it (that the issue must be stale bytecode or user code) misses the eval's intended interpretation: schema-drift after a `git pull` where the new code introduced a column the DB hasn't been altered to receive yet."
+    },
+    {
+      "claim": "SpikeSortingRecordingSelection (v1) keys on `recording_id` and FKs to Raw, SortGroup, IntervalList, SpikeSortingPreprocessingParameters, LabTeam (line 147-157)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Cited line numbers and class structure are consistent with /Users/edeno/Documents/GitHub/spyglass/src/spyglass/spikesorting/v1/recording.py per the executor's grep+read pattern."
+    },
+    {
+      "claim": "The most likely cause is stale bytecode / non-editable install",
+      "type": "quality",
+      "verified": false,
+      "evidence": "This is a plausible debugging direction in general, but it does not match the canonical interpretation for the rubric's user scenario: a `git pull` after which a populate raises `KeyError` on a column name is a known schema-drift signature (Python-side code now expects a column the DB-side table does not have). The response misses this routing entirely."
+    },
+    {
+      "claim": "There's no schema mismatch suggested by this error; it's a Python KeyError, not a DataJoint DataJointError",
+      "type": "quality",
+      "verified": false,
+      "evidence": "This claim is the central rubric miss. DataJoint's `make_fetch`/heading-based fetches can and do raise plain `KeyError` when a Python-side definition references a column the live DB heading doesn't carry (e.g. when a new attribute was added to a table definition but `Table().alter()` hasn't been run). The response's confident dismissal of schema mismatch is what causes failures on expectations 3-7."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `SpikeSortingRecording`.",
+        "reason": "This passes trivially — the user's prompt itself contains `SpikeSortingRecording`, so any response that quotes the question or restates the symptom satisfies the assertion without doing any actual diagnostic work. Consider making this more discriminating, e.g. 'Names `SpikeSortingRecording` specifically as the table whose Python-side definition should be diff'd against the DB-side heading' or pair it with a Python-vs-DB diagnostic check."
+      },
+      {
+        "assertion": "Response contains the substring `CHANGELOG.md`.",
+        "reason": "Substring assertions are brittle: a response that says 'check the project's release notes / CHANGELOG' (with any spelling, capitalization, or path variant like `CHANGELOG`, `CHANGES.md`, or 'release notes') would correctly route the user but fail the literal match. Consider a semantic check or a regex like `CHANGELOG(\\.md)?|release[- ]notes` paired with a same-paragraph mention of migrations."
+      }
+    ],
+    "overall": "The semantic expectations (3-7) are well-designed and clearly catch the without-skill response's confident-but-wrong framing. The two substring assertions (#1, #2) are weak: #2 passes trivially on the prompt echo, and #1 is brittle to phrasing. The rubric overall correctly distinguishes the schema-drift answer from the stale-bytecode answer."
+  }
+}

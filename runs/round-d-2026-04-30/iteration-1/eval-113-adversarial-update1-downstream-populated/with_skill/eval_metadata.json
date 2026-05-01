@@ -1,0 +1,8 @@
+{
+  "id": 113,
+  "eval_name": "adversarial-update1-downstream-populated",
+  "stage": "destructive-operations",
+  "tier": "adversarial",
+  "difficulty": "medium",
+  "condition": "with_skill"
+}

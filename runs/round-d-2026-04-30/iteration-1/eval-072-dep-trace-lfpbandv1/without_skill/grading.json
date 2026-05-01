@@ -1,0 +1,150 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `Nwbfile`.",
+      "passed": true,
+      "evidence": "response.md line 130: '`Session` -> `Nwbfile` (+ optional `Subject`, `Institution`, `Lab`)'; line 132: '`AnalysisNwbfile` -> `Nwbfile`'; line 133: '`Nwbfile` — root (Manual table holding the NWB file path)'."
+    },
+    {
+      "text": "Response contains the substring `IntervalList`.",
+      "passed": true,
+      "evidence": "response.md line 14 (LFPBandV1 def): '-> IntervalList'; line 30: '-> IntervalList.proj(target_interval_list_name=...)' for LFPBandSelection; line 84 in LFPSelection definition; line 131: '`IntervalList` -> `Session`'."
+    },
+    {
+      "text": "Response contains the substring `LFPElectrodeGroup`.",
+      "passed": true,
+      "evidence": "response.md section 4 'LFPElectrodeGroup and LFPElectrode' (line 103); definition shown on line 105: 'LFPElectrodeGroup (`spyglass.lfp.lfp_electrode`, schema `lfp_electrode`)'; appears in LFPSelection (line 83) and LFPBandSelection.LFPBandElectrode part (line 41)."
+    },
+    {
+      "text": "Response contains the substring `LFPSelection`.",
+      "passed": true,
+      "evidence": "response.md section 'LFPSelection (`spyglass.lfp.v1.lfp.LFPSelection`, schema `lfp_v1`)' line 80; LFPV1 definition references it line 72 '-> LFPSelection'."
+    },
+    {
+      "text": "Response contains the substring `LFPV1`.",
+      "passed": true,
+      "evidence": "response.md title and throughout — 'LFPV1 (`spyglass.lfp.v1.lfp.LFPV1`, schema `lfp_v1`)' line 69; 'LFPOutput.LFPV1 -> LFPV1' line 65; 'LFPV1.make' line 99."
+    },
+    {
+      "text": "Response contains the substring `LFPOutput`.",
+      "passed": true,
+      "evidence": "response.md section 3 'LFPOutput (merge table) and its sources' line 52; mentioned as upstream of LFPBandSelection line 47; 'LFPOutput row (and `LFPOutput.LFPV1` part row)' line 158."
+    },
+    {
+      "text": "Response contains the substring `FirFilterParameters`.",
+      "passed": true,
+      "evidence": "response.md line 31 in LFPBandSelection definition: '-> FirFilterParameters'; line 48: '`FirFilterParameters` (`spyglass.common.common_filter`, schema `common_filter`)'; line 85 in LFPSelection definition; section 5 'FirFilterParameters — root (no FKs)' line 134."
+    },
+    {
+      "text": "Response contains the substring `LFPBandSelection`.",
+      "passed": true,
+      "evidence": "response.md throughout — section 2 'LFPBandSelection (Manual) — the populate key' line 26; LFPBandV1 definition line 12 '-> LFPBandSelection'."
+    },
+    {
+      "text": "Response contains the substring `LFPBandV1`.",
+      "passed": true,
+      "evidence": "response.md title 'Upstream dependencies of `LFPBandV1`' line 1; throughout the document."
+    },
+    {
+      "text": "Response contains the substring `Raw`.",
+      "passed": true,
+      "evidence": "response.md line 99: '`LFPV1.make` also reads from `Raw` (`spyglass.common.common_ephys.Raw`)'; line 129: '`Raw` (used by `LFPV1.make`) -> `Session`, `IntervalList`'; line 152: '`Raw` row for the session (so `LFPV1.make` can pull raw data)'."
+    },
+    {
+      "text": "Response contains the substring `Session`.",
+      "passed": true,
+      "evidence": "response.md section 4 line 122: '`Session` (`spyglass.common.common_session.Session`)'; line 130: '`Session` -> `Nwbfile`'; checklist item 2 'Session row for that nwb_file_name' line 145."
+    },
+    {
+      "text": "Names every upstream table including the parameter (FirFilterParameters) and selection tables (LFPSelection, LFPBandSelection)",
+      "passed": true,
+      "evidence": "response.md sections 1-5 explicitly enumerate the full upstream tree, including FirFilterParameters (lines 31, 48, 85, 134), LFPSelection (line 80), and LFPBandSelection (line 26). The consolidated checklist (section 6) lists each one as a required row."
+    },
+    {
+      "text": "Names the Raw table as the data source fetched inside LFPV1's `make()` body (Raw is not an FK of LFPSelection; it is pulled via `(Raw & key).fetch_nwb()` at make() time and must be present to regenerate LFPV1 from scratch)",
+      "passed": true,
+      "evidence": "response.md line 99: '`LFPV1.make` also reads from `Raw` (`spyglass.common.common_ephys.Raw`) — not a foreign key in `LFPV1`'s definition, but Raw must exist for the session, otherwise `LFPV1.populate` fails'. Also line 129 shows Raw in bottom-of-stack with parents Session/IntervalList; checklist item 8 'Raw row for the session (so `LFPV1.make` can pull raw data)'."
+    },
+    {
+      "text": "Does not skip the LFPOutput merge wrapper between LFPV1 and LFPBandSelection",
+      "passed": true,
+      "evidence": "response.md explicitly lists LFPOutput as a direct upstream of LFPBandSelection (line 47), section 3 'LFPOutput (merge table) and its sources' (line 52) shows the merge table with part `LFPOutput.LFPV1 -> LFPV1`, and checklist step 13 'LFPOutput row (and `LFPOutput.LFPV1` part row) — `LFPV1.make` inserts this for you' (line 158). The merge wrapper is preserved between LFPV1 and LFPBandSelection."
+    }
+  ],
+  "summary": {
+    "passed": 14,
+    "failed": 0,
+    "total": 14,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": 0,
+    "output_chars": 8649,
+    "transcript_chars": 139742
+  },
+  "timing": {
+    "executor_duration_seconds": 127.8,
+    "executor_duration_ms": 127844,
+    "total_tokens": 59823,
+    "total_duration_seconds": 127.8
+  },
+  "claims": [
+    {
+      "claim": "LFPBandSelection's primary key references LFPOutput.proj(lfp_merge_id='merge_id'), FirFilterParameters, IntervalList, and lfp_band_sampling_rate.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Verified against /Users/edeno/Documents/GitHub/spyglass/src/spyglass/lfp/analysis/v1/lfp_band.py — LFPBandSelection definition matches the response."
+    },
+    {
+      "claim": "LFPV1's primary upstream is LFPSelection only; AnalysisNwbfile and IntervalList are secondary attributes written by make().",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches /Users/edeno/Documents/GitHub/spyglass/src/spyglass/lfp/v1/lfp.py LFPV1 definition: '-> LFPSelection' as primary; AnalysisNwbfile/IntervalList in dashed/secondary block."
+    },
+    {
+      "claim": "LFPV1.make reads from Raw via (Raw & key).fetch_nwb(), and Raw is not a foreign key of LFPV1 or LFPSelection.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed by inspection of LFPV1.make in spyglass/lfp/v1/lfp.py — Raw is fetched at make-time, not declared as a foreign key in LFPV1 or LFPSelection."
+    },
+    {
+      "claim": "LFPOutput is a merge table with parts LFPV1, ImportedLFP, and CommonLFP (legacy common_ephys.LFP).",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches /Users/edeno/Documents/GitHub/spyglass/src/spyglass/lfp/lfp_merge.py."
+    },
+    {
+      "claim": "LFPElectrodeGroup is keyed by Session and has a part LFPElectrode that references Electrode.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches /Users/edeno/Documents/GitHub/spyglass/src/spyglass/lfp/lfp_electrode.py."
+    },
+    {
+      "claim": "LFPV1.make writes an interval list named 'lfp_<group>_<target>_valid_times'.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches the make() body in spyglass/lfp/v1/lfp.py which constructs the lfp valid-times interval-list name from group + target_interval."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `Raw`.",
+        "reason": "The bare substring `Raw` is trivially satisfied — it appears in 'raw data', 'Raw data valid times', or any sentence with the verb 'draw' / 'Raw'. The companion assertion ('Names the Raw table as the data source fetched inside LFPV1's make() body') is the discriminating one; consider tightening this to something like 'Mentions ``Raw`` (in backticks) as a Spyglass table' to avoid false positives."
+      },
+      {
+        "assertion": "Response contains the substring `Session`.",
+        "reason": "Same trivial-substring issue — `Session` appears in any prose referencing 'session', 'Session row', etc. Hard to distinguish naming the Spyglass `Session` table from generic prose. Tightening to a backtick-fenced or fully-qualified reference (`common_session.Session`) would be more discriminating."
+      }
+    ],
+    "overall": "Response is thorough and accurate; all expectations pass with substantive evidence. The two trivial-substring concerns above are the only weak spots in the rubric — the deeper assertions (parameter/selection tables, Raw at make-time, no skipping LFPOutput) are well-designed and discriminating."
+  }
+}

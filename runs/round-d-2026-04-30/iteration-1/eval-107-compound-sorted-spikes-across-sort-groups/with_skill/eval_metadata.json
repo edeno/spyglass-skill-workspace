@@ -1,0 +1,8 @@
+{
+  "id": 107,
+  "eval_name": "compound-sorted-spikes-across-sort-groups",
+  "stage": "pipeline-authoring",
+  "tier": "compound",
+  "difficulty": "hard",
+  "condition": "with_skill"
+}

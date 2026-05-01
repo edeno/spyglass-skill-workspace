@@ -1,0 +1,121 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `DecodingParameters`.",
+      "passed": true,
+      "evidence": "`DecodingParameters` appears throughout response.md: heading 'shape correction on `DecodingParameters`' (line 3), code block referencing core.py:38-43, Slot 1 `DecodingParameters.insert1(...)` example (line 41), Slot 4 `from spyglass.decoding import DecodingParameters` (line 119), and the `update1` trap section."
+    },
+    {
+      "text": "Response contains the substring `ClusterlessDecodingV1`.",
+      "passed": true,
+      "evidence": "`ClusterlessDecodingV1` appears at lines 81 (`ClusterlessDecodingV1.populate(new_selection_key)`) and 87 in the discussion of `*DecodingV1` part tables and DecodingOutput merge_ids."
+    },
+    {
+      "text": "Response contains the substring `ClusterlessDecodingSelection`.",
+      "passed": true,
+      "evidence": "`ClusterlessDecodingSelection` appears at line 58 ('`ClusterlessDecodingSelection` (`decoding/v1/clusterless.py:87`)') and line 75 (`ClusterlessDecodingSelection.insert1(new_selection_key, skip_duplicates=True)`)."
+    },
+    {
+      "text": "Correctly identifies that ONLY the decoding output (`ClusterlessDecodingV1` / `SortedSpikesDecodingV1`) changes — spike sorting and position upstream are unaffected because they don't FK to `DecodingParameters`",
+      "passed": true,
+      "evidence": "Slot 3 'What is unaffected and reusable' (lines 96-108) explicitly lists Position pipeline (TrodesPosV1 / DLCPosV1, PositionOutput, PositionGroup), Spike sorting pipeline (SpikeSortingRecording, SpikeSorting, CurationV1, SpikeSortingOutput), Clusterless features, SortedSpikesGroup, LFP/ripple/MUA as untouched. Slot 2 lists the only two FK consumers as ClusterlessDecodingSelection and SortedSpikesDecodingSelection — confirmed in source at clusterless.py:87 and sorted_spikes.py:52."
+    },
+    {
+      "text": "Recommends inserting a NEW `DecodingParameters` row with a different `decoding_param_name` (e.g. `'bin5cm'`) and a fresh `ClusterlessDecodingSelection` + populate, rather than `update1()` on the existing row",
+      "passed": true,
+      "evidence": "Lines 21-26 explicitly state 'the *correct* way to \"change\" `position_bin_size` is **not** to mutate the blob in place via `update1`...The correct shape is a new `decoding_param_name` row holding the new blob.' Slot 1 (lines 30-46) shows `DecodingParameters.insert1` with a new `decoding_param_name` ('contfrag_clusterless_5cm'). Slot 2 (lines 65-83) shows the new selection insert + `ClusterlessDecodingV1.populate(new_selection_key)`. The `update1` trap section (lines 140-158) explicitly warns against the alternative."
+    },
+    {
+      "text": "Names the qualitative direction (coarser bins = fewer state bins = faster, lower spatial resolution) without misattributing the change to upstream pipelines",
+      "passed": false,
+      "evidence": "The response does not explicitly state the qualitative direction of the change. It mentions 'This re-runs the full decoder fit + forward-backward against the new bin size. Concretely it re-builds the `Environment` / `TrackGraph`, the HMM transition matrix, the observation model' (line 85) but does not say coarser bins yield fewer state bins, faster runtime, or lower spatial resolution. The expected reference output explicitly stated 'coarser spatial bins → fewer state bins → faster, lower spatial resolution', which is missing here. The response correctly avoids misattribution to upstream pipelines, but the direction claim is absent."
+    },
+    {
+      "text": "Notes that `UnitWaveformFeaturesGroup` and `PositionGroup` (referenced by the selection) are untouched — they're FK'd by the SELECTION, not by `DecodingParameters` directly",
+      "passed": true,
+      "evidence": "Slot 3 line 100 explicitly lists 'PositionGroup (with its `PositionGroup.Position` part)' as untouched, and line 102 lists 'UnitWaveformFeaturesGroup (+ `.UnitFeatures` part). Untouched — features are computed from spikes/waveforms, not from the position grid, so the bin-size change does not touch them.' The framing in Slot 2 step 1 also makes clear these are FKs of the *Selection* row (lines 65-74)."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 1,
+    "total": 7,
+    "pass_rate": 0.857
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 6,
+      "Bash": 5,
+      "Write": 1
+    },
+    "total_tool_calls": 12,
+    "total_steps": 20,
+    "errors_encountered": 0,
+    "output_chars": 9300,
+    "transcript_chars": 0
+  },
+  "timing": {
+    "executor_duration_seconds": 140.2,
+    "total_tokens": 66192,
+    "duration_ms": 140230
+  },
+  "claims": [
+    {
+      "claim": "DecodingParameters has only three fields: decoding_param_name (PK), decoding_params (blob), decoding_kwargs (blob), per src/spyglass/decoding/v1/core.py:38-43",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Verified at /Users/edeno/Documents/GitHub/spyglass/src/spyglass/decoding/v1/core.py:24,38 — `class DecodingParameters(SpyglassMixin, dj.Lookup)` and `definition` at line 38 matches."
+    },
+    {
+      "claim": "DecodingParameters has exactly two FK consumers: ClusterlessDecodingSelection (decoding/v1/clusterless.py:87) and SortedSpikesDecodingSelection (decoding/v1/sorted_spikes.py:52)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "grep confirms `-> DecodingParameters` at clusterless.py:87 (under `class ClusterlessDecodingSelection`) and sorted_spikes.py:52 (under `class SortedSpikesDecodingSelection`)."
+    },
+    {
+      "claim": "ClusterlessDecodingV1 and SortedSpikesDecodingV1 are part tables of DecodingOutput, so each successful populate mints a new merge_id",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Standard Spyglass merge-master pattern, consistent with how DecodingOutput is documented in the merge_methods/decoding_pipeline references."
+    },
+    {
+      "claim": "place_bin_size is the non_local_detector kwarg name (vs position_bin_size in user framing)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Cited in response at lines 17 and 43; consistent with non_local_detector's Environment API. The response correctly reframes the user's `position_bin_size` to point to the actual nested kwarg."
+    },
+    {
+      "claim": "update1() on the existing decoding_param_name silently corrupts provenance because PK doesn't change and DataJoint sees the Computed rows as already done",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Standard DataJoint/Spyglass behavior — update1 changes secondary attrs without invalidating downstream Computed rows. Consistent with destructive_operations.md guidance."
+    },
+    {
+      "claim": "Bundled scripts code_graph.py and db_graph.py can be used to verify the cascade scope",
+      "type": "process",
+      "verified": true,
+      "evidence": "Both scripts exist at /Users/edeno/Documents/GitHub/spyglass-skill/skills/spyglass/scripts/ per skill bundle conventions."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `DecodingParameters`.",
+        "reason": "Trivial substring assertions for `DecodingParameters`, `ClusterlessDecodingV1`, and `ClusterlessDecodingSelection` will pass for any answer that even mentions the topic — they don't discriminate good answers from bad. A single boilerplate paragraph touching all three names would pass these three assertions while completely misunderstanding the cascade. Consider folding them into the more substantive checks (e.g., 'states ClusterlessDecodingSelection FKs to DecodingParameters') or removing them."
+      },
+      {
+        "assertion": "Names the qualitative direction (coarser bins = fewer state bins = faster, lower spatial resolution) without misattributing the change to upstream pipelines",
+        "reason": "This compound assertion bundles two distinct checks: (1) qualitative direction of bin-size change, and (2) absence of upstream misattribution. The graded response satisfies (2) but not (1), forcing a single FAIL verdict. Splitting into two assertions would give clearer signal about which behavior the skill elicited and which it missed."
+      },
+      {
+        "reason": "No assertion checks whether the response correctly identifies that `position_bin_size` is NOT a top-level column on DecodingParameters but is nested inside the `decoding_params` blob. The graded response opens with this exact correction (a substantive shape-of-question fix), but a less careful answer that treated it as a column would still pass all current expectations. Consider adding 'Notes that position_bin_size is nested inside the decoding_params blob, not a top-level column on DecodingParameters' as a discriminating check."
+      }
+    ],
+    "overall": "Three substring assertions are weak; the qualitative-direction bundle is compound; and the most insightful behavior in this response (the blob-vs-column shape correction) goes uncovered. The compound assertion drove a FAIL on a strong answer."
+  }
+}

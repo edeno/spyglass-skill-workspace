@@ -1,0 +1,8 @@
+{
+  "id": 72,
+  "eval_name": "dep-trace-lfpbandv1",
+  "stage": "pipeline-usage",
+  "tier": "dependency-tracing",
+  "difficulty": "hard",
+  "condition": "with_skill"
+}

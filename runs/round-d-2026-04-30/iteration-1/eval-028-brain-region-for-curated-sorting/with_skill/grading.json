@@ -1,0 +1,129 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `SortGroup`.",
+      "passed": true,
+      "evidence": "Multiple occurrences in response.md, e.g. line 5: 'SortGroup.SortGroupElectrode' and line 104: 'from spyglass.spikesorting.v1 import SortGroup'."
+    },
+    {
+      "text": "Response contains the substring `Electrode`.",
+      "passed": true,
+      "evidence": "Present at line 5 ('Electrode'), line 56-57 ('Electrode * SortGroupElectrode'), and line 110 ('from spyglass.common import Electrode, BrainRegion')."
+    },
+    {
+      "text": "Response contains the substring `BrainRegion`.",
+      "passed": true,
+      "evidence": "Present at line 5 ('BrainRegion'), line 11 ('BrainRegion (`common/common_region.py:9-15`)'), line 57, line 96, and line 110."
+    },
+    {
+      "text": "Response contains the substring `region_name`.",
+      "passed": true,
+      "evidence": "Present at line 12, 37, 41, 47, 83, 94, 96, 112, 115."
+    },
+    {
+      "text": "Response contains the substring `SortGroupElectrode`.",
+      "passed": true,
+      "evidence": "Present at lines 5, 56, 106 ('SortGroup.SortGroupElectrode')."
+    },
+    {
+      "text": "Response contains the substring `limit=1`.",
+      "passed": false,
+      "evidence": "grep for 'limit=1' returned no matches in response.md. The response describes the sampling behavior as 'pulls one electrode' on line 56 but never uses the literal substring 'limit=1' that the rubric requires. This is the load-bearing token for the polymer-probe caveat."
+    },
+    {
+      "text": "Response contains the substring `CurationV1`.",
+      "passed": true,
+      "evidence": "Present at line 1, 3, 18, 22, 28, 34, 69, 80, 81."
+    },
+    {
+      "text": "Response does NOT contain the substring `unit_id=5 has region`.",
+      "passed": true,
+      "evidence": "grep for 'unit_id=5 has region' returned no matches; the forbidden hallucination is absent."
+    },
+    {
+      "text": "Leads with the explicit FK walk `SortGroup.SortGroupElectrode * Electrode * BrainRegion` (with `.proj('recording_id')` on `SpikeSortingSelection` to avoid the dependent-attribute refusal, OR an equivalent two-restriction split) as the source-of-truth answer",
+      "passed": false,
+      "evidence": "Response leads with the convenience helper, NOT the explicit FK walk. Lines 3-9: 'The shortest path is **`CurationV1.get_sort_group_info(key)`**' is the primary recommendation. The Recipe block (lines 17-51) calls `CurationV1.get_sort_group_info(key)` rather than performing an explicit FK walk. There is no `.proj('recording_id')` shape anywhere in the response, and no two-restriction split. The rubric explicitly requires the explicit FK walk to be the lead source-of-truth answer."
+    },
+    {
+      "text": "Notes that `unit_id` does NOT affect the region — all units in a sort group share the same electrodes",
+      "passed": true,
+      "evidence": "Line 58-61: 'you'll get one region row per sort group, not per unit — which is the right granularity, since brain region is assigned at the electrode-group/probe-shank level upstream of sorting (in `ElectrodeGroup` and `Electrode` from raw NWB ingestion).' This conveys that region is per-group, not per-unit, so unit_id is irrelevant — though it does not say so as crisply as the rubric phrasing."
+    },
+    {
+      "text": "Mentions `CurationV1.get_sort_group_info` only as a convenience shortcut, AND calls out its `limit=1` sampling: it returns one region per sort group, accurate for tetrodes but incomplete for polymer-probe sort groups whose electrodes span multiple regions",
+      "passed": false,
+      "evidence": "The response treats `CurationV1.get_sort_group_info` as the PRIMARY recommendation, not a 'convenience shortcut'. Line 3: 'The shortest path is **`CurationV1.get_sort_group_info(key)`**'. While the response acknowledges the one-electrode-per-group sampling (line 56: 'for each sort group it pulls one electrode'), it presents this as 'intentional' and correct (line 56: 'pulling one is intentional') rather than calling out the limit=1 caveat for polymer probes. There is no mention of polymer probes, multi-region sort groups, or any caveat where the helper would be incomplete."
+    },
+    {
+      "text": "For polymer probes spanning regions within a sort group, recommends the explicit FK walk over the helper",
+      "passed": false,
+      "evidence": "grep for 'polymer|span|caveat|incomplete' returned no matches in response.md. The response does not discuss polymer probes, sort groups spanning multiple regions, or recommend an explicit FK walk over the helper for any such case. The helper's limit=1 sampling is framed as intentional rather than as a footgun for non-tetrode probes."
+    },
+    {
+      "text": "Does not invent a direct `region` attribute on `CurationV1` or on the unit itself",
+      "passed": true,
+      "evidence": "Response correctly traces region through Electrode and BrainRegion via SortGroupElectrode; no fabricated `region` attribute on CurationV1, no fabricated per-unit region attribute. Region is only obtained via the join through `BrainRegion`."
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 4,
+    "total": 13,
+    "pass_rate": 0.69
+  },
+  "execution_metrics": {
+    "output_chars": 4789,
+    "transcript_chars": 100330
+  },
+  "timing": {
+    "total_tokens": 49933,
+    "duration_ms": 88573,
+    "executor_duration_seconds": 88.6,
+    "total_duration_seconds": 88.6
+  },
+  "claims": [
+    {
+      "claim": "`get_sort_group_info` lives at curation.py:269-302 and is wrapped by the merge layer at spikesorting_merge.py:186-205",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Verified in source: `CurationV1.get_sort_group_info` is defined at curation.py lines 268-302; `SpikeSortingOutput.get_sort_group_info` is defined at spikesorting_merge.py lines 186-205, matching the cited ranges."
+    },
+    {
+      "claim": "`get_sort_group_info` pulls one electrode per sort group then joins through `Electrode * SortGroupElectrode * BrainRegion`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Source at curation.py:289-294 shows `.fetch(limit=1)` per entry; lines 297-301 show `(Electrode & electrode_restrict_list) * table * SortGroup.SortGroupElectrode() * BrainRegion()`. The response's narrative description matches the source."
+    },
+    {
+      "claim": "BrainRegion at common/common_region.py:9-15 carries fields region_name, subregion_name, subsubregion_name",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Standard BrainRegion schema in spyglass.common; the field names are correct (subregion_name and subsubregion_name are well-known BrainRegion attributes)."
+    },
+    {
+      "claim": "`nwb_file_name` is NOT a CurationV1 attribute (it lives upstream on SpikeSortingRecordingSelection)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Consistent with Spyglass v1 schema design — CurationV1 PK is (sorting_id, curation_id) and nwb_file_name is upstream."
+    },
+    {
+      "claim": "Sampling one electrode per sort group is intentional and correct because v1 sort groups are typically one tetrode/shank",
+      "type": "quality",
+      "verified": false,
+      "evidence": "Partially correct (true for tetrodes by lab convention) but presented WITHOUT the caveat that polymer-probe sort groups can span multiple regions, in which case limit=1 silently drops electrodes. The rubric expects this caveat to be called out as a footgun, not framed as 'intentional'."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `limit=1`.",
+        "reason": "This substring assertion fails when the response describes the sampling correctly in prose ('pulls one electrode from each sort group') but never uses the literal token. The substring is a reasonable proxy for 'cited the source mechanism' but should be paired with a semantic check that the response actually frames it as a CAVEAT (not as intentional behavior) — otherwise a model that cites the line but endorses the sampling will pass on the substring while still missing the polymer-probe footgun."
+      },
+      {
+        "reason": "The 'leads with the explicit FK walk' assertion is qualitative and could be made more discriminating by checking for the literal join chain or the `.proj('recording_id')` token, which is the load-bearing trick. Without that, a response that mentions the chain in passing inside a Recipe block (but leads with the helper) might be ambiguously graded."
+      }
+    ],
+    "overall": "Assertions are mostly well-targeted; the substring checks pin the relevant tokens (BrainRegion, SortGroupElectrode, limit=1) but the rubric still depends on graders' qualitative judgment for the 'leads with FK walk' and 'calls out limit=1 as a caveat' expectations. Consider adding a substring check for `.proj('recording_id')` or `SpikeSortingSelection & key).proj` to crisply discriminate the FK-walk-leading responses from helper-leading responses."
+  }
+}

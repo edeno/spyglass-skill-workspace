@@ -1,0 +1,8 @@
+{
+  "id": 118,
+  "eval_name": "counterfactual-decoding-bin-size",
+  "stage": "parameter-understanding",
+  "tier": "counterfactual",
+  "difficulty": "hard",
+  "condition": "with_skill"
+}

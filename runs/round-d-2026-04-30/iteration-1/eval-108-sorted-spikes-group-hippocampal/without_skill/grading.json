@@ -1,0 +1,150 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `SortedSpikesGroup`.",
+      "passed": true,
+      "evidence": "Response uses `SortedSpikesGroup` extensively: 'Yes — Spyglass has a built-in table designed for exactly this: `SortedSpikesGroup` in `spyglass.spikesorting.analysis.v1.group`.'"
+    },
+    {
+      "text": "Response contains the substring `UnitSelectionParams`.",
+      "passed": true,
+      "evidence": "Response references `UnitSelectionParams` in the schema block, the imports, and the call `UnitSelectionParams().insert_default()`."
+    },
+    {
+      "text": "Response contains the substring `BrainRegion`.",
+      "passed": false,
+      "evidence": "Searched response.md — the literal string `BrainRegion` does not appear. The response only loosely says 'plus whatever restriction picks out hippocampal sort groups (sort_group_id list, brain_region, etc.)' — lowercase `brain_region`, not the class name `BrainRegion`."
+    },
+    {
+      "text": "Response contains the substring `create_group`.",
+      "passed": true,
+      "evidence": "Response calls `SortedSpikesGroup().create_group(group_name=..., nwb_file_name=..., unit_filter_params_name=..., keys=keys)` and discusses what `create_group` does."
+    },
+    {
+      "text": "Response contains the substring `region_name`.",
+      "passed": false,
+      "evidence": "Searched response.md — the substring `region_name` does not appear. The response punts on how to derive the hippocampal sort groups and never names the `BrainRegion.region_name` attribute."
+    },
+    {
+      "text": "Response contains the substring `SortGroupElectrode`.",
+      "passed": false,
+      "evidence": "Searched response.md — the substring `SortGroupElectrode` does not appear. The response never mentions the `SortGroup.SortGroupElectrode` part table that maps sort groups to electrodes."
+    },
+    {
+      "text": "Response contains the substring `spikesorting_merge_id`.",
+      "passed": true,
+      "evidence": "Response uses `spikesorting_merge_id` in the schema block (`-> SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')`), in the keys list-comp `keys = [{\"spikesorting_merge_id\": mid} for mid in hippo_merge_ids]`, and in the `unit_ids` example."
+    },
+    {
+      "text": "Recommends `SortedSpikesGroup` as the existing aggregation (don't loop sort_group_ids)",
+      "passed": true,
+      "evidence": "Response opens with 'Yes — Spyglass has a built-in table designed for exactly this' and closes with 'So: stop hand-joining sort groups. Build a `SortedSpikesGroup` once per region per session and fetch from it.'"
+    },
+    {
+      "text": "DERIVES the hippocampal sort_group_ids by walking `SortGroup.SortGroupElectrode * Electrode * BrainRegion` filtered by `region_name`, AND restricts the merge IDs by those sort_group_ids before passing to `create_group(...)` — does NOT pass all session merge_ids unfiltered (which would defeat the point of the eval)",
+      "passed": false,
+      "evidence": "Response punts on the derivation entirely: the hippocampal restriction is left as a placeholder comment `# ... plus whatever restriction picks out hippocampal sort groups (sort_group_id list, brain_region, etc.)`. It never references `SortGroup.SortGroupElectrode`, `Electrode`, `BrainRegion`, or `region_name` and never shows the join needed to derive the hippocampal sort_group_ids. This is the central point of the eval and the response sidesteps it."
+    },
+    {
+      "text": "Names `UnitSelectionParams` as the parameter table that filters unit labels within the group, with `'all_units'` / `'exclude_noise'` defaults",
+      "passed": true,
+      "evidence": "Response: '`UnitSelectionParams` is a small parameter table for label-based filtering (e.g. drop units curated as \"noise\" or \"mua\"). It ships with three defaults: \"all_units\", \"exclude_noise\", and \"default_exclusion\" — the latter two exclude `noise` and `mua` labels.'"
+    },
+    {
+      "text": "Builds keys with the projected attr name `spikesorting_merge_id` (NOT bare `merge_id`) because `SortedSpikesGroup.Units` part FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')` (group.py:73). Calls `SpikeSortingOutput().get_restricted_merge_ids(key, ...)` with a **single dict per call** — looping per recording key and extending the list — because the source raises `TypeError` on a list arg (spikesorting_merge.py:138).",
+      "passed": false,
+      "evidence": "First half passes: `keys = [{\"spikesorting_merge_id\": mid} for mid in hippo_merge_ids]` correctly uses the projected attr name. Second half fails: the response never mentions or calls `get_restricted_merge_ids`, never warns about the TypeError-on-list constraint, and never shows the per-recording-key loop. Per the rubric this is a single conjunctive expectation, so it fails overall."
+    },
+    {
+      "text": "Explains why this is reusable: once the group exists, downstream Computed tables FK to the group key, not to tetrode-level merge IDs",
+      "passed": true,
+      "evidence": "Response 'Why this is the right primitive' section: '`SortedSpikesDecodingV1` (`spyglass/decoding/v1/sorted_spikes.py`) and the MUA pipeline (`spyglass/mua/v1/mua.py`) both take a `SortedSpikesGroup` foreign key and call `fetch_spike_data` / `get_spike_indicator` internally. So the group you make for \"all hippocampal spikes\" is reusable for decoding and MUA detection without re-plumbing anything.'"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 5,
+    "total": 12,
+    "pass_rate": 0.58
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Bash": 3,
+      "Read": 1,
+      "Write": 1
+    },
+    "total_tool_calls": 5,
+    "total_steps": 16,
+    "errors_encountered": 0,
+    "output_chars": 5641,
+    "transcript_chars": null
+  },
+  "timing": {
+    "executor_duration_seconds": 56.91,
+    "total_tokens": 33147,
+    "duration_ms": 56910,
+    "total_duration_seconds": 56.9
+  },
+  "claims": [
+    {
+      "claim": "`UnitSelectionParams` ships with three defaults: `all_units`, `exclude_noise`, and `default_exclusion`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed in /Users/edeno/Documents/GitHub/spyglass/src/spyglass/spikesorting/analysis/v1/group.py:38-54 — the contents list contains exactly those three names."
+    },
+    {
+      "claim": "`exclude_noise` and `default_exclusion` both exclude `noise` and `mua` labels",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed at group.py:44-53 — both rows have exclude_labels = ['noise', 'mua']."
+    },
+    {
+      "claim": "`SortedSpikesGroup.Units` part-table FKs to `SpikeSortingOutput.proj(spikesorting_merge_id='merge_id')`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed at group.py:70-74."
+    },
+    {
+      "claim": "`SortedSpikesDecodingV1` and the MUA pipeline both take a `SortedSpikesGroup` FK",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed by grep results in transcript: `/Users/edeno/Documents/GitHub/spyglass/src/spyglass/decoding/v1/sorted_spikes.py:50: -> SortedSpikesGroup` and `/Users/edeno/Documents/GitHub/spyglass/src/spyglass/mua/v1/mua.py:66: -> SortedSpikesGroup`."
+    },
+    {
+      "claim": "`create_group` refuses to overwrite an existing group of the same `(nwb_file_name, sorted_spikes_group_name)`",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed at group.py:89-95 — if the group key already exists, it raises ValueError (unless test_mode)."
+    },
+    {
+      "claim": "`fetch_spike_data` accepts a `time_slice=[start, stop]` (or a `slice` object) to filter to an interval",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed at group.py:230-240 — list/tuple is converted to `slice(*time_slice)` then applied."
+    },
+    {
+      "claim": "How to derive the hippocampal merge_ids — left as a placeholder comment",
+      "type": "quality",
+      "verified": false,
+      "evidence": "The response explicitly punts: `# ... plus whatever restriction picks out hippocampal sort groups (sort_group_id list, brain_region, etc.)`. The user's pain point is exactly the per-tetrode hippocampal selection, and the response leaves that part undone."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `BrainRegion`. / `region_name` / `SortGroupElectrode`",
+        "reason": "These three substring checks are partially redundant with the deeper expectation that the response derives the hippocampal sort_group_ids by walking SortGroup.SortGroupElectrode * Electrode * BrainRegion. They do their job here (the substring checks correctly fail), but a model that mentioned the names without showing the actual restriction would also pass them. Consider tightening into one check that the response shows a DataJoint join across those three tables filtered by `region_name LIKE '%CA1%'` (or equivalent)."
+      },
+      {
+        "assertion": "Builds keys with `spikesorting_merge_id` ... AND calls `get_restricted_merge_ids(key, ...)` with a single dict per call ...",
+        "reason": "This is a conjunction of two unrelated technical points (the projected-attr-name pitfall and the TypeError-on-list pitfall). They should arguably be two separate assertions — the response satisfied the first half but failed the second, and a single conjunctive grade hides which subpoint the response missed. Splitting would also make trend tracking across iterations cleaner."
+      }
+    ],
+    "overall": "Rubric is well-targeted at the core eval purpose (the response punts on the central derivation step and is correctly penalized). Two minor structural improvements would tighten discrimination."
+  }
+}

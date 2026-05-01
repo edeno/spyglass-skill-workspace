@@ -1,0 +1,117 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `ripple_param_name`.",
+      "passed": true,
+      "evidence": "Substring appears 8 times in response.md (e.g., line 36 `(RippleTimesV1 & {\"ripple_param_name\": \"Kay_ripple_detection_v2\"})` and the params-table fetch on lines 30-32)."
+    },
+    {
+      "text": "Response contains the substring `cautious_delete`.",
+      "passed": true,
+      "evidence": "Substring appears twice: in the comment on line 47 (\"Use the SpyglassMixin delete (cautious_delete)\") and again in the caveat on line 62 (\"`cautious_delete` will refuse / warn ...\")."
+    },
+    {
+      "text": "Response contains the substring `destructive_operations.md`.",
+      "passed": false,
+      "evidence": "grep -c returns 0 matches in response.md. The without_skill condition has no skill loaded, so the response never routes to a skill reference file by name."
+    },
+    {
+      "text": "Uses the correct field name `ripple_param_name` (singular), not `ripple_params_name`",
+      "passed": true,
+      "evidence": "Zero occurrences of the malformed `ripple_params_name`; all 8 references use the correct singular `ripple_param_name`."
+    },
+    {
+      "text": "Scopes the cleanup to RippleTimesV1 rows with the affected `ripple_param_name`, not all RippleTimesV1 rows",
+      "passed": true,
+      "evidence": "Lines 51-52: `(RippleTimesV1 & {\"ripple_param_name\": \"Kay_ripple_detection_v2\"}).delete()` — restricted to the affected name. The populate on lines 55-58 is also gated to that key."
+    },
+    {
+      "text": "Explicitly lists what is unaffected — LFP, LFPBand, RippleLFPSelection, position, decoding branches not downstream of the affected ripple times",
+      "passed": false,
+      "evidence": "The response does not enumerate what is unaffected. It mentions cascade impact (\"Anything below RippleTimesV1 ... will also be deleted by cascade\") but never names LFPV1, LFPBandV1, RippleLFPSelection, position pipelines, or decoding branches as safe / untouched. The reader is left to infer scope from the restriction expression."
+    },
+    {
+      "text": "Recommends cautious_delete (not super_delete or a manual drop) and routes to destructive_operations.md",
+      "passed": false,
+      "evidence": "The cautious_delete recommendation is present (line 47, caveat line 62), but there is no routing to `destructive_operations.md`. Both halves of the conjunction must be satisfied; the routing half is missing because the without_skill condition does not load skill references."
+    },
+    {
+      "text": "Flags editing a params row in place as an anti-pattern and recommends inserting a new `ripple_param_name` entry for future runs",
+      "passed": true,
+      "evidence": "Line 101: \"never `update1()` a parameters row that has been used.\" Pattern 1 (lines 105) explicitly recommends versioned names: \"`Kay_ripple_detection_v2`, `…_v3`, `…_v4`. The name is the version. Old rows stay attributable to old versions.\" Hash-suffixed names (line 107) and guard-before-edit (lines 109-117) repeat the recommendation."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 3,
+    "total": 8,
+    "pass_rate": 0.625
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": 0,
+    "total_steps": 0,
+    "errors_encountered": 0,
+    "output_chars": 7811,
+    "transcript_chars": 0
+  },
+  "timing": {
+    "executor_duration_seconds": 91.2,
+    "total_tokens": 33657,
+    "duration_ms": 91193
+  },
+  "claims": [
+    {
+      "claim": "RippleParameters is a dj.Lookup keyed on ripple_param_name with a BLOB payload ripple_param_dict at spyglass/ripple/v1/ripple.py:138-142",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Verified against /Users/edeno/Documents/GitHub/spyglass/src/spyglass/ripple/v1/ripple.py:139 — `ripple_param_name : varchar(80) # a name for this set of parameters`. The BLOB payload `ripple_param_dict` is in the same definition block."
+    },
+    {
+      "claim": "RippleTimesV1.make() fetches ripple_param_dict at populate time at ripple.py:207-209",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed by grep: line 208 contains `RippleParameters & {\"ripple_param_name\": key[\"ripple_param_name\"]}` inside the make() flow. The fetch1 happens in this block."
+    },
+    {
+      "claim": "default and default_trodes are distinct names not edits of one row in RippleParameters.insert_default() at ripple.py:144-178",
+      "type": "factual",
+      "verified": true,
+      "evidence": "grep shows insert_default uses two separate insert1 calls at lines 158 (`'default'`) and 174 (`'default_trodes'`)."
+    },
+    {
+      "claim": "DataJoint's delete-cascade fires only on key changes, not blob updates via update1()",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Consistent with DataJoint semantics: update1 modifies non-primary-key attributes and does not trigger downstream invalidation. The response's framing aligns with the eval's expected_output."
+    },
+    {
+      "claim": "cautious_delete will warn about merge-table entries",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Consistent with SpyglassMixin.cautious_delete behavior in spyglass.utils — checks for merge-table conflicts before delete. The response correctly notes the merge-table caveat."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `destructive_operations.md`.",
+        "reason": "This assertion is structurally unsatisfiable in the without_skill condition because the skill is the only thing that names that file. It guarantees a fail for baseline regardless of answer quality. Consider relaxing to a behavioral check (e.g., \"recommends inspect-before-destroy or shows the row count before deleting\") so the eval discriminates real reasoning rather than skill-loadedness."
+      },
+      {
+        "assertion": "Recommends cautious_delete (not super_delete or a manual drop) and routes to destructive_operations.md",
+        "reason": "Conjoining the cautious_delete recommendation with a skill-file routing requirement makes this fail by definition without_skill, even when the cautious_delete half is satisfied. Consider splitting into two assertions so the cautious_delete recommendation can be credited independently of the routing."
+      },
+      {
+        "assertion": "Explicitly lists what is unaffected — LFP, LFPBand, RippleLFPSelection, position, decoding branches not downstream of the affected ripple times",
+        "reason": "The response correctly scoped its delete to the affected ripple_param_name (which implicitly leaves the listed tables untouched), but did not enumerate the unaffected tables. This is a meaningful gap to flag, but the assertion currently treats explicit enumeration as required — a strong correct answer that demonstrates scoping by restriction would still fail. Consider clarifying whether enumeration is required or whether a properly scoped restriction expression is sufficient."
+      }
+    ],
+    "overall": "Two of the eight assertions hard-code skill-only artifacts (`destructive_operations.md` routing), which mechanically fail any without_skill baseline regardless of correctness. The cautious_delete + routing conjunction is especially blunt. The substantive critique that landed (no enumeration of unaffected tables) is a real omission, but the assertion phrasing makes it ambiguous whether explicit listing is required versus correct-by-scope reasoning."
+  }
+}

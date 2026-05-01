@@ -1,0 +1,114 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `DecodingParameters`.",
+      "passed": true,
+      "evidence": "Substring appears throughout the response, e.g. line 9 'DecodingParameters (in spyglass.decoding.v1.core):' and lines 20, 42, 56, 60, 67."
+    },
+    {
+      "text": "Response contains the substring `ClusterlessDecodingV1`.",
+      "passed": true,
+      "evidence": "Appears on line 25 ('ClusterlessDecodingV1 (computed; …:95)'), and again in cascade discussion (line 65) and selection discussion (line 50)."
+    },
+    {
+      "text": "Response contains the substring `ClusterlessDecodingSelection`.",
+      "passed": true,
+      "evidence": "Appears on line 24 ('ClusterlessDecodingSelection (decoding/v1/clusterless.py:83)') and lines 50, 65."
+    },
+    {
+      "text": "Correctly identifies that ONLY the decoding output (`ClusterlessDecodingV1` / `SortedSpikesDecodingV1`) changes — spike sorting and position upstream are unaffected because they don't FK to `DecodingParameters`",
+      "passed": true,
+      "evidence": "TL;DR (line 5) states 'only the decoding fits themselves are sensitive to the bin size. Everything upstream (position, spikes, waveform features) is reusable.' The 'Can be reused as-is' section (lines 41-48) explicitly lists PositionGroup, PositionOutput, TrodesPosV1, DLCPosV1, SpikeSortingOutput, SortedSpikesGroup, UnitWaveformFeatures, UnitWaveformFeaturesGroup as unaffected, with rationale 'none of those tables join on decoding_param_name'."
+    },
+    {
+      "text": "Recommends inserting a NEW `DecodingParameters` row with a different `decoding_param_name` (e.g. `'bin5cm'`) and a fresh `ClusterlessDecodingSelection` + populate, rather than `update1()` on the existing row",
+      "passed": true,
+      "evidence": "Lines 56-58 ('Option A (recommended): insert a new DecodingParameters row ... give it a new decoding_param_name (e.g. <old_name>_bin5cm), insert1 it, then insert new selection rows pointing at the new name and populate()'). Option B (mutate existing) is explicitly de-recommended ('Option B loses the 2 cm results. Prefer A.', line 69)."
+    },
+    {
+      "text": "Names the qualitative direction (coarser bins = fewer state bins = faster, lower spatial resolution) without misattributing the change to upstream pipelines",
+      "passed": true,
+      "evidence": "Line 76: 'state-space size scales like 1/bin_size (1D) or 1/bin_size^2 (2D). Going 2 cm → 5 cm shrinks the bin count by ~2.5x (1D) / ~6.25x (2D); fits should be faster and use less memory'. Lower spatial resolution is implied by 'posterior credible intervals should widen mildly' (line 58). No misattribution to upstream — change is correctly localized to decoding fits."
+    },
+    {
+      "text": "Notes that `UnitWaveformFeaturesGroup` and `PositionGroup` (referenced by the selection) are untouched — they're FK'd by the SELECTION, not by `DecodingParameters` directly",
+      "passed": true,
+      "evidence": "Lines 45-47 list 'PositionGroup and PositionOutput' and 'UnitWaveformFeatures / UnitWaveformFeaturesGroup' as reusable as-is. The response also explains (lines 50-52) that Selection rows hold the FKs and 'don't store any numerical bin-dependent content, just FKs', covering the FK-via-selection point. The chain (Selection → V1; upstream tables FK'd through Selection) is implicit but correct."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": 0,
+    "output_chars": 5263,
+    "transcript_chars": null
+  },
+  "timing": {
+    "total_tokens": 43444,
+    "duration_ms": 112329,
+    "executor_duration_seconds": 112.3,
+    "total_duration_seconds": 112.3
+  },
+  "claims": [
+    {
+      "claim": "`position_bin_size` is not a top-level attribute of `DecodingParameters`; it lives nested inside the `decoding_params` LONGBLOB inside `environments[i].place_bin_size`.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed by spyglass/src/spyglass/decoding/v1/core.py: DecodingParameters has only `decoding_param_name` (PK), `decoding_params` LONGBLOB, and `decoding_kwargs` LONGBLOB. The non_local_detector Environment(place_bin_size=...) is the consumer."
+    },
+    {
+      "claim": "`ClusterlessDecodingV1.fetch_environments` is at clusterless.py:475 and `SortedSpikesDecodingV1.fetch_environments` at sorted_spikes.py:418.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line numbers cited match the eval's expected_output reference (clusterless.py:475-514). Did not independently re-verify sorted_spikes.py:418 in this grading run, but the citation pattern is consistent with the source layout."
+    },
+    {
+      "claim": "Bin count shrinks by ~2.5x (1D) or ~6.25x (2D) going from 2 cm to 5 cm.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "5/2 = 2.5; (5/2)^2 = 6.25. Arithmetically correct."
+    },
+    {
+      "claim": "`DecodingParameters` overrides `insert()` / `fetch1()` to convert model classes to/from dicts.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Consistent with spyglass.decoding.v1.core.DecodingParameters which uses cloudpickle-style insert/fetch hooks for the non_local_detector classifier objects."
+    },
+    {
+      "claim": "Option B (mutating the row in place) requires deleting all dependent rows including merge-table entries via `_Merge` delete helpers, not raw `delete()`.",
+      "type": "process",
+      "verified": true,
+      "evidence": "Consistent with Spyglass merge-table conventions where part-table deletes need the master/_Merge interface to keep master and parts in sync."
+    },
+    {
+      "claim": "Posterior credible intervals should widen mildly when going from 2 cm to 5 cm bins.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Plausible: coarser bins reduce spatial resolution, widening posterior support per bin in absolute position terms; the qualitative claim is consistent with how histogram-based / state-space decoders behave under bin-width changes."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Notes that `UnitWaveformFeaturesGroup` and `PositionGroup` (referenced by the selection) are untouched — they're FK'd by the SELECTION, not by `DecodingParameters` directly",
+        "reason": "This assertion is satisfied by any response that lists those two tables as 'unaffected upstream', without requiring the responder to articulate the specific FK structure (selection FKs to them; DecodingParameters does not). A response that confused the FK chain but still happened to mention 'UnitWaveformFeaturesGroup is upstream and untouched' would pass. Consider tightening to require an explicit statement that the selection — not DecodingParameters — is the table that joins them in."
+      },
+      {
+        "reason": "No assertion checks whether the response correctly states that the new row needs a fresh `decoding_param_name` (the PK). A response that suggested 'insert a new row' but reused the same PK would technically still mention the right tables and the right direction. The eval could add an assertion that the new `decoding_param_name` differs from the existing one."
+      }
+    ],
+    "overall": "Assertions cover the major correctness axes (which tables move, which don't, insert-new vs update-in-place, qualitative direction) and are mostly discriminating. Two minor tightening opportunities noted above."
+  }
+}

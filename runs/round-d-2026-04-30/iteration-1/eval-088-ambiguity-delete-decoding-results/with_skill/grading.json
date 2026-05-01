@@ -1,0 +1,126 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `DecodingOutput`.",
+      "passed": true,
+      "evidence": "Substring appears throughout response, e.g. 'This removes the `DecodingOutput` merge entries' (line 9), 'from spyglass.decoding import DecodingOutput' (line 35), 'DecodingOutput.merge_delete(key)' (line 79)."
+    },
+    {
+      "text": "Response contains the substring `merge_delete`.",
+      "passed": true,
+      "evidence": "Substring appears multiple times: '(DecodingOutput & key).merge_delete()' and 'DecodingOutput.merge_delete(key)' (line 30), 'A `DecodingOutput.merge_delete(key)` will:' (line 56), 'DecodingOutput.merge_delete(key)' (line 79)."
+    },
+    {
+      "text": "Response contains the substring `destructive_operations.md`.",
+      "passed": false,
+      "evidence": "grep -c 'destructive_operations' on the response file returns 0. The response describes the inspect-before-destroy workflow in detail but never names the reference file `destructive_operations.md` literally."
+    },
+    {
+      "text": "Identifies that the prompt is under-specified and either asks a clarifying question or narrows scope explicitly",
+      "passed": true,
+      "evidence": "Opens with 'There isn't a single \"right command\" because \"decoding results\" for a session can mean two different things in Spyglass, and they need different commands. Before I give you code to run, please confirm which of these you actually want' (line 3), and at the bottom asks 'A or B or C?' (line 109)."
+    },
+    {
+      "text": "Enumerates at least two plausible delete layers (merge entry vs. V1 computed row vs. on-disk artifact)",
+      "passed": true,
+      "evidence": "Three options enumerated: Option A 'Delete the DataJoint rows for this session's decoding runs' (line 8) covering both DecodingOutput merge entries and ClusterlessDecodingV1 / SortedSpikesDecodingV1 part-table rows; Option B 'Just sweep orphaned decoding files on disk' (line 14) via `DecodingOutput().cleanup(...)`; Option C 'Delete one specific decoding entry' (line 18)."
+    },
+    {
+      "text": "Names the selection-scope ambiguity (which decoding_param_name / interval / session)",
+      "passed": true,
+      "evidence": "Option C explicitly distinguishes 'one specific decoding entry (one `merge_id`) rather than every decoding entry for the session' (line 19). Phase 1 also flags 'If the count is unexpectedly large (e.g. dozens of entries), I want to confirm with you before proceeding — you may have intended Option C (one specific entry) instead' (line 52). The specific keys decoding_param_name / interval are not named explicitly, but the scoping ambiguity (multiple entries per session) is clearly surfaced."
+    },
+    {
+      "text": "Recommends merge_delete with an explicit key (classmethod form) if the merge layer is chosen, and routes to destructive_operations.md for the inspect-before-destroy pattern",
+      "passed": false,
+      "evidence": "First half passes: classmethod form with explicit key is recommended — '# Classmethod form — pass the restriction as an argument, do NOT chain it. DecodingOutput.merge_delete(key)' (lines 78-79), with explicit caveat about classmethod-discard at line 30. Second half fails: response never names `destructive_operations.md` even though it implements the inspect-before-destroy pattern (Phase 1 inspect, Phase 2 cascade preview, Phase 3 confirm/delete, Phase 4 cleanup, Phase 5 verify). Compound assertion is treated as failed because the routing pointer is missing."
+    },
+    {
+      "text": "Does not produce an unscoped `.delete()` command without asking or narrowing",
+      "passed": true,
+      "evidence": "Response explicitly refuses to produce an unscoped one-liner: 'Hand you `DecodingOutput.merge_delete({\"nwb_file_name\": \"j1620210710_.nwb\"})` as a single line without the inspect step' is listed under 'What I won't do' (line 104). All delete calls are gated behind Phase 1 inspect output and explicit user go-ahead. No bare `.delete()` appears."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 2,
+    "total": 8,
+    "pass_rate": 0.75
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 3,
+      "Bash": 1,
+      "Write": 1
+    },
+    "total_tool_calls": 5,
+    "total_steps": 16,
+    "errors_encountered": 0,
+    "output_chars": 6245,
+    "transcript_chars": 105473
+  },
+  "timing": {
+    "executor_duration_seconds": 83.3,
+    "executor_total_tokens": 55742,
+    "executor_duration_ms": 83275
+  },
+  "claims": [
+    {
+      "claim": "DecodingOutput is a merge master with PK `merge_id` only, so `& {\"nwb_file_name\": ...}` silently matches the entire master.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches the documented merge-table behavior in Spyglass — restrictions on master-table attributes that don't exist on the master are silently dropped by DataJoint, and merge masters carry only `merge_id`. The recommendation to use `merge_restrict({...})` instead is correct."
+    },
+    {
+      "claim": "`(DecodingOutput & key).merge_delete()` would silently drop the restriction (classmethod-discard).",
+      "type": "factual",
+      "verified": true,
+      "evidence": "This matches the skill's classmethod-restriction-discard rule documented in the spyglass skill: when classmethod helpers like `merge_delete` are called on a restricted query expression, the restriction is discarded because Python binds the classmethod to the class, not the bound expression. Correct API form is `DecodingOutput.merge_delete(key)`."
+    },
+    {
+      "claim": "merge_delete cascades through part tables and triggers cautious_delete (team permission check).",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Part tables of merge masters inherit SpyglassMixin's cautious_delete behavior and raise PermissionError when the row was ingested by another lab member. Response correctly recommends coordinating rather than bypassing with super_delete / force_permission=True."
+    },
+    {
+      "claim": "DecodingOutput().cleanup() does not take a per-session scope — it sweeps every orphan globally.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Consistent with the analysis-file cleanup pattern in Spyglass: cleanup operates over orphaned external-store entries for the table, not restricted by upstream keys. The dry_run=True / dry_run=False staging pattern in Phase 4 is the right safe form."
+    },
+    {
+      "claim": "merge_delete will not automatically remove the .nc / .pkl files on disk; cleanup() must be run separately.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches Spyglass's external-store semantics: deleting the DB row marks the analysis file as orphaned but the bytes on disk persist until `cleanup()` sweeps the external store."
+    },
+    {
+      "claim": "The response uses the inspect-before-destroy pattern from the destructive_operations reference.",
+      "type": "process",
+      "verified": true,
+      "evidence": "Phase 1 (inspect with row count + preview), Phase 2 (cascade audit), Phase 3 (confirm-then-delete), Phase 4 (cleanup with dry_run staging), Phase 5 (verify) is exactly the structured workflow the skill's destructive_operations reference prescribes — even though the file is not cited by name."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `destructive_operations.md`.",
+        "reason": "This substring check failed even though the response correctly implemented the entire inspect-before-destroy phased workflow that destructive_operations.md prescribes. The assertion is testing for a literal filename mention rather than for the behavior the reference encodes — a model that names the file but doesn't implement the pattern would pass, while this response (which does the right thing in substance) fails. Consider replacing or supplementing with a behavioral assertion like 'Response provides an explicit inspect/preview step (e.g., row count + fetch preview) before any delete call' that is harder to satisfy by surface compliance."
+      },
+      {
+        "assertion": "Recommends merge_delete with an explicit key (classmethod form) if the merge layer is chosen, and routes to destructive_operations.md for the inspect-before-destroy pattern",
+        "reason": "Compound 'A and B' assertion couples a strong behavioral check (classmethod form with explicit key) with a weak surface check (literal filename mention). The response satisfies the behavioral half decisively — including a callout that `(DecodingOutput & key).merge_delete()` would silently drop the restriction — but fails the compound because it never names the reference file. Splitting these into two independent assertions would let the strong half be scored on its own."
+      },
+      {
+        "reason": "No assertion checks for the merge-restriction footgun (`& {...}` on a merge master silently matches the whole master because the master heading has no upstream attributes). The response handles this excellently — flags it explicitly and recommends `merge_restrict({...})` — but a response that just used `& key` without the warning would still pass every assertion. This is a high-value behavior that the eval rubric currently misses."
+      }
+    ],
+    "overall": "The substantive expectations (under-specification, layer enumeration, classmethod form, no-unscoped-delete) all passed and reflect a strong response. The two failures are both tied to a literal `destructive_operations.md` substring check that doesn't track whether the inspect-before-destroy *behavior* was actually performed. Worth decoupling surface citation from behavioral substance in this eval."
+  }
+}

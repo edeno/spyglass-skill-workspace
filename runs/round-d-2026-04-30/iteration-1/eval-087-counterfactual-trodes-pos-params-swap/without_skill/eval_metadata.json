@@ -1,0 +1,8 @@
+{
+  "id": 87,
+  "eval_name": "counterfactual-trodes-pos-params-swap",
+  "stage": "pipeline-usage",
+  "tier": "counterfactual",
+  "difficulty": "hard",
+  "condition": "without_skill"
+}

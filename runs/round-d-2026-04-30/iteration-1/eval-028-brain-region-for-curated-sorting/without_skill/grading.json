@@ -1,0 +1,138 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `SortGroup`.",
+      "passed": true,
+      "evidence": "Found multiple times, e.g. line 57: '* SortGroup.SortGroupElectrode' and line 79: 'SortGroup,' and line 124."
+    },
+    {
+      "text": "Response contains the substring `Electrode`.",
+      "passed": true,
+      "evidence": "Found multiple times, e.g. line 58: '* Electrode' and line 70: '`Electrode`'s definition' and line 77: 'from spyglass.common import Electrode, BrainRegion'."
+    },
+    {
+      "text": "Response contains the substring `BrainRegion`.",
+      "passed": true,
+      "evidence": "Found multiple times, e.g. line 6: '`Electrode` -> `BrainRegion`' and line 35: 'columns come from `BrainRegion`'."
+    },
+    {
+      "text": "Response contains the substring `region_name`.",
+      "passed": true,
+      "evidence": "Found multiple times, e.g. line 28, 37, 100, 154, 186."
+    },
+    {
+      "text": "Response contains the substring `SortGroupElectrode`.",
+      "passed": true,
+      "evidence": "Found at lines 6, 57, 94, 136 (e.g. line 57: '* SortGroup.SortGroupElectrode')."
+    },
+    {
+      "text": "Response contains the substring `limit=1`.",
+      "passed": true,
+      "evidence": "Line 66: 'It picks one electrode per sort group (`fetch(limit=1)`)'."
+    },
+    {
+      "text": "Response contains the substring `CurationV1`.",
+      "passed": true,
+      "evidence": "Found multiple times, e.g. line 1: '# Brain region(s) for a `CurationV1` sorting' and many subsequent occurrences."
+    },
+    {
+      "text": "Response does NOT contain the substring `unit_id=5 has region`.",
+      "passed": true,
+      "evidence": "grep confirmed no matches for 'unit_id=5' anywhere in the response."
+    },
+    {
+      "text": "Leads with the explicit FK walk `SortGroup.SortGroupElectrode * Electrode * BrainRegion` (with `.proj('recording_id')` on `SpikeSortingSelection` to avoid the dependent-attribute refusal, OR an equivalent two-restriction split) as the source-of-truth answer",
+      "passed": false,
+      "evidence": "The response leads with the convenience helper, not the explicit FK walk. Lines 3-4: 'There is a built-in helper on `CurationV1` that does exactly this: `CurationV1.get_sort_group_info(key)`.' The Quickest answer block (lines 11-33) calls `get_sort_group_info`, and the manual FK walk only appears in a secondary section starting line 70 ('Electrode\\'s definition... so the FK chain is real and you can also do this manually if you want all electrodes rather than one-per-group'). The TL;DR (lines 181-188) also uses the helper. Additionally, the manual query uses `.proj(\"recording_id\", \"sort_group_id\")` rather than the `.proj('recording_id')` shape that avoids the dependent-attribute refusal, and the response does not explain why projection is needed."
+    },
+    {
+      "text": "Notes that `unit_id` does NOT affect the region — all units in a sort group share the same electrodes",
+      "passed": false,
+      "evidence": "The response never makes this explicit point. It mentions filtering units by sort group (line 110) and that 'every electrode in a sort group is, by construction, in the same brain region' (lines 66-68), but never states that `unit_id` is irrelevant to the region or that all units in a sort group share electrodes. The reader has to infer the conclusion."
+    },
+    {
+      "text": "Mentions `CurationV1.get_sort_group_info` only as a convenience shortcut, AND calls out its `limit=1` sampling: it returns one region per sort group, accurate for tetrodes but incomplete for polymer-probe sort groups whose electrodes span multiple regions",
+      "passed": false,
+      "evidence": "The response presents `get_sort_group_info` as the primary recommended call (lines 3-4, 'Quickest answer' header, TL;DR), not as a 'convenience shortcut'. It explicitly defends `limit=1` as benign: 'It picks one electrode per sort group (`fetch(limit=1)`) which is the right behavior here because every electrode in a sort group is, by construction, in the same brain region' (lines 65-68). The 'gotchas' bullet (lines 174-177) does mention 'If you ever build a sort group spanning regions (unusual), use the per-electrode query above instead' but treats this as exotic and doesn't characterize the helper as 'incomplete' for polymer probes — and does not frame the helper as a shortcut secondary to the FK walk."
+    },
+    {
+      "text": "For polymer probes spanning regions within a sort group, recommends the explicit FK walk over the helper",
+      "passed": true,
+      "evidence": "Lines 174-177: 'The \"one electrode per sort group\" inside `get_sort_group_info` is fine because Spyglass enforces same-region-per-sort-group at the electrode-grouping stage. If you ever build a sort group spanning regions (unusual), use the per-electrode query above instead.' Also lines 155-157 advise: 'if it prints multiple regions you\\'d need to drop down to the per-electrode query above and inspect which sort groups fall where.' The recommendation is present even if the framing is mild."
+    },
+    {
+      "text": "Does not invent a direct `region` attribute on `CurationV1` or on the unit itself",
+      "passed": true,
+      "evidence": "Reviewed the entire response: no fabricated `.region` attribute on CurationV1 or on units. The response correctly routes through Electrode and BrainRegion via FK joins."
+    }
+  ],
+  "summary": {
+    "passed": 10,
+    "failed": 3,
+    "total": 13,
+    "pass_rate": 0.77
+  },
+  "execution_metrics": {
+    "tool_calls": {},
+    "total_tool_calls": null,
+    "total_steps": null,
+    "errors_encountered": 0,
+    "output_chars": 6800,
+    "transcript_chars": null
+  },
+  "timing": {
+    "executor_duration_seconds": 75.1,
+    "executor_duration_ms": 75107,
+    "total_tokens": 37714
+  },
+  "claims": [
+    {
+      "claim": "`CurationV1.get_sort_group_info` lives at curation.py lines 268-302",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Expectations.json references curation.py:268 for get_sort_group_info; the response's claim of lines 268-302 is consistent and the helper is documented in expectations as wrapping a similar join."
+    },
+    {
+      "claim": "`Electrode` in common_ephys.py line 73 includes `-> BrainRegion` FK",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Consistent with the schema described in the expectations (Electrode joins to BrainRegion via FK). The line number is plausibly from local source; not verified directly but the FK relationship is documented in the rubric."
+    },
+    {
+      "claim": "`get_sort_group_info` uses `fetch(limit=1)` to pick one electrode per sort group",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Expectations.json explicitly says: 'samples one electrode per sort group (`.fetch(limit=1)` at curation.py:289-294)'. The response correctly identifies this behavior."
+    },
+    {
+      "claim": "The `fetch(limit=1)` behavior is 'the right behavior here because every electrode in a sort group is, by construction, in the same brain region'",
+      "type": "quality",
+      "verified": false,
+      "evidence": "This claim is too strong. Per expectations.json: 'For polymer-probe sort groups whose electrodes span multiple regions, the helper reports only the sampled electrode\\'s region and misses the others.' The response treats limit=1 as benign and only later notes the polymer-probe case as 'unusual', whereas the rubric expects this to be flagged as a real caveat for polymer probes."
+    },
+    {
+      "claim": "`region_id` is autoincrement and not stable across databases",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Plausible BrainRegion lookup-table behavior; consistent with DataJoint conventions for lookup tables keyed by autoincrement ids."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Response contains the substring `limit=1`.",
+        "reason": "Trivially satisfied — a response that mentions `fetch(limit=1)` while explicitly *defending* it as benign (as this response does) still passes. Consider strengthening to: 'Mentions `limit=1` AND frames it as a caveat (e.g., \\'misses other regions\\', \\'sampled electrode only\\', \\'incomplete for polymer probes\\')' so a response that misframes the sampling as harmless gets caught."
+      },
+      {
+        "assertion": "Notes that `unit_id` does NOT affect the region — all units in a sort group share the same electrodes",
+        "reason": "The original user query did NOT mention `unit_id` at all — it only references `sorting_id` and `nwb_file_name`. So a non-skill-aware responder has no obvious reason to call out unit_id specifically. This makes the assertion test rubric familiarity rather than answer quality. Consider rephrasing to test whether the response explains *why* the region question reduces to electrodes/sort groups (rather than per-unit), without requiring the literal `unit_id` framing."
+      }
+    ],
+    "overall": "Substring assertions cover content well but a couple slip past responses that misframe key caveats. The unit_id assertion is borderline rubric-leaky given the user prompt does not mention units."
+  }
+}

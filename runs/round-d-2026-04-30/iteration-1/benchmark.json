@@ -1,0 +1,259 @@
+{
+  "skill_name": "spyglass",
+  "iteration": 1,
+  "batch": 1,
+  "configurations": {
+    "with_skill": {
+      "n_runs": 16,
+      "evals_full_pass": 7,
+      "expectation_pass_rate": 0.8780487804878049,
+      "expectations_passed": 144,
+      "expectations_total": 164,
+      "tokens_mean": 56528.5,
+      "tokens_stdev": 13095.670409210315,
+      "duration_mean_s": 108.905,
+      "duration_stdev_s": 42.4444204836847,
+      "tokens_total": 904456,
+      "eval_results": [
+        {
+          "eval_id": 28,
+          "eval_name": "brain-region-for-curated-sorting",
+          "all_passed": false,
+          "passed_count": 9,
+          "total": 13
+        },
+        {
+          "eval_id": 29,
+          "eval_name": "brain-region-for-lfp-electrode",
+          "all_passed": true,
+          "passed_count": 6,
+          "total": 6
+        },
+        {
+          "eval_id": 41,
+          "eval_name": "config-key-error-after-pull",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 8
+        },
+        {
+          "eval_id": 72,
+          "eval_name": "dep-trace-lfpbandv1",
+          "all_passed": true,
+          "passed_count": 14,
+          "total": 14
+        },
+        {
+          "eval_id": 85,
+          "eval_name": "recover-parameter-edit-in-place",
+          "all_passed": false,
+          "passed_count": 6,
+          "total": 8
+        },
+        {
+          "eval_id": 87,
+          "eval_name": "counterfactual-trodes-pos-params-swap",
+          "all_passed": false,
+          "passed_count": 12,
+          "total": 14
+        },
+        {
+          "eval_id": 88,
+          "eval_name": "ambiguity-delete-decoding-results",
+          "all_passed": false,
+          "passed_count": 6,
+          "total": 8
+        },
+        {
+          "eval_id": 89,
+          "eval_name": "restrict-by-interval-name-no-star",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 10
+        },
+        {
+          "eval_id": 99,
+          "eval_name": "hidden-prereq-decoding-populate",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 100,
+          "eval_name": "workflow-position-post-sort-clusterless-decode",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 105,
+          "eval_name": "camera-devices-lookup",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 9
+        },
+        {
+          "eval_id": 106,
+          "eval_name": "compound-pfc-wtrack",
+          "all_passed": true,
+          "passed_count": 15,
+          "total": 15
+        },
+        {
+          "eval_id": 107,
+          "eval_name": "compound-sorted-spikes-across-sort-groups",
+          "all_passed": true,
+          "passed_count": 12,
+          "total": 12
+        },
+        {
+          "eval_id": 108,
+          "eval_name": "sorted-spikes-group-hippocampal",
+          "all_passed": false,
+          "passed_count": 9,
+          "total": 12
+        },
+        {
+          "eval_id": 113,
+          "eval_name": "adversarial-update1-downstream-populated",
+          "all_passed": true,
+          "passed_count": 12,
+          "total": 12
+        },
+        {
+          "eval_id": 118,
+          "eval_name": "counterfactual-decoding-bin-size",
+          "all_passed": false,
+          "passed_count": 6,
+          "total": 7
+        }
+      ]
+    },
+    "without_skill": {
+      "n_runs": 16,
+      "evals_full_pass": 5,
+      "expectation_pass_rate": 0.7682926829268293,
+      "expectations_passed": 126,
+      "expectations_total": 164,
+      "tokens_mean": 38372.0625,
+      "tokens_stdev": 8089.399206935374,
+      "duration_mean_s": 86.154,
+      "duration_stdev_s": 26.557187241874843,
+      "tokens_total": 613953,
+      "eval_results": [
+        {
+          "eval_id": 28,
+          "eval_name": "brain-region-for-curated-sorting",
+          "all_passed": false,
+          "passed_count": 10,
+          "total": 13
+        },
+        {
+          "eval_id": 29,
+          "eval_name": "brain-region-for-lfp-electrode",
+          "all_passed": true,
+          "passed_count": 6,
+          "total": 6
+        },
+        {
+          "eval_id": 41,
+          "eval_name": "config-key-error-after-pull",
+          "all_passed": false,
+          "passed_count": 2,
+          "total": 8
+        },
+        {
+          "eval_id": 72,
+          "eval_name": "dep-trace-lfpbandv1",
+          "all_passed": true,
+          "passed_count": 14,
+          "total": 14
+        },
+        {
+          "eval_id": 85,
+          "eval_name": "recover-parameter-edit-in-place",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 8
+        },
+        {
+          "eval_id": 87,
+          "eval_name": "counterfactual-trodes-pos-params-swap",
+          "all_passed": false,
+          "passed_count": 11,
+          "total": 14
+        },
+        {
+          "eval_id": 88,
+          "eval_name": "ambiguity-delete-decoding-results",
+          "all_passed": false,
+          "passed_count": 4,
+          "total": 8
+        },
+        {
+          "eval_id": 89,
+          "eval_name": "restrict-by-interval-name-no-star",
+          "all_passed": false,
+          "passed_count": 9,
+          "total": 10
+        },
+        {
+          "eval_id": 99,
+          "eval_name": "hidden-prereq-decoding-populate",
+          "all_passed": true,
+          "passed_count": 9,
+          "total": 9
+        },
+        {
+          "eval_id": 100,
+          "eval_name": "workflow-position-post-sort-clusterless-decode",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        },
+        {
+          "eval_id": 105,
+          "eval_name": "camera-devices-lookup",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 9
+        },
+        {
+          "eval_id": 106,
+          "eval_name": "compound-pfc-wtrack",
+          "all_passed": false,
+          "passed_count": 14,
+          "total": 15
+        },
+        {
+          "eval_id": 107,
+          "eval_name": "compound-sorted-spikes-across-sort-groups",
+          "all_passed": false,
+          "passed_count": 5,
+          "total": 12
+        },
+        {
+          "eval_id": 108,
+          "eval_name": "sorted-spikes-group-hippocampal",
+          "all_passed": false,
+          "passed_count": 7,
+          "total": 12
+        },
+        {
+          "eval_id": 113,
+          "eval_name": "adversarial-update1-downstream-populated",
+          "all_passed": false,
+          "passed_count": 8,
+          "total": 12
+        },
+        {
+          "eval_id": 118,
+          "eval_name": "counterfactual-decoding-bin-size",
+          "all_passed": true,
+          "passed_count": 7,
+          "total": 7
+        }
+      ]
+    }
+  }
+}

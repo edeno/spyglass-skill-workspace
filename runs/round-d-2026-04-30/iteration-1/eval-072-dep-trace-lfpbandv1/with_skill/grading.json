@@ -1,0 +1,156 @@
+{
+  "expectations": [
+    {
+      "text": "Response contains the substring `Nwbfile`.",
+      "passed": true,
+      "evidence": "Appears 10 times throughout response, e.g. line 113 'Nwbfile  # PK FK', line 121 'Nwbfile is a top-level Manual table (common/common_nwbfile.py:45-52)', and in the closure table line 168."
+    },
+    {
+      "text": "Response contains the substring `IntervalList`.",
+      "passed": true,
+      "evidence": "Appears 12 times, e.g. '-> IntervalList # secondary FK' on LFPBandV1 (line 22), LFPSelection (line 69), and discussion of two IntervalList rows required at line 126."
+    },
+    {
+      "text": "Response contains the substring `LFPElectrodeGroup`.",
+      "passed": true,
+      "evidence": "Appears in section 4 ('## 4. LFPElectrodeGroup and below', line 73-85) defining the table, in LFPSelection FK list line 68, and in the closure table."
+    },
+    {
+      "text": "Response contains the substring `LFPSelection`.",
+      "passed": true,
+      "evidence": "Section 'LFPSelection (lfp/v1/lfp.py:21-41)' line 64, listed as direct FK parent of LFPV1 line 59, and in the upstream closure table."
+    },
+    {
+      "text": "Response contains the substring `LFPV1`.",
+      "passed": true,
+      "evidence": "Discussed throughout, e.g. line 54 'The standard path (LFPV1) is by far the common case', section 'LFPV1 -> LFPSelection' lines 56-62."
+    },
+    {
+      "text": "Response contains the substring `LFPOutput`.",
+      "passed": true,
+      "evidence": "Appears 11 times, with section 3 dedicated to LFPOutput as the merge master ('## 3. LFPOutput and its source tables', line 46), explicitly named as FK parent of LFPBandSelection line 35."
+    },
+    {
+      "text": "Response contains the substring `FirFilterParameters`.",
+      "passed": true,
+      "evidence": "Appears 7 times: as PK FK of LFPBandSelection (line 36), of LFPSelection (line 70), and discussed in section 7 line 128 noting 'You need a row keyed by (filter_name, filter_sampling_rate) matching the upstream LFPs sampling rate' for both LFPV1 and LFPBandV1."
+    },
+    {
+      "text": "Response contains the substring `LFPBandSelection`.",
+      "passed": true,
+      "evidence": "Section 2 dedicated to LFPBandSelection ('## 2. LFPBandSelection parents', line 28-44), declared as direct PK FK of LFPBandV1 line 20."
+    },
+    {
+      "text": "Response contains the substring `LFPBandV1`.",
+      "passed": true,
+      "evidence": "Subject of the response — title 'Upstream tables required for LFPBandV1.populate(key)' (line 1), section 1 'Direct FK parents of LFPBandV1' (line 14)."
+    },
+    {
+      "text": "Response contains the substring `Raw`.",
+      "passed": true,
+      "evidence": "Appears 10 times, dedicated section 8 'Runtime-only requirement: Raw' (line 130) explaining LFPV1.make() reads Raw via (Raw & nwbf_key).fetch_nwb()."
+    },
+    {
+      "text": "Response contains the substring `Session`.",
+      "passed": true,
+      "evidence": "Section 6 'Session and what it pulls in' (line 109), 'Session -> Nwbfile # PK FK' (line 114), and Session listed as parent of ElectrodeGroup, IntervalList, Raw, LFPElectrodeGroup in the closure table line 167."
+    },
+    {
+      "text": "Names every upstream table including the parameter (FirFilterParameters) and selection tables (LFPSelection, LFPBandSelection)",
+      "passed": true,
+      "evidence": "All three named explicitly with FK definitions: FirFilterParameters as parent of both LFPSelection (line 70) and LFPBandSelection (line 36); LFPSelection as parent of LFPV1 (line 59, 64-71); LFPBandSelection as parent of LFPBandV1 (line 20, 28-44). Closure table (lines 153-172) lists all three as required."
+    },
+    {
+      "text": "Names the Raw table as the data source fetched inside LFPV1's `make()` body (Raw is not an FK of LFPSelection; it is pulled via `(Raw & key).fetch_nwb()` at make() time and must be present to regenerate LFPV1 from scratch)",
+      "passed": true,
+      "evidence": "Section 8 (lines 130-145) states explicitly: 'This one does not show up in any FK graph rooted at LFPBandV1, but it is required for LFPBandV1.populate(key) to succeed via the LFPV1 path: LFPV1.make() reads Raw at runtime' and quotes 'rawdata = (Raw & nwbf_key).fetch_nwb()[0][\"raw\"]' from lfp/v1/lfp.py:68, 72-74. Also calls out 'Raw is a runtime-fetch handle, not a stored pipeline output' (line 145)."
+    },
+    {
+      "text": "Does not skip the LFPOutput merge wrapper between LFPV1 and LFPBandSelection",
+      "passed": true,
+      "evidence": "LFPOutput is named explicitly as the merge master that LFPBandSelection FKs into: 'LFPBandSelection -> LFPOutput.proj(lfp_merge_id=merge_id) # PK FK to LFPOutput merge master' (line 34), with section 3 dedicated to it ('LFPOutput is the LFP merge master (lfp/lfp_merge.py:16-44). For a LFPBandV1 row to populate, the merge entry in LFPOutput has to point to one of its three part-table sources... LFPOutput.LFPV1 -> LFPV1', lines 46-53)."
+    }
+  ],
+  "summary": {
+    "passed": 14,
+    "failed": 0,
+    "total": 14,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 17,
+      "Bash": 7,
+      "Write": 1
+    },
+    "total_tool_calls": 25,
+    "transcript_lines": 62,
+    "output_chars": 9357
+  },
+  "timing": {
+    "executor_total_tokens": 79004,
+    "executor_duration_ms": 167917,
+    "executor_duration_seconds": 167.9
+  },
+  "claims": [
+    {
+      "claim": "LFPBandV1's direct FK parents are LFPBandSelection, AnalysisNwbfile, IntervalList per lfp/analysis/v1/lfp_band.py:290-297",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Matches the LFPBandV1 definition in src/spyglass/lfp/analysis/v1/lfp_band.py — LFPBandSelection is the PK FK and AnalysisNwbfile + IntervalList are secondary FKs. Line range cited (290-297) is in the right area for the table definition."
+    },
+    {
+      "claim": "LFPBandSelection FKs LFPOutput.proj(lfp_merge_id='merge_id'), FirFilterParameters, IntervalList.proj(target_interval_list_name=...) per lfp_band.py:22-39",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Consistent with the LFPBandSelection definition; the merge_id projection and target_interval_list_name renaming are correct DataJoint patterns for this table, and the part-table LFPBandElectrode FKing LFPElectrodeGroup.LFPElectrode is correctly cited."
+    },
+    {
+      "claim": "LFPV1.make() fetches Raw via (Raw & nwbf_key).fetch_nwb() — runtime dependency not in FK graph",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Direct quote from lfp/v1/lfp.py:68, 72-74. Captures the central insight: Raw is a runtime-fetched dependency, not declared as an FK on any LFP-pipeline table."
+    },
+    {
+      "claim": "FirFilterParameters needs a row at the upstream LFP sampling rate for LFPV1 and a separate row at lfp_sampling_rate for LFPBandV1",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Section 7 (line 128) explains 'set_lfp_band_electrodes derives filter_sampling_rate from the LFPs lfp_sampling_rate, lfp_band.py:120-122, 220'. This correctly distinguishes the two FirFilterParameters keys required at the two pipeline stages, matching the expected_output's note about FirFilterParameters appearing twice."
+    },
+    {
+      "claim": "BrainRegion is a required FK on ElectrodeGroup and Electrode",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Section 5 line 96, 104 lists '-> BrainRegion' as non-nullable on both. The closure table line 172 lists BrainRegion as required."
+    },
+    {
+      "claim": "LFPOutput has three part-table sources: LFPV1, ImportedLFP, CommonLFP",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Lines 50-52 enumerate them; CommonLFP is correctly noted as legacy and rejected by set_lfp_band_electrodes per lfp_band.py:98."
+    },
+    {
+      "claim": "AnalysisNwbfile is auto-created in LFPBandV1.make() (not pre-inserted)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line 127: 'AnalysisNwbfile().create(...) (lfp_band.py:500, 584); you dont pre-insert it'. Correct semantics — AnalysisNwbfile is a side-effect of make(), not a precondition row."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The substring assertions for `Raw`, `Session`, and `IntervalList` are quite weak — those tokens appear naturally as common DataJoint terms and substrings of longer table names. The semantic assertions (#13, #14) and the consolidated #12 do most of the actual discrimination work; consider whether the 11 substring checks add signal beyond a single 'all of these names appear at least once each' assertion."
+      },
+      {
+        "assertion": "Names the Raw table as the data source fetched inside LFPV1's `make()` body",
+        "reason": "Strong and well-targeted — this is the discriminating assertion that catches a model which only walks the FK graph. Worth keeping; just noting it carries most of the eval's value."
+      }
+    ],
+    "overall": "Eval is well-designed for this question. The two semantic assertions (Raw runtime fetch, LFPOutput not skipped) are exactly the right discriminators for distinguishing skill-aware responses from naive FK walks. Substring assertions are redundant but harmless."
+  }
+}
