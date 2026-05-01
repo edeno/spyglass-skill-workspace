@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import io
 import json
-import shutil
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -36,6 +35,7 @@ from _schemas import (
     PerEvalResult,
     TranscriptRecord,
 )
+from _staging import commit_staged_outputs
 from _transcripts import TRACKED_SCRIPT_ROLES, TRACKED_SCRIPTS
 
 _UNCONFIGURED = Path("/__not_configured__")
@@ -96,62 +96,21 @@ def unlink_outputs(*names: str) -> None:
 def commit_summary_outputs() -> None:
     """Publish staged data, figures, and index after successful generation.
 
-    Existing outputs are moved aside first and restored if any staged rename
-    fails. This keeps failed runs from freezing partial CSV/JSON/figure output.
+    Thin wrapper over commit_staged_outputs that knows the single-run layout
+    and updates the module-level DATA / FIGURES globals after success so any
+    later in-process readers see the published paths.
     """
     global DATA, FIGURES
     final_data = OUT / "data"
     final_figures = OUT / "figures"
-    index_tmp = OUT / ".INDEX.tmp"
-    final_index = OUT / "INDEX.md"
     resources = [
         (DATA, final_data),
         (FIGURES, final_figures),
-        (index_tmp, final_index),
+        (OUT / ".INDEX.tmp", OUT / "INDEX.md"),
     ]
-    missing = [str(staged) for staged, _ in resources if not staged.exists()]
-    if missing:
-        raise FileNotFoundError(f"missing staged outputs: {', '.join(missing)}")
-
-    backups: list[tuple[Path, Path]] = []
-    moved: list[tuple[Path, Path]] = []
-    try:
-        for _, final in resources:
-            backup = _backup_path(final)
-            _remove_path(backup)
-            if final.exists():
-                final.rename(backup)
-                backups.append((backup, final))
-        for staged, final in resources:
-            staged.rename(final)
-            moved.append((final, staged))
-    except Exception:
-        for final, staged in reversed(moved):
-            if final.exists():
-                final.rename(staged)
-        for backup, final in reversed(backups):
-            if backup.exists():
-                backup.rename(final)
-        raise
-    else:
-        for backup, _ in backups:
-            _remove_path(backup)
-        DATA = final_data
-        FIGURES = final_figures
-
-
-def _backup_path(path: Path) -> Path:
-    return path.with_name(f".{path.name}.previous")
-
-
-def _remove_path(path: Path) -> None:
-    if path.is_dir():
-        shutil.rmtree(path)
-    else:
-        try:
-            path.unlink()
-        except FileNotFoundError:
-            pass
+    commit_staged_outputs(resources)
+    DATA = final_data
+    FIGURES = final_figures
 
 
 def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, object]]) -> None:

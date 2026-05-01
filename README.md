@@ -158,6 +158,44 @@ uv run python3 tools/tests/smoke.py
 
 `make_plots.py` is idempotent for the CSV/JSON data outputs. PNG bytes can differ across matplotlib versions, so compare figures visually when the plotting environment changes.
 
+## Comparing two runs
+
+`tools/compare_runs.py` produces an overlap-only diff between two runs and writes it under `runs/<new>/comparisons/<old>/`. The comparison is directional (`new` drifted from `old`), aggregates are computed only on evals present in both runs, and rubric drift / partial dispatches / missing transcripts flow through as explicit flags rather than silent imputations.
+
+```bash
+# Compare round-D against round-C (round-D is a 16-eval targeted rerun;
+# the comparison auto-restricts to those 16 evals).
+uv run python3 tools/compare_runs.py \
+    --new runs/round-d-2026-04-30/ \
+    --old runs/round-c-2026-04-28/
+
+# Override the output dir (default is <new>/comparisons/<old-basename>/)
+uv run python3 tools/compare_runs.py \
+    --new runs/round-d-2026-04-30/ \
+    --old runs/round-c-2026-04-28/ \
+    --out /tmp/round-d-vs-c
+```
+
+Outputs are staged through `.data_tmp/` / `.figures_tmp/` / `.INDEX.tmp` and committed atomically alongside an `INDEX.md` and a `comparison_manifest.json`. A failed run leaves committed outputs untouched and removes the staging dirs.
+
+**Read order for a comparison:**
+
+1. **[`INDEX.md`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/INDEX.md)** — generated guide. The header reports `n_overlap`, both skill commits, and a sample-size caveat (`underpowered` when `n_overlap < 25`). Outputs are grouped by primary / secondary / appendix priority.
+2. **[`overlap.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/overlap.json)** — confirm exactly which eval_ids are in the overlap and which are old-only / new-only. Guards against accidentally comparing full-old to subset-new.
+3. **[`transitions.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/transitions.csv)** — one row per overlap eval. The `regression_interpretation` column separates `rubric_friction` (annotator-labeled) from `rubric_drift` (counts changed but no annotation) from `content_regression` (rubric stable). The `ws_rubric_changed` / `bs_rubric_changed` columns are per-condition; a baseline-only rubric change does not make a with-skill regression look rubric-sensitive.
+4. **[`headline_diff.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/headline_diff.json)** — overlap-only ws/bs full-pass shift, expectation deltas with per-condition `rubric_sensitive` flags, and a McNemar p-value tagged `diagnostic_only: true` with `underpowered: true` when `n_discordant < 25`. The transition table is the headline; the p-value is suggestive only.
+5. **[`outcome_2x2_shift.json`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/outcome_2x2_shift.json) / [`c03`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c03_outcome_flow.png)** — 4-cell counts at old vs new plus a 4x4 flow matrix showing where evals moved between buckets.
+6. **Targeted reruns** (round-D-style): set `run.json["subset"]["edit_to_evals"]` to declare which evals each edit was meant to verify. The comparison emits [`targeted_edits_long.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/targeted_edits_long.csv) (many-to-many — one eval can appear under multiple edits) and [`targeted_edits_summary.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/targeted_edits_summary.csv) with per-edit transition + rubric counts. [`c04`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c04_targeted_edits.png) renders the summary.
+7. **Cost and routing** are secondary: [`cost_shift.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/cost_shift.csv) carries per-condition `*_pair_complete` flags so figures don't silently mix complete and partial timing; [`routing_shift.csv`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/data/routing_shift.csv) is gated on transcripts being present in both runs. [`c06`](runs/round-d-2026-04-30/comparisons/round-c-2026-04-28/figures/c06_routing_shift.png) shows ws ref-recall and script-recall deltas using `required_opened / max(required_total, 1)` per the routing definitions in [`_compare_writers.py`](tools/_compare_writers.py).
+
+**Key design choices** (verified against the round-D vs round-C overlap):
+
+- **Aggregates use the overlap subset only.** Cumulative single-run JSON files are intentionally not consulted, so a 130-eval old run vs 16-eval new run reports `ws_full_pass` denominators of 16, not 130.
+- **Rubric drift is detected per-eval and split per-condition.** ws expectation deltas are flagged `rubric_sensitive` independently from bs deltas, so a baseline-only rubric change does not contaminate the ws interpretation.
+- **Missing dispatches flow through with explicit flags.** `_flatten_per_eval` uses the union of ws and bs eval ids per run; a partial dispatch produces `outcome="missing"` and `transition=None` rather than imputed-fail. headline_diff's `n_with_data` denominators report the actual cell count.
+- **Token coverage labels available-timing-only deltas.** When any overlap eval has missing `timing.json` on either side, headline_diff's `tokens.<cond>.delta_total` is `null` and the note reads `available-timing-only`. The c05 figure tracks per-bucket excluded counts and labels fully-excluded buckets in a footer rather than rendering them as "no evals".
+- **Routing definitions are precise.** `required_*_recall = required_opened / max(required_total, 1)`; `unexpected_*_count` is opens to refs / scripts not in `required ∪ optional`. Scripts count only when executed via Bash, not source-read.
+
 ### Per-run configuration
 
 `runs/<run-id>/run.json` carries an optional `batches` block consumed by `make_plots.py` for figure labels. The script auto-discovers batch IDs from `iteration-N/` directories; the `batches` block lets each run customize its labels:

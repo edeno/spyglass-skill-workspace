@@ -1,0 +1,17 @@
+eval_id,eval_name,stage,tier,difficulty,ws_transition,bs_transition,ws_pair_complete,tokens_ws_old,tokens_ws_new,token_delta_ws,bs_pair_complete,tokens_bs_old,tokens_bs_new,token_delta_bs
+28,brain-region-for-curated-sorting,pipeline-usage,joins,medium,regressed,regressed,false,,49933,,true,26297,37714,11417
+29,brain-region-for-lfp-electrode,pipeline-usage,joins,medium,stable_pass,stable_pass,true,41984,41921,-63,true,28836,31006,2170
+41,config-key-error-after-pull,setup,config-troubleshooting,medium,stable_fail,stable_fail,true,58005,83731,25726,true,26819,38726,11907
+72,dep-trace-lfpbandv1,pipeline-usage,dependency-tracing,hard,improved,improved,true,47290,79004,31714,true,25430,59823,34393
+85,recover-parameter-edit-in-place,pipeline-usage,workflow-recovery,hard,stable_fail,stable_fail,true,46916,52511,5595,true,24755,33657,8902
+87,counterfactual-trodes-pos-params-swap,pipeline-usage,counterfactual,hard,stable_fail,stable_fail,true,40521,58966,18445,true,25761,45280,19519
+88,ambiguity-delete-decoding-results,destructive-operations,disambiguation,medium,stable_fail,stable_fail,true,50739,55742,5003,true,55,33860,33805
+89,restrict-by-interval-name-no-star,pipeline-usage,joins,medium,stable_fail,stable_fail,true,42204,47803,5599,true,24103,31751,7648
+99,hidden-prereq-decoding-populate,pipeline-usage,dependency-tracing,hard,improved,improved,true,57486,66803,9317,true,26670,44663,17993
+100,workflow-position-post-sort-clusterless-decode,pipeline-usage,workflow-position,medium,improved,improved,true,41206,68450,27244,true,26681,41297,14616
+105,camera-devices-lookup,pipeline-usage,atomic-read,easy,stable_fail,stable_fail,true,48268,41449,-6819,true,25145,29931,4786
+106,compound-pfc-wtrack,pipeline-usage,compound,hard,improved,regressed,true,42518,49186,6668,true,26004,38751,12747
+107,compound-sorted-spikes-across-sort-groups,pipeline-authoring,compound,hard,stable_pass,stable_fail,true,61375,55272,-6103,true,27634,43903,16269
+108,sorted-spikes-group-hippocampal,pipeline-usage,disambiguation,medium,stable_fail,stable_fail,true,40735,40514,-221,true,26551,33147,6596
+113,adversarial-update1-downstream-populated,destructive-operations,adversarial,medium,improved,stable_fail,true,45906,46979,1073,true,25391,27000,1609
+118,counterfactual-decoding-bin-size,parameter-understanding,counterfactual,hard,stable_fail,stable_pass,true,72739,66192,-6547,true,25342,43444,18102

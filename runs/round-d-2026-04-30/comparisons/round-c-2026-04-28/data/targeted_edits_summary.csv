@@ -1,0 +1,9 @@
+edit_id,n_evals_declared,n_evals_in_overlap,n_improved,n_regressed,n_stable_pass,n_stable_fail,n_ws_rubric_changed,n_bs_rubric_changed,n_failure_type_rubric_friction,n_regressed_rubric_friction,n_content_regression
+2.1_verify_before_claim,2,2,0,0,0,2,1,1,1,0,0
+2.2_tool_routing,5,5,0,1,2,2,0,0,2,1,0
+2.3_field_ownership,2,2,0,0,0,2,0,0,2,0,0
+2.5_cascade_template,4,4,1,0,0,3,0,0,3,0,0
+2.6_raw_runtime_fetch,1,1,1,0,0,0,0,0,0,0,0
+2.7_clusterless_plumbing_vs_input,1,1,1,0,0,0,0,0,0,0,0
+2.8_key_source_concept,1,1,1,0,0,0,1,1,0,0,0
+decision_point_3_rubric_friction,1,1,1,0,0,0,0,0,0,0,0

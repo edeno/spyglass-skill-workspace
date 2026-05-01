@@ -1,0 +1,119 @@
+{
+  "n_joint": 16,
+  "buckets": [
+    "both_pass",
+    "skill_only",
+    "baseline_only",
+    "both_fail"
+  ],
+  "counts_old": {
+    "both_pass": 2,
+    "skill_only": 1,
+    "baseline_only": 2,
+    "both_fail": 11
+  },
+  "counts_new": {
+    "both_pass": 4,
+    "skill_only": 3,
+    "baseline_only": 1,
+    "both_fail": 8
+  },
+  "deltas": {
+    "both_pass": 2,
+    "skill_only": 2,
+    "baseline_only": -1,
+    "both_fail": -3
+  },
+  "rates_old": {
+    "both_pass": 12.5,
+    "skill_only": 6.25,
+    "baseline_only": 12.5,
+    "both_fail": 68.75
+  },
+  "rates_new": {
+    "both_pass": 25.0,
+    "skill_only": 18.75,
+    "baseline_only": 6.25,
+    "both_fail": 50.0
+  },
+  "flow_matrix": {
+    "both_pass": {
+      "both_pass": 1,
+      "skill_only": 0,
+      "baseline_only": 0,
+      "both_fail": 1
+    },
+    "skill_only": {
+      "both_pass": 0,
+      "skill_only": 1,
+      "baseline_only": 0,
+      "both_fail": 0
+    },
+    "baseline_only": {
+      "both_pass": 0,
+      "skill_only": 1,
+      "baseline_only": 1,
+      "both_fail": 0
+    },
+    "both_fail": {
+      "both_pass": 3,
+      "skill_only": 1,
+      "baseline_only": 0,
+      "both_fail": 7
+    }
+  },
+  "flow_examples": {
+    "both_pass": {
+      "both_pass": [
+        29
+      ],
+      "skill_only": [],
+      "baseline_only": [],
+      "both_fail": [
+        28
+      ]
+    },
+    "skill_only": {
+      "both_pass": [],
+      "skill_only": [
+        107
+      ],
+      "baseline_only": [],
+      "both_fail": []
+    },
+    "baseline_only": {
+      "both_pass": [],
+      "skill_only": [
+        106
+      ],
+      "baseline_only": [
+        118
+      ],
+      "both_fail": []
+    },
+    "both_fail": {
+      "both_pass": [
+        72,
+        99,
+        100
+      ],
+      "skill_only": [
+        113
+      ],
+      "baseline_only": [],
+      "both_fail": [
+        41,
+        85,
+        87,
+        88,
+        89,
+        105,
+        108
+      ]
+    }
+  },
+  "n_stable": 10,
+  "n_changed": 6,
+  "excluded_eval_ids": [],
+  "note": "Joint set requires both ws and bs cells present in both runs. flow_matrix[old_bucket][new_bucket] counts evals that moved from old_bucket to new_bucket; diagonal entries are stable."
+}
