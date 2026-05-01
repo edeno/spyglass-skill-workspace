@@ -64,6 +64,6 @@
     "discordant_skill_only": 30,
     "discordant_baseline_only": 2,
     "p_value": 2.4633482098579407e-07,
-    "note": "Pairs each eval's ws and bs outcomes. p < 0.05 means the +full_pass_pp delta is unlikely under H0 (skill has no effect). Computed with stdlib math.comb; no scipy needed."
+    "note": "Pairs each eval's ws and bs outcomes. p < 0.05 means the +full_pass_pp delta is unlikely under H0 (skill has no effect). Computed via scipy.stats.binomtest (exact, two-sided)."
   }
 }
