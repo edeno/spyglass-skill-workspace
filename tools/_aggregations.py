@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from math import comb
 from pathlib import Path
 
 from _schemas import WONG, PerEvalResult
+from scipy.stats import binomtest
 
 
 def delta_color(d: float) -> str:
@@ -111,14 +111,12 @@ def exact_mcnemar_p(b: int, c: int) -> float:
 
     Counts discordant pairs only: b = ws-pass-only, c = bs-pass-only.
     Under H0 each discordant pair is 50/50, so the count of (ws-only) is
-    Binomial(b+c, 0.5). Stdlib-only — no scipy needed.
+    Binomial(b+c, 0.5).
     """
     n = b + c
     if n == 0:
         return 1.0
-    k = min(b, c)
-    one_sided = sum(comb(n, i) for i in range(k + 1)) / 2**n
-    return min(1.0, 2 * one_sided)
+    return float(binomtest(min(b, c), n, p=0.5, alternative="two-sided").pvalue)
 
 
 

@@ -152,7 +152,7 @@ def plot_delta_per_batch(benchmarks: dict[int, dict]) -> None:
             / cfg["without_skill"]["expectations_total"]
         )
         expectation_deltas.append(ws_pp - bs_pp)
-    x_max = max(max(behavioral_deltas), max(expectation_deltas)) + 5
+    x_max = max(max(behavioral_deltas, default=0), max(expectation_deltas, default=0), 0) + 5
     for ax, deltas, title in [
         (axes[0], behavioral_deltas, "Behavioral-check delta"),
         (axes[1], expectation_deltas, "Total expectation delta"),
@@ -1459,7 +1459,7 @@ def plot_expected_call_confusion(kind: str) -> None:
         if totals["expected_called"] + totals["unexpected_called"]
         else 0.0
     )
-    n_labeled = max((int(row["n_labeled_evals"]) for row in rows), default=0)
+    n_labeled = int(rows[0]["n_labeled_evals"]) if rows else 0
     ax.text(
         0.5,
         -0.24,

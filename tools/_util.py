@@ -32,6 +32,10 @@ def find_skill_root(args_skill_root: Path | None) -> Path:
         candidate = Path(env_path).expanduser().resolve()
         if (candidate.joinpath(*marker)).is_file():
             return candidate
+        raise SystemExit(
+            f"SPYGLASS_SKILL={env_path!r} is not a spyglass-skill repo "
+            f"(missing {'/'.join(marker)})"
+        )
 
     sibling = REPO_ROOT.parent / "spyglass-skill"
     if (sibling.joinpath(*marker)).is_file():

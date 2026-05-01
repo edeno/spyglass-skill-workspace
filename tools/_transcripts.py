@@ -186,7 +186,6 @@ def write_transcript_stats(
     total_bs: int,
     per_eval: list[PerEvalResult] | None = None,
 ) -> None:
-    payload: dict  # widen so the per-eval block below can attach nested fields
     """Aggregate transcript records into the cost-shape and contamination JSON.
 
     Captures the numbers SUMMARY.md cites in §"Transcript-level caveats":

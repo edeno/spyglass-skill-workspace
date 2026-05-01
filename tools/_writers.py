@@ -302,6 +302,8 @@ def write_cumulative_summary_json(
     skill_only = sum(1 for r in per_eval if r["ws_pass"] and not r["bs_pass"])
     bs_only = sum(1 for r in per_eval if r["bs_pass"] and not r["ws_pass"])
     both_fail = sum(1 for r in per_eval if not r["ws_pass"] and not r["bs_pass"])
+    ws_exp_rate = ws_exp_p / ws_exp_t if ws_exp_t else 0.0
+    bs_exp_rate = bs_exp_p / bs_exp_t if bs_exp_t else 0.0
     payload = {
         "n_evals": n_evals,
         "n_batches": len(BATCH_ORDER),
@@ -310,7 +312,7 @@ def write_cumulative_summary_json(
             "full_pass_rate": round(100 * ws_full / n_evals, 2),
             "expectation_pass": ws_exp_p,
             "expectation_total": ws_exp_t,
-            "expectation_pass_rate": round(100 * ws_exp_p / ws_exp_t, 2),
+            "expectation_pass_rate": round(100 * ws_exp_rate, 2),
             "tokens_total": ws_tokens,
         },
         "without_skill": {
@@ -318,14 +320,12 @@ def write_cumulative_summary_json(
             "full_pass_rate": round(100 * bs_full / n_evals, 2),
             "expectation_pass": bs_exp_p,
             "expectation_total": bs_exp_t,
-            "expectation_pass_rate": round(100 * bs_exp_p / bs_exp_t, 2),
+            "expectation_pass_rate": round(100 * bs_exp_rate, 2),
             "tokens_total": bs_tokens,
         },
         "delta": {
             "full_pass_pp": round(100 * (ws_full - bs_full) / n_evals, 2),
-            "expectation_pp": round(
-                100 * (ws_exp_p / ws_exp_t - bs_exp_p / bs_exp_t), 2
-            ),
+            "expectation_pp": round(100 * (ws_exp_rate - bs_exp_rate), 2),
             "extra_tokens_total": ws_tokens - bs_tokens,
         },
         "combined": {
@@ -344,7 +344,7 @@ def write_cumulative_summary_json(
             "discordant_skill_only": skill_only,
             "discordant_baseline_only": bs_only,
             "p_value": exact_mcnemar_p(skill_only, bs_only),
-            "note": "Pairs each eval's ws and bs outcomes. p < 0.05 means the +full_pass_pp delta is unlikely under H0 (skill has no effect). Computed with stdlib math.comb; no scipy needed.",
+            "note": "Pairs each eval's ws and bs outcomes. p < 0.05 means the +full_pass_pp delta is unlikely under H0 (skill has no effect). Computed via scipy.stats.binomtest (exact, two-sided).",
         },
     }
     (data_path("cumulative_summary.json")).write_text(json.dumps(payload, indent=2) + "\n")
@@ -869,10 +869,10 @@ def write_failure_taxonomy_stub_csv(
     cats: EvalCategories, per_eval: list[PerEvalResult]
 ) -> None:
     """Auto-generated stub for human annotation of with_skill failures."""
-    target = data_path("failure_taxonomy.csv")
+    committed = OUT / "data" / "failure_taxonomy.csv"
     existing: dict[int, dict[str, str]] = {}
-    if target.is_file():
-        for row in csv.DictReader(io.StringIO(target.read_text())):
+    if committed.is_file():
+        for row in csv.DictReader(io.StringIO(committed.read_text())):
             eid = row.get("eval_id", "")
             if eid.isdigit():
                 existing[int(eid)] = {
@@ -899,7 +899,7 @@ def write_failure_taxonomy_stub_csv(
             }
         )
     _write_csv(
-        target,
+        data_path("failure_taxonomy.csv"),
         [
             *EVAL_METADATA_COLUMNS,
             "failure_type",

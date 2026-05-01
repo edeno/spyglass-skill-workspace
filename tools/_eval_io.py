@@ -160,7 +160,11 @@ def load_eval_categories_from_run(workspace: Path, batch_order: list[int]) -> Ev
 
 
 def load_per_eval_results(benchmarks: dict[int, dict]) -> list[PerEvalResult]:
-    """Flatten benchmarks into a list of per-eval dicts with both conditions."""
+    """Flatten benchmarks into a list of per-eval dicts with both conditions.
+
+    Anchored on with_skill: evals present only in without_skill (e.g. partial
+    sweep where the ws dispatch was aborted) are omitted from the output.
+    """
     results = []
     for batch_id, bench in benchmarks.items():
         ws_results = {
