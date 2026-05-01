@@ -38,6 +38,30 @@
       "changed": true,
       "kind": "causal"
     },
+    "grader_model": {
+      "old": "",
+      "new": "",
+      "changed": false,
+      "kind": "causal"
+    },
+    "grader_model_version": {
+      "old": "",
+      "new": "",
+      "changed": false,
+      "kind": "causal"
+    },
+    "grader_prompt_template": {
+      "old": "",
+      "new": "",
+      "changed": false,
+      "kind": "causal"
+    },
+    "grader_prompt_sha256": {
+      "old": "",
+      "new": "",
+      "changed": false,
+      "kind": "causal"
+    },
     "evals_catalog_semantic_sha256": {
       "old": "92cce28516e4",
       "new": "92cce28516e4",
@@ -65,5 +89,5 @@
   },
   "causal_changed": true,
   "metadata_changed": true,
-  "note": "causal_changed=true means at least one dimension that can plausibly shift headline / transition deltas (skill, src, model, harness, prompt template, evals catalog) differs between runs; treat headline shifts skeptically. metadata_changed=true reflects label-only differences (round_label, skill_branch) and does NOT undermine attribution by itself."
+  "note": "causal_changed=true means at least one dimension that can plausibly shift headline / transition deltas differs between runs (skill commit, spyglass src commit, model, harness, dispatch prompt template, grader model / version / prompt / prompt_sha256, or canonical evals catalog hash); treat headline shifts skeptically. metadata_changed=true reflects differences that do NOT undermine attribution: label-only fields (round_label, skill_branch) and the raw evals_snapshot bytes hash, which can flip on snapshot reformatting / source-path changes without any actual eval drift."
 }

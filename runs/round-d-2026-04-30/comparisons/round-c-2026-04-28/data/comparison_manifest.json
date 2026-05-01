@@ -214,7 +214,7 @@
       "filename": "data/provenance_diff.json",
       "family": "audit",
       "priority": "primary",
-      "purpose": "Skill / src / model / harness / prompt-template / evals-catalog drift between runs. causal_changed=true is the attribution warning; metadata_changed=true flags label-only differences (round_label / skill_branch) that do not undermine attribution.",
+      "purpose": "Skill / src / model / harness / dispatch-template / grader / evals-catalog drift between runs. causal_changed=true is the attribution warning; metadata_changed=true flags label-only differences (round_label / skill_branch / raw snapshot bytes) that do not undermine attribution.",
       "classification_source": "override"
     },
     {
@@ -222,6 +222,20 @@
       "family": "fix_priority",
       "priority": "primary",
       "purpose": "Drill-down for ws regressions and rubric_friction stable_fails: paths to old/new response.md and grading.json so reviewers can open both side-by-side.",
+      "classification_source": "override"
+    },
+    {
+      "filename": "data/regression_root_cause.csv",
+      "family": "fix_priority",
+      "priority": "primary",
+      "purpose": "Per-regression root-cause classification: rubric / routing / source_selection / tooling / synthesis / unknown. Drives c09 and speeds full-run triage by separating rubric friction from real content regressions.",
+      "classification_source": "override"
+    },
+    {
+      "filename": "data/regression_root_cause_summary.json",
+      "family": "fix_priority",
+      "priority": "primary",
+      "purpose": "Bucket counts behind c09: how many regressions fall into each root-cause category.",
       "classification_source": "override"
     },
     {
@@ -306,6 +320,13 @@
       "family": "headline",
       "priority": "primary",
       "purpose": "Skill-lift (ws_pass_rate - bs_pass_rate) at old vs new with the delta and 95% bootstrap CIs. Headline answer to 'did the skill help differently between commits?'",
+      "classification_source": "override"
+    },
+    {
+      "filename": "figures/c09_regression_root_causes.png",
+      "family": "fix_priority",
+      "priority": "primary",
+      "purpose": "Distribution of regression root causes (rubric / routing / source_selection / tooling / synthesis / unknown).",
       "classification_source": "override"
     }
   ]

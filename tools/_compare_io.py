@@ -393,18 +393,27 @@ def _provenance_block(run_dir: Path, run_meta: dict) -> dict[str, str]:
     """Pull comparable provenance fields from run.json + evals snapshot.
 
     Captures the dimensions that drive cross-run drift in skill quality
-    measurements: skill commit, upstream Spyglass src commit, model,
-    dispatch-prompt template, harness, plus two evals-catalog hashes:
+    measurements:
+
+    - **causal** (drift here can shift headline / transition deltas): skill
+      commit (start + end), spyglass src commit, model, harness, dispatch
+      prompt template, grader model / model version / prompt template /
+      prompt sha256, and ``evals_catalog_semantic_sha256``.
+    - **metadata** (label-only or wrapper noise): skill_branch, round_label,
+      and ``evals_snapshot_sha256_raw``.
+
+    Two evals-catalog hashes are emitted:
 
     - ``evals_catalog_semantic_sha256``: hash of a canonical normalized
       representation of the catalog that ignores wrapper / formatting noise
-      (``source`` field, key order, whitespace) and only covers the semantic
-      fields per eval (id, name, stage/tier/difficulty, expectations,
-      expected_refs, expected_scripts). This is the **causal** dimension —
-      it changes only when actual eval content changes.
+      (``source`` field, key order, whitespace) and covers every semantic
+      per-eval field (id, name, eval_name, stage / tier / difficulty,
+      prompt, expected_output, expectations, assertions, files,
+      expected_refs, expected_scripts). This is the causal dimension — it
+      changes only when actual eval content changes.
     - ``evals_snapshot_sha256_raw``: hash of the raw snapshot bytes. Useful
       for forensics but tagged metadata-only because reformatting / source
-      path changes flip it without changing what was measured.
+      path changes flip it without any change to what was measured.
 
     Empty string when a field is absent on a given run.
     """
@@ -416,6 +425,15 @@ def _provenance_block(run_dir: Path, run_meta: dict) -> dict[str, str]:
         "model",
         "harness",
         "dispatch_prompt_template",
+        # Grader provenance: when the grading model / its prompt template
+        # changes, headline movement can no longer be cleanly attributed to
+        # the skill. run.json may declare any subset of these keys; missing
+        # keys read as empty and are not flagged changed (per the writer's
+        # both-non-empty rule).
+        "grader_model",
+        "grader_model_version",
+        "grader_prompt_template",
+        "grader_prompt_sha256",
         "round_label",
     )
     # Normalize null / missing to empty string so a run.json with `"key": null`

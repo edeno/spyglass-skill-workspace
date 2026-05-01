@@ -1,0 +1,14 @@
+{
+  "n_review_items": 7,
+  "n_ws_regressions": 1,
+  "n_rubric_friction_stable_fail": 6,
+  "buckets": {
+    "rubric": 7,
+    "routing": 0,
+    "source_selection": 0,
+    "tooling": 0,
+    "synthesis": 0,
+    "unknown": 0
+  },
+  "note": "n_review_items is the size of the review queue: ws regressions (ws_transition=regressed) plus rubric_friction stable_fails. n_ws_regressions is the strict regression count. Buckets each review item into a root-cause category in priority order: rubric > routing > source_selection > tooling > synthesis > unknown. synthesis = required resources unchanged, agent still got it wrong (genuine reasoning regression). Read alongside regression_review.csv for response.md / grading.json paths."
+}

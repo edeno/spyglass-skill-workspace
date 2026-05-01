@@ -12,6 +12,7 @@ call sites.
 - c06 did routing change? (gated on transcripts on both sides)
 - c07 where does category-level pass rate drift?
 - c08 did the skill-lift change between commits?
+- c09 what is the root-cause distribution of regressions?
 """
 
 from __future__ import annotations
@@ -840,6 +841,71 @@ def plot_skill_lift_change(figures_dir: Path, data_dir: Path) -> None:
 
     fig.tight_layout(rect=(0, 0.04, 1, 1))
     fig.savefig(figures_dir / "c08_did_skill_lift_change.png", dpi=FIGURE_DPI)
+    plt.close(fig)
+
+
+def plot_regression_root_causes(figures_dir: Path, data_dir: Path) -> None:
+    """c09: bucket distribution of the regression-review queue.
+
+    Reads regression_root_cause_summary.json. Horizontal bar chart with
+    one bar per bucket (rubric / routing / source_selection / tooling /
+    synthesis / unknown), ordered by priority. The denominator is the
+    review queue (ws regressions + rubric_friction stable_fails), not
+    strict regressions — title and footer report n_ws_regressions and
+    n_rubric_friction_stable_fail separately so the rubric-friction
+    contribution is never miscounted as content drift.
+    """
+    path = data_dir / "regression_root_cause_summary.json"
+    if not path.is_file():
+        return
+    payload = json.loads(path.read_text())
+    n_review = payload.get("n_review_items", 0)
+    if n_review == 0:
+        return
+    n_ws_reg = payload.get("n_ws_regressions", 0)
+    n_rubric_sf = payload.get("n_rubric_friction_stable_fail", 0)
+    buckets = payload["buckets"]
+    order = ["rubric", "routing", "source_selection", "tooling", "synthesis", "unknown"]
+    counts = [buckets.get(b, 0) for b in order]
+
+    color_map = {
+        "rubric": WONG["neutral"],
+        "routing": WONG["delta_neg"],
+        "source_selection": WONG["bs"],
+        "tooling": WONG["delta_neg"],
+        "synthesis": WONG["delta_neg"],
+        "unknown": WONG["both_fail"],
+    }
+    colors = [color_map[b] for b in order]
+
+    fig, ax = plt.subplots(figsize=SIZE_SINGLE)
+    y = list(range(len(order)))
+    bars = ax.barh(y, counts, color=colors, edgecolor="black", linewidth=0.6)
+    ax.set_yticks(y)
+    ax.set_yticklabels(order)
+    ax.invert_yaxis()
+    ax.set_xlabel("review-queue items classified")
+    ax.grid(axis="x", **GRID_STYLE)
+    for bar, count in zip(bars, counts, strict=True):
+        if count == 0:
+            continue
+        ax.text(
+            bar.get_width(),
+            bar.get_y() + bar.get_height() / 2,
+            f"  {count}",
+            va="center",
+            ha="left",
+            fontsize=ANNOTATION_FONTSIZE,
+        )
+    ax.set_title(
+        f"c09: Review-queue root causes (n={n_review}: "
+        f"{n_ws_reg} ws regression(s) + {n_rubric_sf} rubric_friction stable_fail(s))\n"
+        "rubric = annotator-labeled / rubric drift; routing = required-recall "
+        "drop; synthesis = same evidence, worse answer",
+        fontsize=11,
+    )
+    fig.tight_layout()
+    fig.savefig(figures_dir / "c09_regression_root_causes.png", dpi=FIGURE_DPI)
     plt.close(fig)
 
 

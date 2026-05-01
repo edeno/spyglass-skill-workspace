@@ -1,0 +1,8 @@
+eval_id,eval_name,stage,tier,ws_transition,regression_interpretation,failure_type_new,root_cause,ref_recall_delta,script_recall_delta,unexpected_ref_delta,unexpected_script_delta,tool_errors_delta,duration_ratio
+28,brain-region-for-curated-sorting,pipeline-usage,joins,regressed,rubric_friction,rubric_friction,rubric,0.0,0.0,0,0,2,
+41,config-key-error-after-pull,setup,config-troubleshooting,stable_fail,,rubric_friction,rubric,1.0,0.0,-1,0,18,2.08
+85,recover-parameter-edit-in-place,pipeline-usage,workflow-recovery,stable_fail,,rubric_friction,rubric,0.0,0.0,0,0,0,1.27
+87,counterfactual-trodes-pos-params-swap,pipeline-usage,counterfactual,stable_fail,,rubric_friction,rubric,0.5,0.0,-1,1,1,2.18
+88,ambiguity-delete-decoding-results,destructive-operations,disambiguation,stable_fail,,rubric_friction,rubric,0.0,0.0,0,0,0,1.19
+89,restrict-by-interval-name-no-star,pipeline-usage,joins,stable_fail,,rubric_friction,rubric,-0.5,0.0,0,0,-2,0.8
+105,camera-devices-lookup,pipeline-usage,atomic-read,stable_fail,,rubric_friction,rubric,0.0,0.0,-1,-1,-5,0.79

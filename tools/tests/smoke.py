@@ -369,6 +369,7 @@ def _build_compare_run(
     failure_taxonomy: list[dict[str, str]] | None = None,
     eval_catalog: list[dict] | None = None,
     transcripts: dict[tuple[int, str], dict] | None = None,
+    run_meta_extra: dict | None = None,
 ) -> None:
     """Build a minimal synthetic run that compare_runs.py can read.
 
@@ -400,6 +401,8 @@ def _build_compare_run(
     }
     if edit_to_evals is not None:
         run_meta["subset"] = {"edit_to_evals": edit_to_evals}
+    if run_meta_extra:
+        run_meta.update(run_meta_extra)
     write_json(run_dir / "run.json", run_meta)
     seen_eids: set[int] = set()
     for cond, rows in eval_results.items():
@@ -681,6 +684,13 @@ def _smoke_compare_runs(base: Path) -> None:
         },
         eval_catalog=eval_catalog,
         transcripts=old_transcripts,
+        # Old run declares its grader so provenance can detect drift on the
+        # new side. grader_prompt_sha256 stays stable; grader_model is the
+        # field the synthetic new run drifts.
+        run_meta_extra={
+            "grader_model": "old-grader-model",
+            "grader_prompt_sha256": "abc123",
+        },
     )
     _build_compare_run(
         new_run,
@@ -722,6 +732,12 @@ def _smoke_compare_runs(base: Path) -> None:
         ],
         eval_catalog=new_eval_catalog,
         transcripts=new_transcripts,
+        # New run drifts grader_model; grader_prompt_sha256 stays stable so
+        # smoke can verify per-field changed-flag behavior.
+        run_meta_extra={
+            "grader_model": "new-grader-model",
+            "grader_prompt_sha256": "abc123",
+        },
     )
 
     subprocess.run(
@@ -761,6 +777,8 @@ def _smoke_compare_runs(base: Path) -> None:
         "data/routing_shift.csv",
         "data/category_shift.csv",
         "data/regression_review.csv",
+        "data/regression_root_cause.csv",
+        "data/regression_root_cause_summary.json",
         "figures/c01_did_the_headline_improve.png",
         "figures/c02_did_outcomes_move_per_eval.png",
         "figures/c03_where_did_evals_move_in_2x2.png",
@@ -769,6 +787,7 @@ def _smoke_compare_runs(base: Path) -> None:
         "figures/c06_did_routing_change.png",
         "figures/c07_where_does_category_drift.png",
         "figures/c08_did_skill_lift_change.png",
+        "figures/c09_regression_root_causes.png",
     ]
     missing = [name for name in required if not (out / name).exists()]
     if missing:
@@ -1150,6 +1169,125 @@ def _smoke_compare_runs(base: Path) -> None:
         raise AssertionError(
             f"spyglass_src_commit (absent on synthetic fixture) should be empty/unchanged: {src}"
         )
+
+    # provenance_diff: grader_model drifted between runs (old=old-grader-model,
+    # new=new-grader-model) so it must be flagged changed and tagged causal.
+    # grader_prompt_sha256 stays stable; it must NOT be flagged.
+    grader_model = prov["fields"]["grader_model"]
+    if not grader_model["changed"] or grader_model.get("kind") != "causal":
+        raise AssertionError(
+            f"grader_model drift should be flagged causal: {grader_model}"
+        )
+    grader_prompt_sha = prov["fields"]["grader_prompt_sha256"]
+    if grader_prompt_sha["changed"]:
+        raise AssertionError(
+            f"grader_prompt_sha256 stable both sides should not flag: {grader_prompt_sha}"
+        )
+
+    # regression_root_cause.csv: synthetic fixture has eval 3 (regressed,
+    # rubric_friction taxonomy) and eval 4 (stable_fail, rubric_friction
+    # taxonomy). Both should bucket as "rubric".
+    with (out / "data/regression_root_cause.csv").open(newline="") as f:
+        rc_rows = list(csv.DictReader(f))
+    rc_by_id = {int(r["eval_id"]): r for r in rc_rows}
+    if sorted(rc_by_id) != [3, 4]:
+        raise AssertionError(
+            f"regression_root_cause should classify evals 3 and 4 only: {sorted(rc_by_id)}"
+        )
+    for eid in (3, 4):
+        if rc_by_id[eid]["root_cause"] != "rubric":
+            raise AssertionError(
+                f"eval {eid} should classify as rubric on synthetic fixture: {rc_by_id[eid]}"
+            )
+    rc_summary = json.loads(
+        (out / "data/regression_root_cause_summary.json").read_text()
+    )
+    # Eval 3 is a strict ws regression; eval 4 is stable_fail labeled
+    # rubric_friction. Both feed the review queue but only one is a
+    # strict regression — the summary must surface both counts honestly
+    # so c09's "n_review_items=2" is never miscounted as 2 regressions.
+    if rc_summary["n_review_items"] != 2 or rc_summary["buckets"]["rubric"] != 2:
+        raise AssertionError(
+            f"regression_root_cause_summary should report 2 rubric: {rc_summary}"
+        )
+    if rc_summary["n_ws_regressions"] != 1:
+        raise AssertionError(
+            f"n_ws_regressions should be 1 (eval 3 only): {rc_summary}"
+        )
+    if rc_summary["n_rubric_friction_stable_fail"] != 1:
+        raise AssertionError(
+            f"n_rubric_friction_stable_fail should be 1 (eval 4 only): {rc_summary}"
+        )
+    if "n_regressions" in rc_summary:
+        raise AssertionError(
+            f"obsolete n_regressions key should be gone: {rc_summary}"
+        )
+
+    # Direct classifier branch tests: covers each rule independently, since
+    # the end-to-end fixture only exercises the rubric branch.
+    sys.path.insert(0, str(ROOT / "tools"))
+    try:
+        from _compare_writers import _classify_regression
+    finally:
+        sys.path.pop(0)
+
+    def _classify(**overrides):
+        defaults = dict(
+            regression_interpretation="content_regression",
+            failure_type_new="",
+            ref_recall_delta=0.0,
+            script_recall_delta=0.0,
+            unexpected_ref_delta=0,
+            unexpected_script_delta=0,
+            tool_errors_delta=0,
+            duration_ratio=1.0,
+            has_routing=True,
+            has_required_refs=True,
+        )
+        defaults.update(overrides)
+        return _classify_regression(**defaults)
+
+    classifier_cases = {
+        "rubric (interp)": (
+            {"regression_interpretation": "rubric_friction"},
+            "rubric",
+        ),
+        "rubric (taxonomy)": (
+            {"regression_interpretation": "", "failure_type_new": "rubric_friction"},
+            "rubric",
+        ),
+        "routing (ref recall down)": (
+            {"ref_recall_delta": -0.5},
+            "routing",
+        ),
+        "routing (script recall down)": (
+            {"script_recall_delta": -1.0},
+            "routing",
+        ),
+        "source_selection": (
+            {"unexpected_ref_delta": 1},
+            "source_selection",
+        ),
+        "tooling (errors)": (
+            {"tool_errors_delta": 3},
+            "tooling",
+        ),
+        "tooling (duration)": (
+            {"duration_ratio": 2.5},
+            "tooling",
+        ),
+        "synthesis": ({}, "synthesis"),
+        "unknown (no routing)": (
+            {"has_routing": False},
+            "unknown",
+        ),
+    }
+    for label, (overrides, expected) in classifier_cases.items():
+        got = _classify(**overrides)
+        if got != expected:
+            raise AssertionError(
+                f"_classify_regression {label}: expected {expected!r}, got {got!r}"
+            )
 
     # cost_shift.csv duration columns: eval 2 ws timing went 1100 -> 1500
     # tokens, so duration went 11.0s -> 15.0s for a +4.0s delta.

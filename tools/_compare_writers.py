@@ -55,10 +55,30 @@ COMPARISON_MANIFEST_OVERRIDES: dict[str, tuple[str, str, str]] = {
     "data/provenance_diff.json": (
         "audit",
         "primary",
-        "Skill / src / model / harness / prompt-template / evals-catalog drift "
-        "between runs. causal_changed=true is the attribution warning; "
+        "Skill / src / model / harness / dispatch-template / grader / evals-catalog "
+        "drift between runs. causal_changed=true is the attribution warning; "
         "metadata_changed=true flags label-only differences (round_label / "
-        "skill_branch) that do not undermine attribution.",
+        "skill_branch / raw snapshot bytes) that do not undermine attribution.",
+    ),
+    "data/regression_root_cause.csv": (
+        "fix_priority",
+        "primary",
+        "Per-regression root-cause classification: rubric / routing / "
+        "source_selection / tooling / synthesis / unknown. Drives c09 and "
+        "speeds full-run triage by separating rubric friction from real "
+        "content regressions.",
+    ),
+    "data/regression_root_cause_summary.json": (
+        "fix_priority",
+        "primary",
+        "Bucket counts behind c09: how many regressions fall into each "
+        "root-cause category.",
+    ),
+    "figures/c09_regression_root_causes.png": (
+        "fix_priority",
+        "primary",
+        "Distribution of regression root causes (rubric / routing / "
+        "source_selection / tooling / synthesis / unknown).",
     ),
     "data/catalog_diff.json": (
         "audit",
@@ -558,6 +578,218 @@ def _expectation_text(expectation: object) -> str:
     return repr(expectation)
 
 
+def write_regression_root_cause_csv(
+    out_data: Path,
+    pairs: list[PerEvalPair],
+    old_routing: dict[tuple[int, str], TranscriptRecord],
+    new_routing: dict[tuple[int, str], TranscriptRecord],
+    expected_refs: ExpectedResources,
+    expected_scripts: ExpectedResources,
+) -> None:
+    """Classify each ws regression / rubric_friction stable_fail into a bucket.
+
+    Buckets (priority order):
+
+    - ``rubric`` — regression_interpretation is rubric_friction or rubric_drift,
+      OR new run's failure_taxonomy labels the eval rubric_friction.
+      Headline number is rubric-sensitive, not a real content regression.
+    - ``routing`` — required_ref_recall_delta < 0 OR
+      required_script_recall_delta < 0 on this eval. The agent stopped
+      reaching for an expected resource.
+    - ``source_selection`` — required recall stable but unexpected_ref_count
+      or unexpected_script_count went up. The agent loaded different
+      resources than before.
+    - ``tooling`` — n_tool_errors_new > n_tool_errors_old by >= 2 OR
+      duration jumped by >= 2x with no other obvious cause. Suggests
+      runtime / tool failures rather than reasoning regression.
+    - ``synthesis`` — required resources unchanged, unexpected counts
+      stable, no tooling signal. Genuine reasoning regression on the
+      same evidence base.
+    - ``unknown`` — required information missing on either side
+      (no transcripts, no expected sets).
+
+    Skipped (no file written) when there are no regressions to classify.
+    """
+    rows: list[dict[str, object]] = []
+    n_ws_regressions = 0
+    n_rubric_friction_stable_fail = 0
+    for p in pairs:
+        is_regressed = p["ws_transition"] == "regressed"
+        is_rubric_friction_stable_fail = (
+            p["ws_transition"] == "stable_fail"
+            and p["failure_type_new"] == "rubric_friction"
+        )
+        if not (is_regressed or is_rubric_friction_stable_fail):
+            continue
+        if is_regressed:
+            n_ws_regressions += 1
+        if is_rubric_friction_stable_fail:
+            n_rubric_friction_stable_fail += 1
+
+        eid = p["eval_id"]
+        ref_block = expected_refs.get(eid, {"required": [], "optional": [], "distractor": []})
+        script_block = expected_scripts.get(
+            eid, {"required": [], "optional": [], "distractor": []}
+        )
+        old_rec = old_routing.get((eid, "with_skill"))
+        new_rec = new_routing.get((eid, "with_skill"))
+        ref_old = _routing_metrics(old_rec, ref_block, "ref_opens") if old_rec else None
+        ref_new = _routing_metrics(new_rec, ref_block, "ref_opens") if new_rec else None
+        script_old = (
+            _routing_metrics(old_rec, script_block, "script_executions") if old_rec else None
+        )
+        script_new = (
+            _routing_metrics(new_rec, script_block, "script_executions") if new_rec else None
+        )
+
+        ref_recall_delta = _safe_delta(ref_old, ref_new, "recall")
+        script_recall_delta = _safe_delta(script_old, script_new, "recall")
+        unexpected_ref_delta = _safe_delta(ref_old, ref_new, "unexpected")
+        unexpected_script_delta = _safe_delta(script_old, script_new, "unexpected")
+        tool_errors_delta = (
+            (new_rec.get("n_tool_errors", 0) - old_rec.get("n_tool_errors", 0))
+            if old_rec and new_rec
+            else None
+        )
+        duration_old = p["duration_ws_old"]
+        duration_new = p["duration_ws_new"]
+        duration_ratio: float | None = None
+        if duration_old and duration_new and duration_old > 0:
+            duration_ratio = duration_new / duration_old
+
+        root_cause = _classify_regression(
+            regression_interpretation=p["regression_interpretation"],
+            failure_type_new=p["failure_type_new"],
+            ref_recall_delta=ref_recall_delta,
+            script_recall_delta=script_recall_delta,
+            unexpected_ref_delta=unexpected_ref_delta,
+            unexpected_script_delta=unexpected_script_delta,
+            tool_errors_delta=tool_errors_delta,
+            duration_ratio=duration_ratio,
+            has_routing=old_rec is not None and new_rec is not None,
+            has_required_refs=bool(ref_block["required"]) or bool(script_block["required"]),
+        )
+
+        rows.append(
+            {
+                "eval_id": eid,
+                "eval_name": p["eval_name"],
+                "stage": p["stage"],
+                "tier": p["tier"],
+                "ws_transition": p["ws_transition"] or "",
+                "regression_interpretation": p["regression_interpretation"],
+                "failure_type_new": p["failure_type_new"],
+                "root_cause": root_cause,
+                "ref_recall_delta": _fmt_signed(ref_recall_delta),
+                "script_recall_delta": _fmt_signed(script_recall_delta),
+                "unexpected_ref_delta": _fmt_signed(unexpected_ref_delta),
+                "unexpected_script_delta": _fmt_signed(unexpected_script_delta),
+                "tool_errors_delta": "" if tool_errors_delta is None else tool_errors_delta,
+                "duration_ratio": (
+                    "" if duration_ratio is None else round(duration_ratio, 2)
+                ),
+            }
+        )
+    if not rows:
+        return
+    columns = list(rows[0].keys())
+    _write_csv(out_data / "regression_root_cause.csv", columns, rows)
+
+    summary = Counter(str(r["root_cause"]) for r in rows)
+    payload = {
+        "n_review_items": len(rows),
+        "n_ws_regressions": n_ws_regressions,
+        "n_rubric_friction_stable_fail": n_rubric_friction_stable_fail,
+        "buckets": {
+            bucket: summary.get(bucket, 0)
+            for bucket in (
+                "rubric",
+                "routing",
+                "source_selection",
+                "tooling",
+                "synthesis",
+                "unknown",
+            )
+        },
+        "note": (
+            "n_review_items is the size of the review queue: ws regressions "
+            "(ws_transition=regressed) plus rubric_friction stable_fails. "
+            "n_ws_regressions is the strict regression count. Buckets each "
+            "review item into a root-cause category in priority order: "
+            "rubric > routing > source_selection > tooling > synthesis > "
+            "unknown. synthesis = required resources unchanged, agent still "
+            "got it wrong (genuine reasoning regression). Read alongside "
+            "regression_review.csv for response.md / grading.json paths."
+        ),
+    }
+    out_data.joinpath("regression_root_cause_summary.json").write_text(
+        json.dumps(payload, indent=2) + "\n"
+    )
+
+
+def _classify_regression(
+    *,
+    regression_interpretation: str,
+    failure_type_new: str,
+    ref_recall_delta: float | None,
+    script_recall_delta: float | None,
+    unexpected_ref_delta: float | None,
+    unexpected_script_delta: float | None,
+    tool_errors_delta: int | None,
+    duration_ratio: float | None,
+    has_routing: bool,
+    has_required_refs: bool,
+) -> str:
+    """Pure classifier: maps regression signals → root-cause bucket.
+
+    See ``write_regression_root_cause_csv`` docstring for the priority order
+    and bucket definitions. Kept as a top-level pure function so smoke
+    tests can exercise each branch with synthetic inputs without
+    materializing a full eval pair.
+    """
+    if regression_interpretation in ("rubric_friction", "rubric_drift"):
+        return "rubric"
+    if failure_type_new == "rubric_friction":
+        return "rubric"
+    if not has_routing:
+        return "unknown"
+    if not has_required_refs:
+        # No required resources declared, so we can't see routing / source-
+        # selection drift; only tooling and synthesis are distinguishable.
+        if tool_errors_delta is not None and tool_errors_delta >= 2:
+            return "tooling"
+        if duration_ratio is not None and duration_ratio >= 2.0:
+            return "tooling"
+        return "synthesis"
+    if (ref_recall_delta is not None and ref_recall_delta < 0) or (
+        script_recall_delta is not None and script_recall_delta < 0
+    ):
+        return "routing"
+    if (unexpected_ref_delta is not None and unexpected_ref_delta > 0) or (
+        unexpected_script_delta is not None and unexpected_script_delta > 0
+    ):
+        return "source_selection"
+    if tool_errors_delta is not None and tool_errors_delta >= 2:
+        return "tooling"
+    if duration_ratio is not None and duration_ratio >= 2.0:
+        return "tooling"
+    return "synthesis"
+
+
+def _safe_delta(old: dict | None, new: dict | None, key: str) -> float | None:
+    if old is None or new is None:
+        return None
+    return new[key] - old[key]
+
+
+def _fmt_signed(value: float | None) -> object:
+    if value is None:
+        return ""
+    if isinstance(value, int):
+        return value
+    return round(value, 4)
+
+
 def write_provenance_diff_json(out_data: Path, old: RunBundle, new: RunBundle) -> None:
     """Emit a provenance comparison so silent skill / catalog / model drift is visible.
 
@@ -582,8 +814,17 @@ def write_provenance_diff_json(out_data: Path, old: RunBundle, new: RunBundle) -
         "model",
         "harness",
         "dispatch_prompt_template",
+        # Grader / judge provenance: a graderchange can move the headline
+        # without any skill change. Each key is opt-in; runs that don't
+        # declare it read as empty (and therefore never trigger a "changed"
+        # flag, per the both-non-empty rule).
+        "grader_model",
+        "grader_model_version",
+        "grader_prompt_template",
+        "grader_prompt_sha256",
         # Hash of the canonical *semantic* representation of the evals catalog
-        # (id / name / stage / tier / difficulty / expectations / expected
+        # (id / name / eval_name / stage / tier / difficulty / prompt /
+        # expected_output / assertions / files / expectations / expected
         # refs+scripts), stable under wrapper / formatting noise. Drift here
         # corresponds to real eval changes — see catalog_diff.json for the
         # added / removed / changed eval ids and field-level deltas.
@@ -614,12 +855,15 @@ def write_provenance_diff_json(out_data: Path, old: RunBundle, new: RunBundle) -
         "metadata_changed": metadata_changed,
         "note": (
             "causal_changed=true means at least one dimension that can "
-            "plausibly shift headline / transition deltas (skill, src, "
-            "model, harness, prompt template, evals catalog) differs "
-            "between runs; treat headline shifts skeptically. "
-            "metadata_changed=true reflects label-only differences "
-            "(round_label, skill_branch) and does NOT undermine "
-            "attribution by itself."
+            "plausibly shift headline / transition deltas differs between "
+            "runs (skill commit, spyglass src commit, model, harness, "
+            "dispatch prompt template, grader model / version / prompt / "
+            "prompt_sha256, or canonical evals catalog hash); treat headline "
+            "shifts skeptically. metadata_changed=true reflects differences "
+            "that do NOT undermine attribution: label-only fields "
+            "(round_label, skill_branch) and the raw evals_snapshot bytes "
+            "hash, which can flip on snapshot reformatting / source-path "
+            "changes without any actual eval drift."
         ),
     }
     out_data.joinpath("provenance_diff.json").write_text(json.dumps(payload, indent=2) + "\n")
@@ -1663,6 +1907,10 @@ def _write_comparison_index_md(
         "model",
         "harness",
         "dispatch_prompt_template",
+        "grader_model",
+        "grader_model_version",
+        "grader_prompt_template",
+        "grader_prompt_sha256",
         "evals_catalog_semantic_sha256",
     )
     drifted = [

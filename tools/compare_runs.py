@@ -21,6 +21,7 @@ from _compare_figures import (
     plot_headline_shift,
     plot_outcome_flow,
     plot_per_eval_transitions,
+    plot_regression_root_causes,
     plot_routing_shift,
     plot_skill_lift_change,
     plot_targeted_edits,
@@ -43,6 +44,7 @@ from _compare_writers import (
     write_overlap_json,
     write_provenance_diff_json,
     write_regression_review_csv,
+    write_regression_root_cause_csv,
     write_routing_shift_csv,
     write_targeted_edits_csvs,
     write_transitions_csv,
@@ -108,9 +110,11 @@ def main() -> None:
         write_category_shift_csv(staged_data, pairs)
         write_regression_review_csv(staged_data, pairs, old, new)
 
-        # Routing shift: gated on both runs having transcripts. Expected
-        # resources sourced from the new run's evals_snapshot.json (the
-        # current truth); fall back to old run's snapshot if new lacks one.
+        # Routing shift + regression root-cause classifier: routing depends
+        # on transcripts on both sides. The classifier always runs; with
+        # missing transcripts / expected sets it falls back to "unknown"
+        # buckets but still distinguishes rubric / synthesis (independent
+        # of routing).
         if old["has_transcripts"] and new["has_transcripts"]:
             expected_refs, expected_scripts = load_expected_resources(new)
             if not expected_refs and not expected_scripts:
@@ -127,6 +131,19 @@ def main() -> None:
                 old_has_transcripts=True,
                 new_has_transcripts=True,
             )
+        else:
+            old_routing = {}
+            new_routing = {}
+            expected_refs = {}
+            expected_scripts = {}
+        write_regression_root_cause_csv(
+            staged_data,
+            pairs,
+            old_routing,
+            new_routing,
+            expected_refs,
+            expected_scripts,
+        )
 
         plot_headline_shift(staged_figures, staged_data)
         plot_per_eval_transitions(staged_figures, staged_data)
@@ -136,6 +153,7 @@ def main() -> None:
         plot_routing_shift(staged_figures, staged_data)
         plot_category_shift(staged_figures, staged_data)
         plot_skill_lift_change(staged_figures, staged_data)
+        plot_regression_root_causes(staged_figures, staged_data)
 
         # Manifest + INDEX.md must be written last so they enumerate every
         # staged output. Both are committed atomically alongside data/ and
