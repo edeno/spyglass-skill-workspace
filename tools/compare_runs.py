@@ -55,6 +55,14 @@ from staging import commit_staged_outputs
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for cross-run comparison.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed ``--new``, ``--old``, and optional ``--out`` paths.
+    """
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--new", type=Path, required=True, help="New (current) run-dir.")
     parser.add_argument("--old", type=Path, required=True, help="Old (reference) run-dir.")
@@ -89,6 +97,8 @@ def configure_out(new_dir: Path, old_dir: Path, override: Path | None) -> Path:
 
 
 def main() -> None:
+    """Generate staged data, figures, and index files for a run comparison."""
+
     args = parse_args()
     out = configure_out(args.new, args.old, args.out)
     staged_data = out / ".data_tmp"

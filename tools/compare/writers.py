@@ -211,6 +211,16 @@ COMPARISON_MANIFEST_OVERRIDES: dict[str, tuple[str, str, str]] = {
 
 
 def write_overlap_json(out_data: Path, overlap: OverlapAudit) -> None:
+    """Write the overlap audit to ``overlap.json``.
+
+    Parameters
+    ----------
+    out_data
+        Staged comparison data directory.
+    overlap
+        Computed overlap audit for the two runs being compared.
+    """
+
     out_data.joinpath("overlap.json").write_text(json.dumps(overlap, indent=2) + "\n")
 
 

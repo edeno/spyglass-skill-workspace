@@ -81,6 +81,20 @@ def find_live_tasks_dir(needed_ids: set[str], skill_root: Path) -> Path | None:
 
 
 def snapshot(tasks_dir: Path, run_dir: Path, snapshot_dir: Path) -> None:
+    """Copy per-eval task transcripts into a run-local snapshot directory.
+
+    Parameters
+    ----------
+    tasks_dir
+        Directory containing ``<agent_id>.output`` transcript files.
+    run_dir
+        Eval run directory whose per-condition metadata maps evals to agent
+        IDs.
+    snapshot_dir
+        Destination directory for copied ``<agent_id>.jsonl`` transcript
+        snapshots.
+    """
+
     snapshot_dir.mkdir(parents=True, exist_ok=True)
     mapped = collect_mapped_agent_ids(run_dir)
     if not mapped:
@@ -111,6 +125,8 @@ def snapshot(tasks_dir: Path, run_dir: Path, snapshot_dir: Path) -> None:
 
 
 def main() -> None:
+    """Parse CLI arguments and snapshot transcripts for one eval run."""
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--run",

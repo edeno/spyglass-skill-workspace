@@ -73,6 +73,20 @@ def data_path(name: str) -> Path:
 
 
 def setup_axes(ax, title: str, xlabel: str = "", ylabel: str = "") -> None:
+    """Apply the shared axis styling used by summary figures.
+
+    Parameters
+    ----------
+    ax
+        Matplotlib axis to style.
+    title
+        Left-aligned title text.
+    xlabel
+        Optional x-axis label.
+    ylabel
+        Optional y-axis label.
+    """
+
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.set_title(title, fontsize=11, loc="left", pad=8)
@@ -82,7 +96,21 @@ def setup_axes(ax, title: str, xlabel: str = "", ylabel: str = "") -> None:
         ax.set_ylabel(ylabel, fontsize=10)
     ax.tick_params(labelsize=9)
 
+
 def plot_per_batch_pass_rate(benchmarks: dict[int, dict]) -> None:
+    """Plot full-eval pass rate for each batch and condition.
+
+    Parameters
+    ----------
+    benchmarks
+        Benchmark payloads keyed by batch ID.
+
+    Notes
+    -----
+    Writes ``appendix_per_batch_pass_rate.png`` to the staged figures
+    directory.
+    """
+
     fig, ax = plt.subplots(figsize=SIZE_SINGLE, constrained_layout=True)
     x = np.arange(len(BATCH_ORDER))
     width = 0.38
@@ -130,7 +158,21 @@ def plot_per_batch_pass_rate(benchmarks: dict[int, dict]) -> None:
     fig.savefig(figure_path("appendix_per_batch_pass_rate.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
+
 def plot_delta_per_batch(benchmarks: dict[int, dict]) -> None:
+    """Plot with-skill minus baseline deltas for each batch.
+
+    Parameters
+    ----------
+    benchmarks
+        Benchmark payloads keyed by batch ID.
+
+    Notes
+    -----
+    Writes ``appendix_delta_per_batch.png`` and recomputes expectation deltas
+    from raw counts to avoid historical percentage-field schema drift.
+    """
+
     fig, axes = plt.subplots(1, 2, figsize=SIZE_WIDE, constrained_layout=True)
     y = np.arange(len(BATCH_ORDER))
     labels = [BATCH_LABELS[b] for b in BATCH_ORDER]
@@ -184,7 +226,21 @@ def plot_delta_per_batch(benchmarks: dict[int, dict]) -> None:
     fig.savefig(figure_path("appendix_delta_per_batch.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
+
 def plot_per_eval_outcomes(benchmarks: dict[int, dict]) -> None:
+    """Plot the four per-eval outcome buckets for each batch.
+
+    Parameters
+    ----------
+    benchmarks
+        Benchmark payloads keyed by batch ID.
+
+    Notes
+    -----
+    Writes ``appendix_per_eval_outcomes_by_batch.png`` to the staged figures
+    directory.
+    """
+
     fig, ax = plt.subplots(figsize=SIZE_SINGLE, constrained_layout=True)
     x = np.arange(len(BATCH_ORDER))
     both_pass, skill_only, bs_only, both_fail = [], [], [], []
@@ -245,7 +301,20 @@ def plot_per_eval_outcomes(benchmarks: dict[int, dict]) -> None:
     fig.savefig(figure_path("appendix_per_eval_outcomes_by_batch.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
+
 def plot_tokens_and_duration(benchmarks: dict[int, dict]) -> None:
+    """Plot mean token use and wall-clock duration by batch.
+
+    Parameters
+    ----------
+    benchmarks
+        Benchmark payloads keyed by batch ID.
+
+    Notes
+    -----
+    Writes ``appendix_cost_per_batch.png`` to the staged figures directory.
+    """
+
     fig, axes = plt.subplots(1, 2, figsize=SIZE_WIDE, constrained_layout=True)
     y = np.arange(len(BATCH_ORDER))
     labels = [BATCH_LABELS[b] for b in BATCH_ORDER]
@@ -271,7 +340,21 @@ def plot_tokens_and_duration(benchmarks: dict[int, dict]) -> None:
     fig.savefig(figure_path("appendix_cost_per_batch.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
 
+
 def plot_cumulative_summary(benchmarks: dict[int, dict]) -> None:
+    """Plot cumulative full-pass and expectation-pass headline results.
+
+    Parameters
+    ----------
+    benchmarks
+        Benchmark payloads keyed by batch ID.
+
+    Notes
+    -----
+    Writes ``q01_how_much_does_the_skill_help.png`` to the staged figures
+    directory.
+    """
+
     fig, ax = plt.subplots(figsize=(10, 4.5), constrained_layout=True)
     totals = summarize_benchmarks(benchmarks)
     ws, bs = totals["ws"], totals["bs"]
@@ -329,6 +412,7 @@ def plot_cumulative_summary(benchmarks: dict[int, dict]) -> None:
     ax.grid(axis="x", alpha=0.3, linestyle=":")
     fig.savefig(figure_path("q01_how_much_does_the_skill_help.png"), dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(fig)
+
 
 def plot_by_category(
     cats: EvalCategories, per_eval: list[PerEvalResult]
@@ -1206,6 +1290,15 @@ def plot_outcome_by_category() -> None:
 
 
 def plot_baseline_source_split() -> None:
+    """Plot skill value against baseline source-access status.
+
+    Notes
+    -----
+    Reads ``baseline_source_split.json`` from the staged data directory and
+    writes ``q05_is_value_more_than_source_access.png``. Removes the figure
+    when the source data is absent.
+    """
+
     path = data_path("baseline_source_split.json")
     if not path.exists():
         unlink_figure("q05_is_value_more_than_source_access.png")
@@ -1250,6 +1343,15 @@ def plot_baseline_source_split() -> None:
 
 
 def plot_eval_coverage_map() -> None:
+    """Plot eval counts by stage and tier.
+
+    Notes
+    -----
+    Reads ``eval_coverage.csv`` from the staged data directory and writes
+    ``q10_where_are_eval_coverage_gaps.png``. Removes the figure when the
+    source data is absent.
+    """
+
     rows = _read_csv("eval_coverage.csv")
     if not rows:
         unlink_figure("q10_where_are_eval_coverage_gaps.png")
@@ -1289,6 +1391,16 @@ def plot_eval_coverage_map() -> None:
 
 
 def plot_failure_taxonomy() -> None:
+    """Plot annotated with-skill failure types.
+
+    Notes
+    -----
+    Reads ``failure_taxonomy.csv`` and writes
+    ``appendix_failure_taxonomy_placeholder.png``. When the CSV exists but has
+    no annotations, writes a placeholder figure describing the missing manual
+    taxonomy step.
+    """
+
     rows = _read_csv("failure_taxonomy.csv")
     if not rows:
         unlink_figure("appendix_failure_taxonomy_placeholder.png")
@@ -1345,6 +1457,15 @@ def plot_failure_taxonomy() -> None:
 
 
 def plot_reference_expected_used() -> None:
+    """Plot discoverability and effectiveness for expected references.
+
+    Notes
+    -----
+    Reads ``reference_expected_used.csv`` from the staged data directory and
+    writes ``q09_how_well_are_expected_references_used.png``. Removes the
+    figure when no reference-usage data is available.
+    """
+
     rows = _read_csv("reference_expected_used.csv")
     if not rows:
         unlink_figure("q09_how_well_are_expected_references_used.png")
@@ -1402,6 +1523,20 @@ def plot_reference_expected_used() -> None:
 
 
 def plot_expected_call_confusion(kind: str) -> None:
+    """Plot called-vs-expected confusion for references or scripts.
+
+    Parameters
+    ----------
+    kind
+        Resource family to plot. Supported values are ``"reference"`` and
+        ``"script"``.
+
+    Notes
+    -----
+    Reads ``<kind>_call_confusion.csv`` and writes the corresponding routing
+    question figure. Removes that figure when no rows are available.
+    """
+
     rows = _read_csv(f"{kind}_call_confusion.csv")
     figure_name = (
         "q06_are_reference_routes_working.png"
@@ -1482,6 +1617,15 @@ def plot_expected_call_confusion(kind: str) -> None:
 
 
 def plot_fix_priority_actions() -> None:
+    """Plot likely next actions for failed or expensive evals.
+
+    Notes
+    -----
+    Reads ``fix_priority.csv`` from the staged data directory and writes
+    ``q08_what_should_we_fix_next.png``. Rows without a likely action are
+    omitted from the plot.
+    """
+
     rows = [r for r in _read_csv("fix_priority.csv") if r["likely_action"]]
     if not rows:
         unlink_figure("q08_what_should_we_fix_next.png")

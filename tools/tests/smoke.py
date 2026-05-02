@@ -18,11 +18,33 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def write_json(path: Path, payload: dict) -> None:
+    """Write a JSON payload with stable formatting.
+
+    Parameters
+    ----------
+    path
+        Destination file path.
+    payload
+        JSON-serializable object to write.
+    """
+
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n")
 
 
 def make_grading(eval_dir: Path, cond: str, passed: bool) -> None:
+    """Create a minimal synthetic eval result for one condition.
+
+    Parameters
+    ----------
+    eval_dir
+        Synthetic eval directory to populate.
+    cond
+        Condition name, such as ``"with_skill"`` or ``"without_skill"``.
+    passed
+        Whether both smoke expectations should pass.
+    """
+
     write_json(
         eval_dir / cond / "grading.json",
         {
@@ -52,6 +74,8 @@ def make_grading(eval_dir: Path, cond: str, passed: bool) -> None:
 
 
 def main() -> None:
+    """Build synthetic runs and verify the summary and comparison CLIs."""
+
     with tempfile.TemporaryDirectory(prefix="spyglass-tools-smoke-") as tmp:
         base = Path(tmp)
         skill = base / "spyglass-skill"

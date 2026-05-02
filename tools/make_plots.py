@@ -139,6 +139,14 @@ def configure_skill_root(skill_root: Path | None = None) -> None:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for single-run summary generation.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed run, output, transcript snapshot, and skill-root options.
+    """
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--run",
@@ -175,6 +183,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Generate staged data, figures, and index files for one eval run."""
+
     args = parse_args()
     configure_run(args.run, args.out)
     configure_skill_root(args.skill_root)

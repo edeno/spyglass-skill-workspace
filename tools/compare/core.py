@@ -64,6 +64,23 @@ class RunBundle(TypedDict):
 
 
 class OverlapAudit(TypedDict):
+    """Summary of eval-id overlap between a reference and current run.
+
+    Attributes
+    ----------
+    old_run_id, new_run_id
+        Stable run identifiers used in comparison outputs.
+    old_total, new_total
+        Number of eval IDs observed in each run.
+    n_overlap
+        Number of eval IDs present in both runs.
+    overlap_eval_ids
+        Sorted eval IDs included in overlap-only deltas.
+    old_only, new_only
+        Sorted eval IDs excluded from deltas because they appear in only one
+        run.
+    """
+
     old_run_id: str
     new_run_id: str
     old_total: int
@@ -75,6 +92,24 @@ class OverlapAudit(TypedDict):
 
 
 class PerEvalPair(TypedDict):
+    """Joined old/new measurements for one overlap eval.
+
+    Attributes
+    ----------
+    eval_id
+        Stable eval identifier used as the join key.
+    eval_name, stage, tier, difficulty, intent
+        Catalog metadata copied from the current run when available and from
+        the reference run otherwise.
+    ws_* and bs_*
+        With-skill and baseline measurements for the old and new runs.
+    outcome_old, outcome_new
+        Four-cell outcome labels for the old and new runs.
+    ws_transition, bs_transition
+        Pass/fail transition labels, or ``None`` when a condition is missing
+        in either run.
+    """
+
     eval_id: int
     eval_name: str
     stage: str
