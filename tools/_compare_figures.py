@@ -480,7 +480,7 @@ def plot_cost_shift_by_transition(figures_dir: Path, data_dir: Path) -> None:
             continue
         # Deterministic jitter so points don't stack visually but the figure
         # is reproducible run to run.
-        jitter = [_pseudo_jitter(rng_seed, eid) for eid, _ in buckets[bucket]]
+        jitter = [_deterministic_jitter(rng_seed, eid) for eid, _ in buckets[bucket]]
         rng_seed += n
         ax.scatter(
             deltas,
@@ -689,7 +689,7 @@ def plot_routing_shift(figures_dir: Path, data_dir: Path) -> None:
     plt.close(fig)
 
 
-def _pseudo_jitter(seed: int, eval_id: int) -> float:
+def _deterministic_jitter(seed: int, eval_id: int) -> float:
     """Deterministic jitter in [-0.18, 0.18] keyed on (seed, eval_id)."""
     h = (seed * 2654435761 + eval_id * 40503) & 0xFFFFFFFF
     return (h / 0xFFFFFFFF - 0.5) * 0.36

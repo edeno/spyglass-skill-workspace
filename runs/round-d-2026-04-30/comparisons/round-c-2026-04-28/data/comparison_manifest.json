@@ -340,7 +340,7 @@
       "filename": "figures/c10_is_intent_balanced.png",
       "family": "category",
       "priority": "primary",
-      "purpose": "Two-panel view of eval-set balance and per-intent skill-lift; restraint intents are hatched so a positive lift does not read as a win without inspection.",
+      "purpose": "Three-panel view: eval-set balance per intent, per-intent skill-lift (restraint intents hatched so positive lift does not read as a win without inspection), and ws activation rates from new-run transcripts.",
       "classification_source": "override"
     }
   ]

@@ -118,9 +118,9 @@ COMPARISON_MANIFEST_OVERRIDES: dict[str, tuple[str, str, str]] = {
     "figures/c10_is_intent_balanced.png": (
         "category",
         "primary",
-        "Two-panel view of eval-set balance and per-intent skill-lift; "
-        "restraint intents are hatched so a positive lift does not read as "
-        "a win without inspection.",
+        "Three-panel view: eval-set balance per intent, per-intent skill-lift "
+        "(restraint intents hatched so positive lift does not read as a win "
+        "without inspection), and ws activation rates from new-run transcripts.",
     ),
     "data/regression_review.csv": (
         "fix_priority",
@@ -599,9 +599,6 @@ def _expectation_text(expectation: object) -> str:
     return repr(expectation)
 
 
-_INTENT_ORDER = INTENT_VOCAB
-
-
 def write_intent_balance_csv(
     out_data: Path,
     pairs: list[PerEvalPair],
@@ -655,8 +652,8 @@ def write_intent_balance_csv(
     refs = expected_refs or {}
     intents = sorted({p["intent"] for p in pairs})
     # Stable order: known intents in the canonical order, then any extras.
-    ordered = [i for i in _INTENT_ORDER if i in intents]
-    ordered += [i for i in intents if i not in _INTENT_ORDER]
+    ordered = [i for i in INTENT_VOCAB if i in intents]
+    ordered += [i for i in intents if i not in INTENT_VOCAB]
 
     columns = [
         "intent",
