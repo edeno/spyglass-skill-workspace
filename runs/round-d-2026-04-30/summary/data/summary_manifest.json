@@ -8,6 +8,14 @@
     "audience": "data"
   },
   {
+    "filename": "SUMMARY.md",
+    "family": "headline",
+    "priority": "primary",
+    "purpose": "Human-authored narrative summary and recommendations.",
+    "classification_source": "override",
+    "audience": "data"
+  },
+  {
     "filename": "data/baseline_source_split.json",
     "family": "headline",
     "priority": "secondary",
