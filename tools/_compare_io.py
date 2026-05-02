@@ -158,7 +158,7 @@ def load_run_bundle(run_dir: Path) -> RunBundle:
 def _bucket_by_eid_cond(table):
     """Pre-bucket a (batch, eval_id, cond) -> value table by (eval_id, cond).
 
-    Lets `_sum_numeric` look up an eval's tokens or duration in O(1)
+    Lets `_bucketed_sum` look up an eval's tokens or duration in O(1)
     instead of scanning the whole table per call. Same return shape works
     for ints (timing) and floats (duration).
     """
