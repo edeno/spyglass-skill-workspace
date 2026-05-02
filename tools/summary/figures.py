@@ -9,8 +9,9 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from _aggregations import collect_behavioral, delta_color, summarize_benchmarks
-from _schemas import (
+from common import read_csv as _read_csv_file
+from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
+from schemas import (
     ANNOTATION_FONTSIZE,
     FIGURE_DPI,
     GRID_STYLE,
@@ -24,9 +25,8 @@ from _schemas import (
     PerEvalResult,
     TranscriptRecord,
 )
-from _transcripts import TRACKED_SCRIPT_ROLES, TRACKED_SCRIPTS, write_transcript_stats
-from _util import read_csv as _util_read_csv
-from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
+from summary.aggregations import collect_behavioral, delta_color, summarize_benchmarks
+from transcripts import TRACKED_SCRIPT_ROLES, TRACKED_SCRIPTS, write_transcript_stats
 
 _UNCONFIGURED = Path("/__not_configured__")
 OUT: Path = _UNCONFIGURED
@@ -1000,7 +1000,7 @@ def unlink_figure(name: str) -> None:
 
 
 def _read_csv(name: str) -> list[dict[str, str]]:
-    return _util_read_csv(data_path(name))
+    return _read_csv_file(data_path(name))
 
 
 def _split_items(cell: str) -> list[str]:

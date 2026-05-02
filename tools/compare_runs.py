@@ -15,7 +15,15 @@ import contextlib
 import shutil
 from pathlib import Path
 
-from _compare_figures import (
+from compare.core import (
+    build_per_eval_pairs,
+    compute_overlap,
+    load_eval_catalog,
+    load_expected_resources,
+    load_routing_records,
+    load_run_bundle,
+)
+from compare.figures import (
     plot_category_shift,
     plot_cost_shift_by_transition,
     plot_headline_shift,
@@ -27,15 +35,7 @@ from _compare_figures import (
     plot_skill_lift_change,
     plot_targeted_edits,
 )
-from _compare_io import (
-    build_per_eval_pairs,
-    compute_overlap,
-    load_eval_catalog,
-    load_expected_resources,
-    load_routing_records,
-    load_run_bundle,
-)
-from _compare_writers import (
+from compare.writers import (
     write_catalog_diff_json,
     write_category_shift_csv,
     write_comparison_manifest_json,
@@ -51,7 +51,7 @@ from _compare_writers import (
     write_targeted_edits_csvs,
     write_transitions_csv,
 )
-from _staging import commit_staged_outputs
+from staging import commit_staged_outputs
 
 
 def parse_args() -> argparse.Namespace:

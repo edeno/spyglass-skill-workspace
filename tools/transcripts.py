@@ -7,7 +7,7 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from _schemas import PerEvalResult, TranscriptRecord
+from schemas import PerEvalResult, TranscriptRecord
 
 _UNCONFIGURED = Path("/__not_configured__")
 OUT: Path = _UNCONFIGURED

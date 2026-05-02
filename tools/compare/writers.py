@@ -28,18 +28,18 @@ from collections import Counter
 from collections.abc import Mapping
 from pathlib import Path
 
-from _aggregations import exact_mcnemar_p
-from _compare_io import OverlapAudit, PerEvalPair, RunBundle
-from _schemas import (
+from common import write_csv as _write_csv
+from compare.core import OverlapAudit, PerEvalPair, RunBundle
+from schemas import (
     INTENT_VOCAB,
     REGRESSION_ROOT_CAUSES,
     ExpectedResources,
     TranscriptRecord,
 )
-from _schemas import (
+from schemas import (
     OUTCOME_BUCKETS as _OUTCOME_BUCKETS,
 )
-from _util import write_csv as _write_csv
+from summary.aggregations import exact_mcnemar_p
 
 # (family, priority, purpose) for each comparison output. New writers/figures
 # should add entries here; anything missing falls back to appendix priority
@@ -537,7 +537,7 @@ def _canonical_list_texts(values: object) -> list[str]:
     """Render a list of strings or dicts to a stable list of text representations.
 
     Output is sorted so order-only differences do not surface as catalog
-    drift. This must stay in lockstep with _canonical_list in _compare_io.py
+    drift. This must stay in lockstep with _canonical_list in compare.core.
     so the diff and the semantic hash agree on what counts as a change.
     """
     if not isinstance(values, list):
@@ -786,7 +786,7 @@ def _intent_activation_rates(
         # Exclude SKILL.md from "any spyglass ref" so opening only the skill
         # entrypoint doesn't read as 100% reference activation; that would
         # double-count against ws_skill_md_open_rate_new. Mirrors the
-        # within-run reference analysis (see tools/_writers.py).
+        # within-run reference analysis (see summary.writers).
         if any(name != "SKILL.md" and count > 0 for name, count in ref_opens.items()):
             any_ref_hits += 1
         if any(v > 0 for v in (rec.get("script_executions") or {}).values()):

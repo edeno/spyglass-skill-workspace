@@ -1,4 +1,4 @@
-"""Cross-run data join for eval-sweep comparisons.
+"""Cross-run core data model and joins for eval-sweep comparisons.
 
 Loads two runs side by side and produces overlap-only per-eval pair rows
 with rubric-drift detection, plus the auxiliary inputs the writers and
@@ -20,7 +20,9 @@ import tempfile
 from pathlib import Path
 from typing import Literal, TypedDict
 
-from _eval_io import (
+from common import discover_iterations
+from schemas import EvalCategories, ExpectedResources, TranscriptRecord
+from summary.io import (
     load_benchmarks,
     load_eval_catalog_for_run,
     load_eval_categories_from_run,
@@ -29,9 +31,7 @@ from _eval_io import (
     load_per_eval_duration_s,
     load_per_eval_timing,
 )
-from _schemas import EvalCategories, ExpectedResources, TranscriptRecord
-from _transcripts import build_agent_to_run, configure_transcripts, parse_transcripts
-from _util import discover_iterations
+from transcripts import build_agent_to_run, configure_transcripts, parse_transcripts
 
 Transition = Literal["improved", "regressed", "stable_pass", "stable_fail"]
 
@@ -646,7 +646,7 @@ def load_routing_records(bundle: RunBundle) -> dict[tuple[int, str], TranscriptR
     """Parse a run's snapshotted transcripts and key them by (eval_id, condition).
 
     Returns an empty dict if the run has no transcripts_snapshot. Uses the
-    existing _transcripts module API, which mutates module-level globals via
+    existing transcripts module API, which mutates module-level globals via
     configure_transcripts; this is safe to call sequentially for old then new
     because each call captures its records before the next reconfigure.
 

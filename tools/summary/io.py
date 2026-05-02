@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from _schemas import EvalCategories, ExpectedResources, PerEvalResult
+from schemas import EvalCategories, ExpectedResources, PerEvalResult
 
 
 def load_eval_catalog(evals_path: Path) -> list[dict]:

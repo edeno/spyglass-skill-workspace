@@ -8,17 +8,8 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from _aggregations import (
-    build_spend_by_outcome,
-    collect_behavioral,
-    count_outcomes,
-    exact_mcnemar_p,
-    summarize_benchmarks,
-)
-from _aggregations import (
-    outcome_label as _outcome_label,
-)
-from _schemas import (
+from common import write_csv as _write_csv
+from schemas import (
     AUDIENCE_OVERRIDES,
     EVAL_METADATA_COLUMNS,
     EXPENSIVE_BOTH_PASS_EXTRA_TOKEN_FLOOR,
@@ -35,9 +26,18 @@ from _schemas import (
     PerEvalResult,
     TranscriptRecord,
 )
-from _staging import commit_staged_outputs
-from _transcripts import TRACKED_SCRIPT_ROLES, TRACKED_SCRIPTS
-from _util import write_csv as _write_csv
+from staging import commit_staged_outputs
+from summary.aggregations import (
+    build_spend_by_outcome,
+    collect_behavioral,
+    count_outcomes,
+    exact_mcnemar_p,
+    summarize_benchmarks,
+)
+from summary.aggregations import (
+    outcome_label as _outcome_label,
+)
+from transcripts import TRACKED_SCRIPT_ROLES, TRACKED_SCRIPTS
 
 _UNCONFIGURED = Path("/__not_configured__")
 OUT: Path = _UNCONFIGURED
@@ -549,7 +549,7 @@ def write_reference_effectiveness_csv(
     per_eval: list[PerEvalResult],
     cats: EvalCategories,
 ) -> None:
-    """Per-reference effectiveness CSV. Plotting lives in _figures.py."""
+    """Per-reference effectiveness CSV. Plotting lives in summary.figures."""
     if records is None:
         unlink_outputs("reference_effectiveness.csv")
         return
@@ -629,7 +629,7 @@ def write_cost_effectiveness_csv(
     per_eval: list[PerEvalResult],
     timing: dict[tuple[int, int, str], int],
 ) -> None:
-    """Per-eval cost-vs-effect CSV. Plotting lives in _figures.py."""
+    """Per-eval cost-vs-effect CSV. Plotting lives in summary.figures."""
     rows = []
     for r in per_eval:
         ws_tok = timing.get((r["batch"], r["eval_id"], "with_skill"))
@@ -677,7 +677,7 @@ def write_cost_effectiveness_csv(
 def write_outcome_by_category_csv(
     cats: EvalCategories, per_eval: list[PerEvalResult]
 ) -> None:
-    """Per stage / per tier outcome cross-tab. Plotting lives in _figures.py."""
+    """Per stage / per tier outcome cross-tab. Plotting lives in summary.figures."""
     rows = []
     for kind in ("stage", "tier"):
         grouped: dict[str, list[PerEvalResult]] = defaultdict(list)
@@ -805,7 +805,7 @@ def write_headroom_evals_csv(
     )
 
 def write_eval_coverage_csv(cats: EvalCategories, per_eval: list[PerEvalResult]) -> None:
-    """Stage × tier eval-count matrix. Plotting lives in _figures.py."""
+    """Stage × tier eval-count matrix. Plotting lives in summary.figures."""
     by_pair: Counter = Counter()
     for r in per_eval:
         c = cats.get(r["eval_id"], {})
@@ -864,7 +864,7 @@ def write_reference_expected_used_csv(
     records: list[TranscriptRecord] | None,
     expected_refs: ExpectedResources,
 ) -> None:
-    """Reference-expected-vs-used CSV. Plotting lives in _figures.py."""
+    """Reference-expected-vs-used CSV. Plotting lives in summary.figures."""
     if not expected_refs or records is None:
         unlink_outputs("reference_expected_used.csv")
         return
@@ -1399,7 +1399,7 @@ def write_fix_priority_csv(
     expected_scripts: ExpectedResources,
     timing: dict[tuple[int, int, str], int],
 ) -> None:
-    """Decision table for next skill edits. Plotting lives in _figures.py."""
+    """Decision table for next skill edits. Plotting lives in summary.figures."""
     refs_observed = refs_by_eval is not None
     scripts_observed = scripts_by_eval is not None
     refs_by_eval = refs_by_eval or {}

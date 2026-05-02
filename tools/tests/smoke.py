@@ -927,7 +927,7 @@ def _smoke_compare_runs(base: Path) -> None:
     # in plot_cost_shift_by_transition would surface here.
     sys.path.insert(0, str(ROOT / "tools"))
     try:
-        from _compare_figures import _read_csv as _read
+        from compare.figures import _read_csv as _read
     finally:
         sys.path.pop(0)
     cost_csv_rows = _read(out / "data/cost_shift.csv")
@@ -1239,7 +1239,7 @@ def _smoke_compare_runs(base: Path) -> None:
     # the end-to-end fixture only exercises the rubric branch.
     sys.path.insert(0, str(ROOT / "tools"))
     try:
-        from _compare_writers import _classify_regression
+        from compare.writers import _classify_regression
     finally:
         sys.path.pop(0)
 

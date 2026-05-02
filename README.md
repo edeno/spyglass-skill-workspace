@@ -81,7 +81,10 @@ Terms used throughout SUMMARY.md / BATCHES.md / findings.md:
 ```
 tools/                                 run-agnostic analysis scripts
 ├── make_plots.py                      regenerates all figures for a given run
+├── compare_runs.py                    compares two runs on their overlap set
 ├── snapshot_transcripts.py            captures a live Claude Code session's transcripts into a run
+├── summary/                           single-run summary implementation
+├── compare/                           cross-run comparison implementation
 └── tests/smoke.py                     synthetic regression smoke test for tools/
 
 runs/

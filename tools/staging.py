@@ -1,7 +1,7 @@
 """Atomic publish helper for staged → final output dirs and files.
 
-Used by both single-run summary generation (tools/_writers.py) and cross-run
-comparison generation (tools/compare_runs.py). The staging pattern stages
+Used by both single-run summary generation (summary.writers) and cross-run
+comparison generation (compare_runs.py). The staging pattern stages
 outputs to .data_tmp/ / .figures_tmp/ / .INDEX.tmp under the destination dir,
 then renames them into place atomically — backing up any existing finals to
 .previous and rolling those back on failure.
