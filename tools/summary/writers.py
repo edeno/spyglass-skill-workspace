@@ -164,13 +164,10 @@ def write_batch_summary_csv(benchmarks: dict[int, dict]) -> None:
         ws = cfg["with_skill"]
         bs = cfg["without_skill"]
         n = ws["n_runs"]
-        bs_n = bs["n_runs"]
-        ws_full_rate = 100 * ws["evals_full_pass"] / n if n else 0.0
-        bs_full_rate = 100 * bs["evals_full_pass"] / bs_n if bs_n else 0.0
-        ws_exp_t = ws["expectations_total"]
-        bs_exp_t = bs["expectations_total"]
-        ws_expectation_rate = 100 * ws["expectations_passed"] / ws_exp_t if ws_exp_t else 0.0
-        bs_expectation_rate = 100 * bs["expectations_passed"] / bs_exp_t if bs_exp_t else 0.0
+        ws_full_rate = 100 * ws["evals_full_pass"] / n
+        bs_full_rate = 100 * bs["evals_full_pass"] / n
+        ws_expectation_rate = 100 * ws["expectations_passed"] / ws["expectations_total"]
+        bs_expectation_rate = 100 * bs["expectations_passed"] / bs["expectations_total"]
         ws_b_p, ws_b_t, bs_b_p, bs_b_t = collect_behavioral(WORKSPACE, b)
         ws_b_rate = 100 * ws_b_p / ws_b_t if ws_b_t else 0.0
         bs_b_rate = 100 * bs_b_p / bs_b_t if bs_b_t else 0.0

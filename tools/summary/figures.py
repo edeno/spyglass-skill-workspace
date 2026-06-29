@@ -117,11 +117,15 @@ def plot_per_batch_pass_rate(benchmarks: dict[int, dict]) -> None:
     ws_rates, bs_rates, n_evals = [], [], []
     for b in BATCH_ORDER:
         cfg = benchmarks[b]["configurations"]
-        ws_n = cfg["with_skill"]["n_runs"]
-        bs_n = cfg["without_skill"]["n_runs"]
-        ws_rates.append(100 * cfg["with_skill"]["evals_full_pass"] / ws_n if ws_n else 0.0)
-        bs_rates.append(100 * cfg["without_skill"]["evals_full_pass"] / bs_n if bs_n else 0.0)
-        n_evals.append(ws_n)
+        ws_rates.append(
+            100 * cfg["with_skill"]["evals_full_pass"] / cfg["with_skill"]["n_runs"]
+        )
+        bs_rates.append(
+            100
+            * cfg["without_skill"]["evals_full_pass"]
+            / cfg["without_skill"]["n_runs"]
+        )
+        n_evals.append(cfg["with_skill"]["n_runs"])
     ax.bar(x - width / 2, ws_rates, width, label="with skill", color=WONG["ws"])
     ax.bar(x + width / 2, bs_rates, width, label="baseline", color=WONG["bs"])
     for i, (ws_r, bs_r) in enumerate(zip(ws_rates, bs_rates, strict=True)):
@@ -184,10 +188,16 @@ def plot_delta_per_batch(benchmarks: dict[int, dict]) -> None:
     expectation_deltas = []
     for b in BATCH_ORDER:
         cfg = benchmarks[b]["configurations"]
-        ws_t = cfg["with_skill"]["expectations_total"]
-        bs_t = cfg["without_skill"]["expectations_total"]
-        ws_pp = 100 * cfg["with_skill"]["expectations_passed"] / ws_t if ws_t else 0.0
-        bs_pp = 100 * cfg["without_skill"]["expectations_passed"] / bs_t if bs_t else 0.0
+        ws_pp = (
+            100
+            * cfg["with_skill"]["expectations_passed"]
+            / cfg["with_skill"]["expectations_total"]
+        )
+        bs_pp = (
+            100
+            * cfg["without_skill"]["expectations_passed"]
+            / cfg["without_skill"]["expectations_total"]
+        )
         expectation_deltas.append(ws_pp - bs_pp)
     x_max = max(max(behavioral_deltas, default=0), max(expectation_deltas, default=0), 0) + 5
     for ax, deltas, title in [
@@ -356,8 +366,8 @@ def plot_cumulative_summary(benchmarks: dict[int, dict]) -> None:
     y_positions = np.arange(len(rows))
     bar_height = 0.36
     for i, (_, ws_p, ws_t, bs_p, bs_t) in enumerate(rows):
-        ws_pct = 100 * ws_p / ws_t if ws_t else 0.0
-        bs_pct = 100 * bs_p / bs_t if bs_t else 0.0
+        ws_pct = 100 * ws_p / ws_t
+        bs_pct = 100 * bs_p / bs_t
         ax.barh(y_positions[i] - bar_height / 2, ws_pct, bar_height, color=WONG["ws"])
         ax.barh(y_positions[i] + bar_height / 2, bs_pct, bar_height, color=WONG["bs"])
         ax.text(
